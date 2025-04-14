@@ -65,3 +65,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 /synthetizer/worklet_processor.min.js.map
+/spessasynth_lib.wiki/
