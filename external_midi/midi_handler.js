@@ -1,5 +1,5 @@
 import { Synthetizer } from "../synthetizer/synthetizer.js";
-import { SpessaSynthCoreUtils as util } from "../spessasynth_core";
+import { SpessaSynthCoreUtils as util } from "spessasynth_core";
 import { consoleColors } from "../utils/other.js";
 
 /**

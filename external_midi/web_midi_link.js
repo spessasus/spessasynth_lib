@@ -1,6 +1,6 @@
 import { Synthetizer } from "../synthetizer/synthetizer.js";
 import { consoleColors } from "../utils/other.js";
-import { SpessaSynthCoreUtils } from "../spessasynth_core";
+import { SpessaSynthCoreUtils } from "spessasynth_core";
 
 /**
  * web_midi_link.js

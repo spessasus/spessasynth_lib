@@ -1,7 +1,9 @@
 import { consoleColors } from "../utils/other.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
+    BasicMIDI,
     masterParameterType,
+    MIDI,
     MIDI_CHANNEL_COUNT,
     SpessaSynthCoreUtils as util,
     SpessaSynthLogging,
@@ -71,6 +73,8 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
             });
         };
         
+        // start rendering data
+        const startRenderingData = opts?.startRenderingData;
         /**
          * The snapshot that synth was restored from
          * @type {SynthesizerSnapshot|undefined}
@@ -159,9 +163,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
             });
         };
         
-        // start rendering data
-        const startRenderingData = opts?.startRenderingData;
-        
         // if sent, start rendering
         if (startRenderingData)
         {
@@ -204,7 +205,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                     catch (e)
                     {
                         console.error(e);
-                        postSeq(SpessaSynthSequencerReturnMessageType.midiEvent, e);
+                        postSeq(SpessaSynthSequencerReturnMessageType.midiError, e);
                     }
                 });
             }
@@ -373,11 +374,30 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                     case SpessaSynthSequencerMessageType.loadNewSongList:
                         try
                         {
-                            seq.loadNewSongList(messageData[0], messageData[1]);
+                            /**
+                             * @type {(BasicMIDI|{binary: ArrayBuffer, altName: string})[]}
+                             */
+                            const sList = messageData[0];
+                            const songMap = sList.map(s =>
+                            {
+                                if (s.duration)
+                                {
+                                    return s;
+                                }
+                                return new MIDI(s.binary, s.altName);
+                            });
+                            seq.loadNewSongList(songMap, messageData[1]);
                         }
                         catch (e)
                         {
                             console.error(e);
+                            this.postMessageToMainThread({
+                                messageType: returnMessageType.sequencerSpecific,
+                                messageData: {
+                                    messageType: SpessaSynthSequencerReturnMessageType.midiError,
+                                    messageData: e
+                                }
+                            });
                         }
                         break;
                     

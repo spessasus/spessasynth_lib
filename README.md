@@ -52,6 +52,22 @@ document.getElementById("button").onclick = async () =>
   - Supported by all modern browsers
 - **High-performance mode:** Play Rush E! *note: may kill your browser ;)*
 
+#### TODO
+- Enhance the built-in chorus and reverb effects (suggestions welcome!)
+
+### Special Thanks
+- [FluidSynth](https://github.com/FluidSynth/fluidsynth) - for the source code that helped implement functionality and fixes
+- [Polyphone](https://www.polyphone-soundfonts.com/) - for the soundfont testing and editing tool
+- [Meltysynth](https://github.com/sinshu/meltysynth) - for the initial low-pass filter implementation
+- [RecordingBlogs](https://www.recordingblogs.com/) - for detailed explanations on MIDI messages
+- [stbvorbis.js](https://github.com/hajimehoshi/stbvorbis.js) - for the Vorbis decoder
+- [fflate](https://github.com/101arrowz/fflate) - for the MIT DEFLATE implementation
+- [foo_midi](https://github.com/stuerp/foo_midi) - for useful resources on XMF file format
+- [Falcosoft](https://falcosoft.hu) - for help with the RMIDI format
+- [Christian Collins](https://schristiancollins.com) - for various bug reports regarding the synthesizer
+- **And You!** - for checking out this project. I hope you like it :)
+
+
 # License
 Copyright © 2025 Spessasus
 Licensed under the Apache-2.0 License.

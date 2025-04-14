@@ -13,7 +13,7 @@ import {
     SpessaSynthCoreUtils as util,
     SynthesizerSnapshot,
     VOICE_CAP
-} from "../spessasynth_core";
+} from "spessasynth_core";
 import { EventHandler } from "./synth_event_handler.js";
 import { FancyChorus } from "./audio_effects/fancy_chorus.js";
 import { getReverbProcessor } from "./audio_effects/reverb.js";
@@ -754,7 +754,7 @@ export class Synthetizer
     }
     
     /**
-     * Transposes the synthetizer's pitch by given semitones amount (percussion channels don’t get affected).
+     * Transposes the synthesizer's pitch by given the semitone amount (percussion channels don’t get affected).
      * @param semitones {number} the semitones to transpose by.
      * It can be a floating point number for more precision.
      */
@@ -789,7 +789,7 @@ export class Synthetizer
     
     /**
      * Sets the master stereo panning.
-     * @param pan {number} (-1 to 1), the pan (-1 is left, 0 is midde, 1 is right)
+     * @param pan {number} (-1 to 1), the pan (-1 is left, 0 is middle, 1 is right)
      */
     setMasterPan(pan)
     {

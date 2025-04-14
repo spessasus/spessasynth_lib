@@ -1,4 +1,4 @@
-import { synthDisplayTypes } from "../spessasynth_core";
+import { synthDisplayTypes } from "spessasynth_core";
 
 /**
  * synth_event_handler.js

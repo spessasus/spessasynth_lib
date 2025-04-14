@@ -6,7 +6,7 @@ import {
     MIDI,
     MIDIMessage,
     SpessaSynthCoreUtils as util
-} from "../spessasynth_core";
+} from "spessasynth_core";
 import { workletMessageType } from "../synthetizer/worklet_message.js";
 import {
     SongChangeType,

@@ -1,6 +1,6 @@
 import { workletMessageType } from "./worklet_message.js";
 import { WorkletSoundfontManagerMessageType } from "./sfman_message.js";
-import { SpessaSynthCoreUtils } from "../spessasynth_core";
+import { SpessaSynthCoreUtils } from "spessasynth_core";
 
 export class SoundfontManager
 {

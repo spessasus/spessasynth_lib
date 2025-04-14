@@ -3,7 +3,9 @@
 # temporary files which can be created if a process still has a handle open of a deleted file
 .fuse_hidden*
 
-node_modules/
+node_modules
+examples
+spessasynth_lib.wiki
 
 # KDE directory preferences
 .directory

@@ -1,5 +1,5 @@
 import { rbCompressed } from "./rb_compressed.min.js";
-import { SpessaSynthCoreUtils } from "../spessasynth_core";
+import { SpessaSynthCoreUtils } from "spessasynth_core";
 
 // convert the base64 string to array buffer
 const binaryString = atob(rbCompressed);

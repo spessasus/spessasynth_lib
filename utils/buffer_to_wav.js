@@ -6,7 +6,7 @@
  * @property {string|undefined} genre - the song's genre
  */
 
-import { audioToWav } from "../spessasynth_core";
+import { audioToWav } from "spessasynth_core";
 
 // noinspection JSUnusedGlobalSymbols
 /**
