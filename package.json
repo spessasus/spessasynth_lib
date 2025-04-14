@@ -48,6 +48,6 @@
     "src"
   ],
   "dependencies": {
-    "spessasynth_core": "file:../spessasynth_core"
+    "spessasynth_core": "latest"
   }
 }
