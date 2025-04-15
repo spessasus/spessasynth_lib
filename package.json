@@ -1,6 +1,6 @@
 {
   "name": "spessasynth_lib",
-  "version": "3.26.5",
+  "version": "3.26.6",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
   "browser": "index.js",
   "type": "module",
@@ -41,15 +41,6 @@
     "email": "spesekspesek@gmail.com"
   },
   "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
-  "files": [
-    "index.js",
-    "LICENSE",
-    "README.md",
-    "sequencer",
-    "synthetizer",
-    "utils",
-    "external_midi"
-  ],
   "dependencies": {
     "spessasynth_core": "latest"
   }

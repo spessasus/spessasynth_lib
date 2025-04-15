@@ -2,6 +2,7 @@ import { consoleColors } from "../utils/other.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
+    loadSoundFont,
     masterParameterType,
     MIDI,
     MIDI_CHANNEL_COUNT,
@@ -88,105 +89,107 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
          * @type {SpessaSynthProcessor}
          */
         this.synthesizer = new SpessaSynthProcessor(
-            opts.soundfont,                          // initial sound bank
-            sampleRate,                              // AudioWorkletGlobalScope
+            sampleRate, // AudioWorkletGlobalScope
             {
-                eventCall: (t, d) =>
-                {
-                    postSyn(returnMessageType.eventCall, {
-                        eventName: t,
-                        eventData: d
-                    });
-                },
-                ready: this.postReady.bind(this),
-                channelPropertyChange: (p, n) => postSyn(returnMessageType.channelPropertyChange, [n, p]),
-                masterParameterChange: (t, v) => postSyn(returnMessageType.masterParameterChange, [t, v])
-            },
-            !this.oneOutputMode,                     // one output mode disables effects
-            opts?.enableEventSystem,                 // enable message port?
-            currentTime,                             // AudioWorkletGlobalScope, sync with audioContext time
-            MIDI_CHANNEL_COUNT,                      // midi channel count (16)
-            snapshot
+                effectsEnabled: !this.oneOutputMode,         // one output mode disables effects
+                enableEventSystem: opts?.enableEventSystem,  // enable message port?
+                midiChannels: MIDI_CHANNEL_COUNT,            // midi channel count (16)
+                initialTime: currentTime                     // AudioWorkletGlobalScope, sync with audioContext time
+            }
         );
-        
-        // initialize the sequencer engine
-        this.sequencer = new SpessaSynthSequencer(this.synthesizer);
-        
-        const postSeq = (type, data) =>
+        this.synthesizer.onEventCall = (t, d) =>
         {
-            this.postMessageToMainThread({
-                messageType: returnMessageType.sequencerSpecific,
-                messageData: {
-                    messageType: type,
-                    messageData: data
-                }
+            postSyn(returnMessageType.eventCall, {
+                eventName: t,
+                eventData: d
             });
         };
+        this.synthesizer.onChannelPropertyChange = (p, n) => postSyn(returnMessageType.channelPropertyChange, [n, p]);
+        this.synthesizer.onMasterParameterChange = (t, v) => postSyn(returnMessageType.masterParameterChange, [t, v]);
         
-        // receive messages from the main thread
-        this.port.onmessage = e => this.handleMessage(e.data);
+        const bank = loadSoundFont(opts.soundfont);
+        this.synthesizer.soundfontManager.reloadManager(bank);
         
-        // sequencer events
-        this.sequencer.onMIDIMessage = m =>
+        this.synthesizer.processorInitialized.then(() =>
         {
-            postSeq(SpessaSynthSequencerReturnMessageType.midiEvent, m);
-        };
-        this.sequencer.onTimeChange = t =>
-        {
-            postSeq(SpessaSynthSequencerReturnMessageType.timeChange, t);
-        };
-        this.sequencer.onPlaybackStop = p =>
-        {
-            postSeq(SpessaSynthSequencerReturnMessageType.pause, p);
-        };
-        this.sequencer.onSongChange = (i, a) =>
-        {
-            postSeq(SpessaSynthSequencerReturnMessageType.songChange, [i, a]);
-        };
-        this.sequencer.onMetaEvent = (e, i) =>
-        {
-            postSeq(SpessaSynthSequencerReturnMessageType.metaEvent, [e, i]);
-        };
-        this.sequencer.onLoopCountChange = c =>
-        {
-            postSeq(SpessaSynthSequencerReturnMessageType.loopCountChange, c);
-        };
-        this.sequencer.onSongListChange = l =>
-        {
-            const midiDataList = l.map(s => new MIDIData(s));
-            this.postMessageToMainThread({
-                messageType: returnMessageType.sequencerSpecific,
-                messageData: {
-                    messageType: SpessaSynthSequencerReturnMessageType.songListChange,
-                    messageData: midiDataList
-                }
-            });
-        };
-        
-        // if sent, start rendering
-        if (startRenderingData)
-        {
+            // initialize the sequencer engine
+            this.sequencer = new SpessaSynthSequencer(this.synthesizer);
+            
+            const postSeq = (type, data) =>
+            {
+                this.postMessageToMainThread({
+                    messageType: returnMessageType.sequencerSpecific,
+                    messageData: {
+                        messageType: type,
+                        messageData: data
+                    }
+                });
+            };
+            
+            // receive messages from the main thread
+            this.port.onmessage = e => this.handleMessage(e.data);
+            
+            // sequencer events
+            this.sequencer.onMIDIMessage = m =>
+            {
+                postSeq(SpessaSynthSequencerReturnMessageType.midiEvent, m);
+            };
+            this.sequencer.onTimeChange = t =>
+            {
+                postSeq(SpessaSynthSequencerReturnMessageType.timeChange, t);
+            };
+            this.sequencer.onPlaybackStop = p =>
+            {
+                postSeq(SpessaSynthSequencerReturnMessageType.pause, p);
+            };
+            this.sequencer.onSongChange = (i, a) =>
+            {
+                postSeq(SpessaSynthSequencerReturnMessageType.songChange, [i, a]);
+            };
+            this.sequencer.onMetaEvent = (e, i) =>
+            {
+                postSeq(SpessaSynthSequencerReturnMessageType.metaEvent, [e, i]);
+            };
+            this.sequencer.onLoopCountChange = c =>
+            {
+                postSeq(SpessaSynthSequencerReturnMessageType.loopCountChange, c);
+            };
+            this.sequencer.onSongListChange = l =>
+            {
+                const midiDataList = l.map(s => new MIDIData(s));
+                this.postMessageToMainThread({
+                    messageType: returnMessageType.sequencerSpecific,
+                    messageData: {
+                        messageType: SpessaSynthSequencerReturnMessageType.songListChange,
+                        messageData: midiDataList
+                    }
+                });
+            };
+            
             if (snapshot !== undefined)
             {
                 this.synthesizer.applySynthesizerSnapshot(snapshot);
             }
             
-            util.SpessaSynthInfo("%cRendering enabled! Starting render.", consoleColors.info);
-            if (startRenderingData.parsedMIDI)
+            // if sent, start rendering
+            if (startRenderingData)
             {
-                if (startRenderingData?.loopCount !== undefined)
+                
+                util.SpessaSynthInfo("%cRendering enabled! Starting render.", consoleColors.info);
+                if (startRenderingData.parsedMIDI)
                 {
-                    this.sequencer.loopCount = startRenderingData?.loopCount;
-                    this.sequencer.loop = true;
-                }
-                else
-                {
-                    this.sequencer.loop = false;
-                }
-                // set voice cap to unlimited
-                this.synthesizer.voiceCap = Infinity;
-                this.synthesizer.processorInitialized.then(() =>
-                {
+                    if (startRenderingData?.loopCount !== undefined)
+                    {
+                        this.sequencer.loopCount = startRenderingData?.loopCount;
+                        this.sequencer.loop = true;
+                    }
+                    else
+                    {
+                        this.sequencer.loop = false;
+                    }
+                    // set voice cap to unlimited
+                    this.synthesizer.voiceCap = Infinity;
+                    
                     /**
                      * set options
                      * @type {SequencerOptions}
@@ -207,9 +210,11 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                         console.error(e);
                         postSeq(SpessaSynthSequencerReturnMessageType.midiError, e);
                     }
-                });
+                }
             }
-        }
+            
+            this.postReady();
+        });
     }
     
     postReady()
@@ -316,7 +321,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                 break;
             
             case workletMessageType.addNewChannel:
-                this.synthesizer.createWorkletChannel(true);
+                this.synthesizer.createMidiChannel(true);
                 break;
             
             case workletMessageType.debugMessage:
@@ -493,10 +498,12 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                     const sfManager = this.synthesizer.soundfontManager;
                     const type = data[0];
                     const messageData = data[1];
+                    let font;
                     switch (type)
                     {
                         case WorkletSoundfontManagerMessageType.addNewSoundFont:
-                            sfManager.addNewSoundFont(messageData[0], messageData[1], messageData[2]);
+                            font = loadSoundFont(messageData[0]);
+                            sfManager.addNewSoundFont(font, messageData[1], messageData[2]);
                             this.postMessageToMainThread({
                                 messageType: returnMessageType.isFullyInitialized,
                                 messageData: undefined
@@ -504,7 +511,8 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                             break;
                         
                         case WorkletSoundfontManagerMessageType.reloadSoundFont:
-                            sfManager.reloadManager(messageData);
+                            font = loadSoundFont(messageData);
+                            sfManager.reloadManager(font);
                             this.postMessageToMainThread({
                                 messageType: returnMessageType.isFullyInitialized,
                                 messageData: undefined
@@ -526,7 +534,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                         messageData: e
                     });
                 }
-                this.synthesizer.clearSoundFont(true, false);
                 break;
             
             case workletMessageType.keyModifierManager:

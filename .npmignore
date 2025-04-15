@@ -3,10 +3,6 @@
 # temporary files which can be created if a process still has a handle open of a deleted file
 .fuse_hidden*
 
-node_modules/
-examples/
-spessasynth_lib.wiki/
-
 # KDE directory preferences
 .directory
 
@@ -66,6 +62,11 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# my things
 /synthetizer/worklet_processor.min.js.map
 /.github/
+/node_modules/
+/examples/
+/spessasynth_lib.wiki/
 /docs/
