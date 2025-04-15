@@ -70,3 +70,7 @@ $RECYCLE.BIN/
 /examples/
 /spessasynth_lib.wiki/
 /docs/
+
+!build.sh
+!debug_disable.sh
+!debug_enable.sh
