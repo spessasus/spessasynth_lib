@@ -1,8 +1,6 @@
 ## This is the sequencer's folder.
 
-The code here is responsible for playing back the parsed MIDI sequence with the synthesizer.
-
-- `sequencer_engine` - the core sequencer engine, currently runs in audio worklet
+The code here is responsible for wrapping the `SpessaSynthSequencer` from `spessasynth_core`.
 
 ### Message protocol:
 
@@ -29,4 +27,4 @@ The `messageData` is set to the sequencer's return message.
 
 ### Process tick
 
-`processTick` is called every time the `process` method is called via `SpessaSynthProcessor.processTickCallback`.
+`processTick` is called every time the `process` method is called via `sequencer.processTick()` every rendering quantum.
