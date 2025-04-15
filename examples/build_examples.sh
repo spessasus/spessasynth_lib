@@ -17,6 +17,8 @@ mkdir -p $OUTPUT_DIR
 
 cp examples.css "$OUTPUT_DIR/examples.css"
 
+ln ../synthetizer/worklet_processor.min.js "$OUTPUT_DIR/worklet_processor.min.js"
+
 # read template
 TEMPLATE_CONTENT=$(<"$TEMPLATE_FILE")
 
