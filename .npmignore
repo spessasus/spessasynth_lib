@@ -68,3 +68,4 @@ $RECYCLE.BIN/
 *.lnk
 /synthetizer/worklet_processor.min.js.map
 /.github/
+/docs/

@@ -1,11 +1,11 @@
 // import the modules
-import { WORKLET_URL_ABSOLUTE } from "../src/spessasynth_lib/synthetizer/worklet_wrapper/worklet_url.js";
-import { Synthetizer } from "../src/spessasynth_lib/synthetizer/worklet_wrapper/synthetizer.js";
-import { audioBufferToWav } from "../src/spessasynth_lib/utils/buffer_to_wav.js";
-import { MIDI } from "../src/spessasynth_lib/midi/midi_loader.js";
+import { Synthetizer } from "../../synthetizer/synthetizer.js";
+import { audioBufferToWav } from "../../utils/buffer_to_wav.js";
+import { MIDI } from "spessasynth_core";
+import { EXAMPLE_SOUNDFONT_PATH, EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 
 // load the soundfont
-fetch("../soundfonts/GeneralUserGS.sf3").then(async response =>
+fetch(EXAMPLE_SOUNDFONT_PATH).then(async response =>
 {
     // load the soundfont into an array buffer
     let soundFontArrayBuffer = await response.arrayBuffer();
@@ -34,10 +34,7 @@ fetch("../soundfonts/GeneralUserGS.sf3").then(async response =>
             // (for the sound to fade away rather than cut)
         });
         // add the worklet
-        await context.audioWorklet.addModule(new URL(
-            "../src/spessasynth_lib/" + WORKLET_URL_ABSOLUTE,
-            import.meta.url
-        ));
+        await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
         
         // Here we disable the event system to as it's unnecessary.
         // Also, we need to pass the parsed MIDI here for the synthesizer to start rendering it

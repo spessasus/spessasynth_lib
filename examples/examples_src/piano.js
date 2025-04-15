@@ -1,6 +1,6 @@
 // import the modules
-import { Synthetizer } from "../src/spessasynth_lib/synthetizer/worklet_wrapper/synthetizer.js";
-import { WORKLET_URL_ABSOLUTE } from "../src/spessasynth_lib/synthetizer/worklet_wrapper/worklet_url.js";
+import { Synthetizer } from "../../synthetizer/synthetizer.js";
+import { EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 
 document.getElementById("soundfont_input").onchange = async e =>
 {
@@ -13,7 +13,7 @@ document.getElementById("soundfont_input").onchange = async e =>
     const soundFontBuffer = await file.arrayBuffer(); // convert to array buffer,
     // create the context and add audio worklet
     const context = new AudioContext();
-    await context.audioWorklet.addModule(new URL("../src/spessasynth_lib/" + WORKLET_URL_ABSOLUTE, import.meta.url));
+    await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
     const synth = new Synthetizer(context.destination, soundFontBuffer);     // create the synthesizer
     await synth.isReady;
     // create a 36-key piano

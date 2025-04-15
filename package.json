@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./minify_processor.sh"
+    "build": "./build.sh"
   },
   "repository": {
     "type": "git",
