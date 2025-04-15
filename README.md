@@ -44,8 +44,8 @@ document.getElementById("button").onclick = async () =>
 
 ### On top of that...
 - **Modular design:** *Easy integration into other projects (load what you need)*
-- **[Detailed documentation:](https://github.com/spessasus/spessasynth_lib/wiki/Home)** *With [examples!](https://github.com/spessasus/spessasynth_lib/wiki/Usage-As-Library#examples)*
-- **Easy to Use:** *Basic setup is just [two lines of code!](https://github.com/spessasus/spessasynth_lib/wiki/Usage-As-Library#minimal-setup)*
+- **[Detailed documentation:](https://github.com/spessasus/spessasynth_lib/wiki/Home)** *With [examples!](https://github.com/spessasus/spessasynth_lib/wiki/Getting-Started#examples)*
+- **Easy to Use:** *Basic setup is just [two lines of code!](https://github.com/spessasus/spessasynth_lib/wiki/Getting-Started#minimal-setup)*
 - **No external dependencies:** *Just spessasynth_core!*
 - **Reverb and chorus support:** [customizable!](https://github.com/spessasus/spessasynth_lib/wiki/Synthetizer-Class#effects-configuration-object)
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)
