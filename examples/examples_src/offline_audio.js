@@ -1,6 +1,6 @@
 // import the modules
-import { Synthetizer } from "../../synthetizer/synthetizer.js";
-import { audioBufferToWav } from "../../utils/buffer_to_wav.js";
+import { Synthetizer } from "../../src/synthetizer/synthetizer.js";
+import { audioBufferToWav } from "../../src/utils/buffer_to_wav.js";
 import { MIDI } from "spessasynth_core";
 import { EXAMPLE_SOUNDFONT_PATH, EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 

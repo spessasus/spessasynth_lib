@@ -1,5 +1,5 @@
 // import the modules
-import { Synthetizer } from "../../synthetizer/synthetizer.js";
+import { Synthetizer } from "../../src/synthetizer/synthetizer.js";
 import { EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 
 document.getElementById("soundfont_input").onchange = async e =>
