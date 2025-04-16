@@ -1,12 +1,14 @@
 {
   "name": "spessasynth_lib",
-  "version": "3.26.6",
+  "version": "3.26.7",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
   "browser": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./build.sh"
+    "build": "build_scripts/build.sh",
+    "debug": "build_scripts/debug_enable.sh",
+    "release": "build_scripts/debug_disable.sh"
   },
   "repository": {
     "type": "git",

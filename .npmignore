@@ -63,6 +63,8 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+
+
 # my things
 /synthetizer/worklet_processor.min.js.map
 /.github/
@@ -71,6 +73,7 @@ $RECYCLE.BIN/
 /spessasynth_lib.wiki/
 /docs/
 
-!build.sh
-!debug_disable.sh
-!debug_enable.sh
+*.sh
+*.wav
+/synthetizer/README.md
+/build_scripts/

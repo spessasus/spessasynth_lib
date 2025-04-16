@@ -1,6 +1,6 @@
 // import the modules
-import { Sequencer } from "../../sequencer/sequencer.js";
-import { Synthetizer } from "../../synthetizer/synthetizer.js";
+import { Sequencer } from "../../src/sequencer/sequencer.js";
+import { Synthetizer } from "../../src/synthetizer/synthetizer.js";
 import { EXAMPLE_SOUNDFONT_PATH, EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 
 // load the soundfont
