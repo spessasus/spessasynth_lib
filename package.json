@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./build.sh"
+    "build": "build_scripts/build.sh",
+    "debug": "build_scripts/debug_enable.sh",
+    "release": "build_scripts/debug_disable.sh"
   },
   "repository": {
     "type": "git",

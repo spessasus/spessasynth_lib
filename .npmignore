@@ -76,3 +76,4 @@ $RECYCLE.BIN/
 *.sh
 *.wav
 /synthetizer/README.md
+/build_scripts/

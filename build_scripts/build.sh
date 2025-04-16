@@ -1,6 +1,8 @@
 #!/bin/bash
 cd "$(dirname "$0")" || exit
 
+cd ..
+
 chmod +x examples/build_examples.sh
 ./examples/build_examples.sh
 
