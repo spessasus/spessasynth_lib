@@ -261,7 +261,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
             case workletMessageType.customCcChange:
                 // custom controller change
                 channelObject.setCustomController(data[0], data[1]);
-                channelObject.updateChannelTuning();
                 break;
             
             case workletMessageType.ccReset:
