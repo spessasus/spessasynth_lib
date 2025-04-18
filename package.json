@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "build_scripts/build.sh",
-    "debug": "build_scripts/debug_enable.sh",
-    "release": "build_scripts/debug_disable.sh"
+    "build": "node build_scripts/build.js",
+    "debug": "node build_scripts/debug_enable.js",
+    "release": "node build_scripts/debug_disable.js",
+    "build_examples": "node examples/build_examples.js"
   },
   "repository": {
     "type": "git",
@@ -43,6 +44,9 @@
     "email": "spesekspesek@gmail.com"
   },
   "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
+  "devDependencies": {
+    "esbuild": "^0.25.2"
+  },
   "dependencies": {
     "spessasynth_core": "latest"
   }
