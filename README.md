@@ -14,9 +14,9 @@
 npm install --save spessasynth_lib
 ```
 
-### [Project site (consider giving it a star!)](https://github.com/spessasus/SpessaSynth)
+### [Project site (consider giving it a star!)](https://github.com/spessasus/spessasynth_lib)
 
-### [Demo](https://spessasus.github.io/spessasynth_lib)
+### [Demo](https://spessasus.github.io/SpessaSynth)
 
 ### [Complete documentation](https://github.com/spessasus/spessasynth_lib/wiki/)
 
