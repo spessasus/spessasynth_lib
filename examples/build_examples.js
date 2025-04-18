@@ -22,15 +22,8 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // copy CSS file to the output directory
 fs.copyFileSync(CSS_FILE, path.join(OUTPUT_DIR, "examples.css"));
+fs.copyFileSync(WORKLET_JS_FILE, path.join(OUTPUT_DIR, "worklet_processor.min.js"));
 
-try
-{
-    fs.symlinkSync(WORKLET_JS_FILE, path.join(OUTPUT_DIR, "worklet_processor.min.js"));
-}
-catch (err)
-{
-    console.error(`error creating symlink: ${err.message}`);
-}
 
 // read the HTML template content
 const TEMPLATE_CONTENT = fs.readFileSync(TEMPLATE_FILE, "utf8");
