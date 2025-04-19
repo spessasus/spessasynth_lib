@@ -1,14 +1,18 @@
 import * as child_process from "node:child_process";
+import url from "node:url";
+import path from "node:path";
 
+// resolve to root
+const dirname = path.join(path.dirname(url.fileURLToPath(import.meta.url)), "..");
 
 export function runCommandSync(command)
 {
     const [cmd, ...args] = command.split(" ");
-    const process = child_process.spawnSync(cmd, args, { stdio: "inherit" });
+    const proc = child_process.spawnSync(cmd, args, { stdio: "inherit", cwd: dirname });
     
-    if (process.error)
+    if (proc.error)
     {
-        console.error(`Error executing command: ${command}`, process.error);
-        process.exit(process.status);
+        console.error(`Error executing command: ${command}`, proc.error);
+        process.exit(proc.status);
     }
 }
