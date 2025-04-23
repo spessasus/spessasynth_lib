@@ -38,6 +38,11 @@ document.getElementById("button").onclick = async () =>
 }
 ```
 
+*Audio may sometimes sound distorted in Chromium-based browsers: Chrome, Edge, Brave,
+etc. due to a **[Chromium Bug](https://issues.chromium.org/issues/367304685).**
+I can't do anything about it, only hope that it gets fixed.
+Please consider voting for it on the bug tracker to get it fixed!*
+
 ## Current Features
 
 ### [All the features of spessasynth_core!](https://github.com/spessasus/spessasynth_core?#current-features)
