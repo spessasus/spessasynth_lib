@@ -9,8 +9,8 @@
 
 **Project index**
 
-- spessasynth_core (you are here) - SF2/DLS/MIDI library
-- [spessasynth_lib](https://github.com/spessasus/spessasynth_lib) - spessasynth_core wrapper optimized for browsers and WebAudioAPI
+- [spessasynth_core](https://github.com/spessasus/spessasynth_core) - SF2/DLS/MIDI library
+- spessasynth_lib (you are here) – spessasynth_core wrapper optimized for browsers and WebAudioAPI
 - [SpessaSynth](https://github.com/spessasus/SpessaSynth) - online/local web player/editor application
 
 
