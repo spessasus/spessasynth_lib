@@ -7,6 +7,13 @@
 
 *This is a WebAudioAPI wrapper for the [spessasynth_core](https://github.com/spessasus/spessasynth_core) library.*
 
+**Project index**
+
+- spessasynth_core (you are here) - SF2/DLS/MIDI library
+- [spessasynth_lib](https://github.com/spessasus/spessasynth_lib) - spessasynth_core wrapper optimized for browsers and WebAudioAPI
+- [SpessaSynth](https://github.com/spessasus/SpessaSynth) - online/local web player/editor application
+
+
 > **TIP:**
 > Looking for a bare JS version that works without WebAudioAPI? Try [spessasynth_core](https://github.com/spessasus/spessasynth_core)!
 
@@ -56,7 +63,7 @@ Please consider voting for it on the bug tracker to get it fixed!*
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)
 - **Written using AudioWorklets:** 
   - Runs in a **separate thread** for maximum performance
-  - Doesn't stop playing even when the main thread is frozen
+  - Does not stop playing even when the main thread is frozen
   - Supported by all modern browsers
 - **High-performance mode:** Play Rush E! *note: may kill your browser ;)*
 
