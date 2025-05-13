@@ -41,6 +41,7 @@ import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
  * @property {boolean|undefined} autoPlay - if true, the sequencer will automatically start playing the MIDI
  * @property {boolean|unescape} preservePlaybackState - if true,
  * the sequencer will stay paused when seeking or changing the playback rate
+ * @property {number|undefined} initialPlaybackRate - the initial playback rate, defaults to 1.0 (normal speed)
  */
 
 // noinspection JSUnusedGlobalSymbols
@@ -173,6 +174,11 @@ export class Sequencer
          * @private
          */
         this._preservePlaybackState = options?.preservePlaybackState ?? false;
+        
+        if (options?.initialPlaybackRate !== 1)
+        {
+            this.playbackRate = options?.initialPlaybackRate ?? 1;
+        }
         
         if (this._skipToFirstNoteOn === false)
         {

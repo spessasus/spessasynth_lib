@@ -200,6 +200,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                     );
                     this.sequencer.skipToFirstNoteOn = seqOptions.skipToFirstNoteOn;
                     this.sequencer.preservePlaybackState = seqOptions.preservePlaybackState;
+                    this.sequencer.playbackRate = seqOptions.initialPlaybackRate;
                     // autoplay is ignored
                     try
                     {
