@@ -48,6 +48,7 @@
     "esbuild": "^0.25.2"
   },
   "dependencies": {
-    "spessasynth_core": "latest"
+    "build": "^0.1.4",
+    "spessasynth_core": "file:../spessasynth_core"
   }
 }
