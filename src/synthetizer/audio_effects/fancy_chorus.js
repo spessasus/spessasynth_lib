@@ -45,8 +45,8 @@ export class FancyChorus
 {
     /**
      * Creates a fancy chorus effect
-     * @param output {AudioNode}
-     * @param config {ChorusConfig}
+     * @param output {AudioNode} - the target output node
+     * @param config {ChorusConfig} - the configuration for the chorus
      */
     constructor(output, config = DEFAULT_CHORUS_CONFIG)
     {
@@ -69,7 +69,7 @@ export class FancyChorus
         for (let i = 0; i < config.nodesAmount; i++)
         {
             // left node
-            this.createChorusNode(
+            this._createChorusNode(
                 freq,
                 delay - config.stereoDifference,
                 chorusNodesLeft,
@@ -80,7 +80,7 @@ export class FancyChorus
                 config
             );
             // right node
-            this.createChorusNode(
+            this._createChorusNode(
                 freq,
                 delay + config.stereoDifference,
                 chorusNodesRight,
@@ -100,6 +100,9 @@ export class FancyChorus
         this.chorusRight = chorusNodesRight;
     }
     
+    /**
+     * Disconnects and deletes the chorus effect
+     */
     delete()
     {
         this.input.disconnect();
@@ -135,8 +138,9 @@ export class FancyChorus
      * @param outputNum {number}
      * @param context {BaseAudioContext}
      * @param config {ChorusConfig}
+     * @private
      */
-    createChorusNode(freq, delay, list, input, output, outputNum, context, config)
+    _createChorusNode(freq, delay, list, input, output, outputNum, context, config)
     {
         const oscillator = context.createOscillator();
         oscillator.type = "sine";
