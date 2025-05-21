@@ -39,7 +39,7 @@ import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
  * @typedef {Object} SequencerOptions
  * @property {boolean|undefined} skipToFirstNoteOn - if true, the sequencer will skip to the first note
  * @property {boolean|undefined} autoPlay - if true, the sequencer will automatically start playing the MIDI
- * @property {boolean|unescape} preservePlaybackState - if true,
+ * @property {boolean|undefined} preservePlaybackState - if true,
  * the sequencer will stay paused when seeking or changing the playback rate
  * @property {number|undefined} initialPlaybackRate - the initial playback rate, defaults to 1.0 (normal speed)
  */
