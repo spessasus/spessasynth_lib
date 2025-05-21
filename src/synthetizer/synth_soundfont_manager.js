@@ -55,16 +55,19 @@ export class SoundfontManager
      */
     async addNewSoundFont(soundfontBuffer, id, bankOffset = 0)
     {
-        if (this.soundfontList.find(s => s.id === id) !== undefined)
-        {
-            throw new Error("Cannot overwrite the existing soundfont. Use soundfontManager.delete(id) instead.");
-        }
         this._sendToWorklet(WorkletSoundfontManagerMessageType.addNewSoundFont, [soundfontBuffer, id, bankOffset]);
         await new Promise(r => this.synth._resolveWhenReady = r);
-        this.soundfontList.push({
-            id: id,
-            bankOffset: bankOffset
-        });
+        if (this.soundfontList.find(s => s.id === id) !== undefined)
+        {
+            this.soundfontList.find(s => s.id === id).bankOffset = bankOffset;
+        }
+        else
+        {
+            this.soundfontList.push({
+                id: id,
+                bankOffset: bankOffset
+            });
+        }
     }
     
     // noinspection JSUnusedGlobalSymbols
