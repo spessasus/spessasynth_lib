@@ -2,6 +2,10 @@ import { loadSoundFont, MIDI, SpessaSynthProcessor, SpessaSynthSequencer } from 
 import { FancyChorus } from "../../src/synthetizer/audio_effects/fancy_chorus.js";
 import { getReverbProcessor } from "../../src/synthetizer/audio_effects/reverb.js";
 
+// this demo shows how to render in the main thread in real time
+// use firefox for this, chromium poorly handles audio buffers being used like this
+// for chromium, consider making a simple playback worklet processor instead
+
 // create a new audio context
 const context = new AudioContext({
     sampleRate: 44100
