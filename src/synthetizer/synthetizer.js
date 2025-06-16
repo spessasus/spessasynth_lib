@@ -875,7 +875,7 @@ export class Synthetizer
     }
     
     /**
-     * Reloads the sounfont.
+     * Reloads the soundfont.
      * THIS IS DEPRECATED!
      * USE soundfontManager instead.
      * @param soundFontBuffer {ArrayBuffer} the new soundfont file array buffer.

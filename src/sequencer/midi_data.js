@@ -34,7 +34,7 @@ export class MIDIData extends MIDISequenceData
  * Temporary MIDI data used when the MIDI is not loaded.
  * @type {MIDIData}
  */
-export const DUMMY_MIDI_DATA = {
+export const DUMMY_MIDI_DATA = Object.assign({
     duration: 99999,
     firstNoteOn: 0,
     loop: {
@@ -44,11 +44,13 @@ export const DUMMY_MIDI_DATA = {
     
     lastVoiceEventTick: 123456,
     lyrics: [],
+    lyricsTicks: [],
     copyright: "",
     midiPorts: [],
     midiPortChannelOffsets: [],
     tracksAmount: 0,
     tempoChanges: [{ ticks: 0, tempo: 120 }],
+    trackNames: [],
     fileName: "NOT_LOADED.mid",
     midiName: "Loading...",
     rawMidiName: new Uint8Array([76, 111, 97, 100, 105, 110, 103, 46, 46, 46]), // "Loading..."
@@ -56,8 +58,10 @@ export const DUMMY_MIDI_DATA = {
     timeDivision: 0,
     keyRange: { min: 0, max: 127 },
     isEmbedded: false,
+    isKaraokeFile: false,
+    isMultiPort: false,
     RMIDInfo: {},
     bankOffset: 0,
     midiNameUsesFileName: false,
     format: 0
-};
+}, MIDIData.prototype);

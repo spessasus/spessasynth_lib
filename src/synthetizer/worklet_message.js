@@ -68,6 +68,7 @@ export const workletMessageType = {
  *     |ArrayBuffer
  *     |{messageType: SpessaSynthSequencerMessageType, messageData: any}
  *     |{messageType: workletKeyModifierMessageType, messageData: any}
+ *     |Uint8Array
  *     )
  * }} WorkletMessage
  */

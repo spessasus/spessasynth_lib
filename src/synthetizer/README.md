@@ -23,7 +23,7 @@ These core components are wrapped in the AudioWorkletProcessor, which is receivi
 through the message port, and sends data back (events, time changes, status changes, etc.).
 
 For example,
-the playback to WebMIDIAPI is actually the sequencer in the worklet thread
+the playback to WebMIDI API is actually the sequencer in the worklet thread
 playing back the sequence and then postMessaging the commands through the synthesizer to the sequencer
 which actually sends them to the specified output.
 
