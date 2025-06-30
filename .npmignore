@@ -53,7 +53,7 @@ $RECYCLE.BIN/
 /node_modules/
 /examples/
 /spessasynth_lib.wiki/
-/docs/
+/dist/
 
 *.sh
 *.wav

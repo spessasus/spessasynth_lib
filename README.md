@@ -23,7 +23,10 @@ npm install --save spessasynth_lib
 
 ### [Project site (consider giving it a star!)](https://github.com/spessasus/spessasynth_lib)
 
-### [Demo](https://spessasus.github.io/SpessaSynth)
+### Made with spessasynth_lib
+- [SpessaSynth - Online SF2/DLS MIDI Player](https://spessasus.github.io/SpessaSynth)
+- [SpessaFont - Online SoundFont/DLS Editor](https://spessasus.github.io/SpessaFont)
+
 
 ### [Complete documentation](https://github.com/spessasus/spessasynth_lib/wiki/)
 

@@ -7,5 +7,5 @@ The examples have a custom build process.
 ### Build
 `npm run build_examples`
 
-The compiled examples are located under `docs/examples` (for hosting on GitHub pages)
+The compiled examples are located under `dist/examples` (for hosting on GitHub pages)
 
