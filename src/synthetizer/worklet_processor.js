@@ -596,7 +596,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
     /**
      * the audio worklet processing logic
      * @param inputs {Float32Array[][]} required by WebAudioAPI
-     * @param outputs {Float32Array[][]} the outputs to write to, only the first two channels are populated
+     * @param outputs {Float32Array[][]} the outputs to write to, only the first two channels of each are populated
      * @returns {boolean} true unless it's not alive
      */
     process(inputs, outputs)
