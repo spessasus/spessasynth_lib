@@ -7,11 +7,19 @@
 
 *This is a WebAudioAPI wrapper for the [spessasynth_core](https://github.com/spessasus/spessasynth_core) library.*
 
-**Project index**
+It allows you to:
+- Play MIDI files using SF2/SF3/DLS files!
+- Read and write MIDI files!
+- Write SF2/SF3 files!
+- Convert DLS to SF2! (and back!)
+- [and more!](#current-features)
+
+**SpessaSynth Project index**
 
 - [spessasynth_core](https://github.com/spessasus/spessasynth_core) - SF2/DLS/MIDI library
-- spessasynth_lib (you are here) – spessasynth_core wrapper optimized for browsers and WebAudioAPI
-- [SpessaSynth](https://github.com/spessasus/SpessaSynth) - online/local web player/editor application
+- [spessasynth_lib](https://github.com/spessasus/spessasynth_lib) (you are here) - spessasynth_core wrapper optimized for browsers and WebAudioAPI
+- [SpessaSynth](https://github.com/spessasus/SpessaSynth) - online/local MIDI player/editor application
+- [SpessaFont](https://github.com/spessasus/SpessaFont) - online SF2/DLS editor
 
 
 > **TIP:**
