@@ -16,17 +16,22 @@ import { audioToWav } from "spessasynth_core";
  * @param channelOffset {number} channel offset and channel offset + 1 get saved
  * @param metadata {WaveMetadata}
  * @param loop {{start: number, end: number}} loop start and end points in seconds. Undefined if no loop
+ * @param channelCount {number} the channel count, defaults to all the channels
  * @returns {Blob}
  */
-export function audioBufferToWav(audioBuffer, normalizeAudio = true, channelOffset = 0, metadata = {}, loop = undefined)
+export function audioBufferToWav(audioBuffer, normalizeAudio = true, channelOffset = 0, metadata = {}, loop = undefined, channelCount = audioBuffer.numberOfChannels)
 {
     /**
      * @type {Float32Array[]}
      */
     const channels = [];
-    for (let i = 0; i < audioBuffer.numberOfChannels; i++)
+    for (let i = channelOffset; i < audioBuffer.numberOfChannels; i++)
     {
-        channels.push(audioBuffer.getChannelData(channelOffset + i));
+        channels.push(audioBuffer.getChannelData(i));
+        if (channels.length >= channelCount)
+        {
+            break;
+        }
     }
     return new Blob(
         [audioToWav(channels, audioBuffer.sampleRate, normalizeAudio, metadata, loop)],
