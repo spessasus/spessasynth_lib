@@ -204,7 +204,8 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                     // autoplay is ignored
                     try
                     {
-                        this.sequencer.loadNewSongList([startRenderingData.parsedMIDI]);
+                        // cloned objects don't have methods
+                        this.sequencer.loadNewSongList([BasicMIDI.copyFrom(startRenderingData.parsedMIDI)]);
                     }
                     catch (e)
                     {
@@ -387,7 +388,8 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor
                             {
                                 if (s.duration)
                                 {
-                                    return s;
+                                    // cloned objects don't have methods
+                                    return BasicMIDI.copyFrom(s);
                                 }
                                 return new MIDI(s.binary, s.altName);
                             });
