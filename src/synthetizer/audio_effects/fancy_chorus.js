@@ -16,7 +16,7 @@
  * @property {number?} nodesAmount - the amount of delay nodes (for each channel) and the corresponding oscillators
  * @property {number?} defaultDelay - the initial delay, in seconds
  * @property {number?} delayVariation - the difference between delays in the delay nodes
- * @property {number?} stereoDifference - the difference of delays between two channels (added to the left channel and subtracted from the right)
+ * @property {number?} stereoDifference - the difference of delays between two channels (added to the right channel)
  * @property {number?} oscillatorFrequency - the initial delay time oscillator frequency, in Hz.
  * @property {number?} oscillatorFrequencyVariation - the difference between frequencies of oscillators, in Hz
  * @property {number?} oscillatorGain - how much will oscillator alter the delay in delay nodes, in seconds
@@ -24,12 +24,12 @@
 
 const NODES_AMOUNT = 4;
 const DEFAULT_DELAY = 0.03;
-const DELAY_VARIATION = 0.01;
-const STEREO_DIFF = 0.02;
+const DELAY_VARIATION = 0.015;
+const STEREO_DIFF = 0.03;
 
 const OSC_FREQ = 0.2;
 const OSC_FREQ_VARIATION = 0.05;
-const OSC_GAIN = 0.003;
+const OSC_GAIN = 0.005;
 
 export const DEFAULT_CHORUS_CONFIG = {
     nodesAmount: NODES_AMOUNT,
@@ -71,7 +71,7 @@ export class FancyChorus
             // left node
             this._createChorusNode(
                 freq,
-                delay - config.stereoDifference,
+                delay,
                 chorusNodesLeft,
                 0,
                 merger,
