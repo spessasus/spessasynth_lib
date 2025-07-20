@@ -24,12 +24,12 @@
 
 const NODES_AMOUNT = 4;
 const DEFAULT_DELAY = 0.03;
-const DELAY_VARIATION = 0.015;
+const DELAY_VARIATION = 0.013;
 const STEREO_DIFF = 0.03;
 
 const OSC_FREQ = 0.2;
 const OSC_FREQ_VARIATION = 0.05;
-const OSC_GAIN = 0.005;
+const OSC_GAIN = 0.003;
 
 export const DEFAULT_CHORUS_CONFIG = {
     nodesAmount: NODES_AMOUNT,
