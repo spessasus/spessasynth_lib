@@ -8,7 +8,7 @@ console.log("building examples");
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const TEMPLATE_FILE = path.join(dirname, `template.html`);
 const PARTIALS_DIR = path.join(dirname, "examples_src");
-const OUTPUT_DIR = path.join(dirname, "..", "dist", "examples");
+const OUTPUT_DIR = path.join(dirname, "..", "gh_pages", "examples");
 const CSS_FILE = path.join(dirname, "examples.css");
 const WORKLET_JS_FILE = path.join(dirname, "..", "synthetizer", "worklet_processor.min.js");
 

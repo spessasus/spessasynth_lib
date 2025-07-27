@@ -2,8 +2,10 @@
   "name": "spessasynth_lib",
   "version": "3.27.7",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
-  "browser": "index.js",
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node build_scripts/build.js",
@@ -15,7 +17,6 @@
     "type": "git",
     "url": "git+https://github.com/spessasus/spessasynth_lib.git"
   },
-  "main": "index.js",
   "keywords": [
     "soundfont",
     "synthesizer",
@@ -34,6 +35,12 @@
     "soundfont3",
     "audio-buffer-to-wav"
   ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
   "author": {
     "name": "spessasus",
     "email": "spesekspesek@gmail.com",
@@ -46,7 +53,15 @@
   },
   "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
   "devDependencies": {
-    "esbuild": "^0.25.2"
+    "esbuild": "^0.25.2",
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0"
   },
   "dependencies": {
     "spessasynth_core": "latest"

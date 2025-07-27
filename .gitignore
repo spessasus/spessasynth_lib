@@ -64,6 +64,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.tgz
 /synthetizer/worklet_processor.min.js.map
 /spessasynth_lib.wiki/
 dist/
+/gh_pages/
