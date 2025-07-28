@@ -420,7 +420,7 @@ export class Synthetizer {
                 break;
 
             case returnMessageType.eventCall:
-                this.eventHandler.callEvent(
+                this.eventHandler.callEventInternal(
                     messageData.eventName,
                     messageData.eventData
                 );
@@ -463,7 +463,10 @@ export class Synthetizer {
 
             case returnMessageType.soundfontError:
                 util.SpessaSynthWarn(new Error(messageData));
-                this.eventHandler.callEvent("soundfonterror", messageData);
+                this.eventHandler.callEventInternal(
+                    "soundfonterror",
+                    messageData
+                );
                 break;
         }
     }

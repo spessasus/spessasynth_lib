@@ -1,217 +1,109 @@
-import { synthDisplayTypes } from "spessasynth_core";
+import type { ProcessorEventType } from "spessasynth_core";
 
-/**
- * synth_event_handler.js
- * purpose: manages the synthesizer's event system, calling assigned functions when synthesizer requests dispatching the event
- */
+type ProcessorEventCallback<T extends keyof ProcessorEventType> = (
+    callbackData: ProcessorEventType[T]
+) => unknown;
 
-/**
- * @typedef {Object} NoteOnCallback
- * @property {number} midiNote - The MIDI note number.
- * @property {number} channel - The MIDI channel number.
- * @property {number} velocity - The velocity of the note.
- */
+type EventsMap = {
+    [K in keyof ProcessorEventType]: Map<string, ProcessorEventCallback<K>>;
+};
 
-/**
- * @typedef {Object} NoteOffCallback
- * @property {number} midiNote - The MIDI note number.
- * @property {number} channel - The MIDI channel number.
- */
-
-/**
- * @typedef {Object} DrumChangeCallback
- * @property {number} channel - The MIDI channel number.
- * @property {boolean} isDrumChannel - Indicates if the channel is a drum channel.
- */
-
-/**
- * @typedef {Object} ProgramChangeCallback
- * @property {number} channel - The MIDI channel number.
- * @property {number} program - The program number.
- * @property {number} bank - The bank number.
- */
-
-/**
- * @typedef {Object} ControllerChangeCallback
- * @property {number} channel - The MIDI channel number.
- * @property {number} controllerNumber - The controller number.
- * @property {number} controllerValue - The value of the controller.
- */
-
-/**
- * @typedef {Object} MuteChannelCallback
- * @property {number} channel - The MIDI channel number.
- * @property {boolean} isMuted - Indicates if the channel is muted.
- */
-
-/**
- * @typedef {Object} PresetListChangeCallbackSingle
- * @property {string} presetName - The name of the preset.
- * @property {number} bank - The bank number.
- * @property {number} program - The program number.
- */
-
-/**
- * @typedef {PresetListChangeCallbackSingle[]} PresetListChangeCallback - A list of preset objects.
- */
-
-/**
- * @typedef {Object} SynthDisplayCallback
- * @property {Uint8Array} displayData - The data to display.
- * @property {synthDisplayTypes} displayType - The type of display.
- */
-
-/**
- * @typedef {Object} PitchWheelCallback
- * @property {number} channel - The MIDI channel number.
- * @property {number} MSB - The most significant byte of the pitch-wheel value.
- * @property {number} LSB - The least significant byte of the pitch-wheel value.
- */
-
-/**
- * @typedef {Object} ChannelPressureCallback
- * @property {number} channel - The MIDI channel number.
- * @property {number} pressure - The pressure value.
- */
-
-/**
- * @typedef {Error} SoundfontErrorCallback - The error message for soundfont errors.
- */
-
-/**
- * @typedef {
- *     NoteOnCallback |
- *     NoteOffCallback |
- *     DrumChangeCallback |
- *     ProgramChangeCallback |
- *     ControllerChangeCallback |
- *     MuteChannelCallback |
- *     PresetListChangeCallback |
- *     PitchWheelCallback |
- *     SoundfontErrorCallback |
- *     ChannelPressureCallback |
- *     SynthDisplayCallback |
- *     undefined
- * } EventCallbackData
- */
-
-/**
- * @typedef {
- * "noteon"|
- * "noteoff"|
- * "pitchwheel"|
- * "controllerchange"|
- * "programchange"|
- * "channelpressure"|
- * "polypressure" |
- * "drumchange"|
- * "stopall"|
- * "newchannel"|
- * "mutechannel"|
- * "presetlistchange"|
- * "allcontrollerreset"|
- * "soundfonterror"|
- * "synthdisplay"} EventTypes
- */
-export class EventHandler
-{
+export class EventHandler {
     /**
-     * A new synthesizer event handler
+     * The time delay before an event is called.
+     * Set to 0 to disable it.
      */
-    constructor()
-    {
-        /**
-         * The main list of events
-         * @type {Object<EventTypes, Object<string, function(EventCallbackData)>>}
-         */
-        this.events = {
-            "noteoff": {},              // called on a note off message
-            "noteon": {},               // called on a note on message
-            "pitchwheel": {},           // called on a pitch-wheel change
-            "controllerchange": {},     // called on a controller change
-            "programchange": {},        // called on a program change
-            "channelpressure": {},      // called on a channel pressure message
-            "polypressure": {},         // called on a poly pressure message
-            "drumchange": {},           // called when a channel type changes
-            "stopall": {},              // called when the synth receives stop all command
-            "newchannel": {},           // called when a new channel is created
-            "mutechannel": {},          // called when a channel is muted/unmuted
-            "presetlistchange": {},     // called when the preset list changes (soundfont gets reloaded)
-            "allcontrollerreset": {},   // called when all controllers are reset
-            "soundfonterror": {},       // called when a soundfont parsing error occurs
-            "synthdisplay": {}          // called when there's a SysEx message to display some text
-        };
-        
-        /**
-         * Set to 0 to disabled, otherwise in seconds
-         * @type {number}
-         */
-        this.timeDelay = 0;
-    }
-    
+    timeDelay = 0;
+
     /**
-     * Adds a new event listener
-     * @param name {EventTypes}
-     * @param id {string} the unique identifier for the event (to delete it
-     * @param callback {function(EventCallbackData)}
+     * The main list of events.
+     * @private
      */
-    addEvent(name, id, callback)
-    {
-        this.events[name][id] = callback;
+    private readonly events: EventsMap = {
+        noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // called on a note off message
+        noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // called on a note on message
+        pitchWheel: new Map<string, ProcessorEventCallback<"pitchWheel">>(), // called on a pitch-wheel change
+        controllerChange: new Map<
+            string,
+            ProcessorEventCallback<"controllerChange">
+        >(), // called on a controller change
+        programChange: new Map<
+            string,
+            ProcessorEventCallback<"programChange">
+        >(), // called on a program change
+        channelPressure: new Map<
+            string,
+            ProcessorEventCallback<"channelPressure">
+        >(), // called on a channel pressure message
+        polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // called on a poly pressure message
+        drumChange: new Map<string, ProcessorEventCallback<"drumChange">>(), // called when a channel type changes
+        stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // called when the synth receives stop all command
+        newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // called when a new channel is created
+        muteChannel: new Map<string, ProcessorEventCallback<"muteChannel">>(), // called when a channel is muted/unmuted
+        presetListChange: new Map<
+            string,
+            ProcessorEventCallback<"presetListChange">
+        >(), // called when the preset list changes (soundfont gets reloaded)
+        allControllerReset: new Map<
+            string,
+            ProcessorEventCallback<"allControllerReset">
+        >(), // called when all controllers are reset
+        soundBankError: new Map<
+            string,
+            ProcessorEventCallback<"soundBankError">
+        >(), // called when a sound bank parsing error occurs
+        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>() // called when there's a SysEx message to display some text
+    };
+
+    /**
+     * Adds a new event listener.
+     * @param event The event to listen to.
+     * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
+     * @param callback The callback for the event.
+     */
+    addEvent<T extends keyof ProcessorEventType>(
+        event: T,
+        id: string,
+        callback: ProcessorEventCallback<T>
+    ) {
+        this.events[event].set(id, callback);
     }
-    
+
     // noinspection JSUnusedGlobalSymbols
     /**
      * Removes an event listener
-     * @param name {EventTypes}
-     * @param id {string}
+     * @param name The event to remove a listener from.
+     * @param id The unique identifier for the event to remove.
      */
-    removeEvent(name, id)
-    {
-        delete this.events[name][id];
+    removeEvent<T extends keyof ProcessorEventType>(name: T, id: string) {
+        this.events[name].delete(id);
     }
-    
+
     /**
-     * Calls the given event
-     * @param name {EventTypes}
-     * @param eventData {EventCallbackData}
+     * Calls the given event.
+     * Internal use only.
      */
-    callEvent(name, eventData)
-    {
-        if (this.events[name])
-        {
-            if (this.timeDelay > 0)
-            {
-                setTimeout(() =>
-                {
-                    Object.values(this.events[name]).forEach(ev =>
-                    {
-                        try
-                        {
-                            ev(eventData);
-                        }
-                        catch (e)
-                        {
-                            console.error(`Error while executing an event callback for ${name}:`, e);
-                        }
-                    });
-                }, this.timeDelay * 1000);
-            }
-            else
-            {
-                Object.values(this.events[name]).forEach(ev =>
-                    {
-                        try
-                        {
-                            ev(eventData);
-                        }
-                        catch (e)
-                        {
-                            console.error(`Error while executing an event callback for ${name}:`, e);
-                        }
-                    }
-                );
-            }
+    callEventInternal<T extends keyof ProcessorEventType>(
+        name: T,
+        eventData: ProcessorEventType[T]
+    ) {
+        const eventList = this.events[name];
+        const callback = () => {
+            eventList.forEach((callback) => {
+                try {
+                    callback(eventData);
+                } catch (e) {
+                    console.error(
+                        `Error while executing an event callback for ${name}:`,
+                        e
+                    );
+                }
+            });
+        };
+        if (this.timeDelay > 0) {
+            setTimeout(callback.bind(this), this.timeDelay * 1000);
+        } else {
+            callback();
         }
     }
 }

@@ -6,9 +6,10 @@ export type SynthConfig = {
     // Indicates if the reverb effect is enabled.
     reverbEnabled: boolean;
     // The impulse response for the reverb. Pass undefined to use defaults
-    reverbImpulseResponse: AudioBuffer;
+    reverbImpulseResponse?: AudioBuffer;
     // Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.
-    audioNodeCreators: {
+    // Pass undefined to use the Web Audio API.
+    audioNodeCreators?: {
         worklet: (
             context: BaseAudioContext | object,
             workletName: string,

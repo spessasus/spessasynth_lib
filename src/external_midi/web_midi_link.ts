@@ -8,36 +8,31 @@ import { SpessaSynthCoreUtils } from "spessasynth_core";
  * https://www.g200kg.com/en/docs/webmidilink/
  */
 
-export class WebMIDILinkHandler
-{
+export class WebMIDILinkHandler {
     /**
-     * @param synth {Synthetizer} the synth to play to
+     * Initializes support for Web MIDI Link (https://www.g200kg.com/en/docs/webmidilink/)
+     * @param synth The synthesizer to enable support with.
      */
-    constructor(synth)
-    {
-        
-        window.addEventListener("message", msg =>
-        {
-            if (typeof msg.data !== "string")
-            {
+    constructor(synth: Synthetizer) {
+        window.addEventListener("message", (msg) => {
+            if (typeof msg.data !== "string") {
                 return;
             }
-            /**
-             * @type {string[]}
-             */
-            const data = msg.data.split(",");
-            if (data[0] !== "midi")
-            {
+            const data: string[] = msg.data.split(",");
+            if (data[0] !== "midi") {
                 return;
             }
-            
+
             data.shift(); // remove MIDI
-            
-            const midiData = data.map(byte => parseInt(byte, 16));
-            
+
+            const midiData = data.map((byte) => parseInt(byte, 16));
+
             synth.sendMessage(midiData);
         });
-        
-        SpessaSynthCoreUtils.SpessaSynthInfo("%cWeb MIDI Link handler created!", consoleColors.recognized);
+
+        SpessaSynthCoreUtils.SpessaSynthInfo(
+            "%cWeb MIDI Link handler created!",
+            consoleColors.recognized
+        );
     }
 }

@@ -1,68 +1,70 @@
 import { Synthetizer } from "../synthetizer/synthetizer.js";
 import { SpessaSynthCoreUtils as util } from "spessasynth_core";
 import { consoleColors } from "../utils/other.js";
+import type { Sequencer } from "../sequencer/sequencer";
 
 /**
  * midi_handler.js
  * purpose: handles the connection between MIDI devices and synthesizer/sequencer via Web MIDI API
  */
 
-const NO_INPUT = null;
+const NO_INPUT = undefined;
 
 // noinspection JSUnusedGlobalSymbols
 /**
- * A class for handling MIDI devices
+ * A class for handling physical MIDI devices.
  */
-export class MIDIDeviceHandler
-{
+export class MIDIDeviceHandler {
+    // The currently selected MIDI input.
+    selectedInput?: MIDIInput;
+    // The currently selected MIDI output.
+    selectedOutput?: MIDIOutput;
+
+    // The available MIDI inputs.
+    inputs?: MIDIInputMap;
+    // The available MIDI outputs.
+    outputs?: MIDIOutputMap;
+
     /**
-     * @returns {Promise<boolean>} if succeeded
+     * Attempts to initialize the MIDI Device Handler.
+     * @returns True if succeeded.
      */
-    async createMIDIDeviceHandler()
-    {
-        /**
-         * @type {MIDIInput}
-         */
+    async createMIDIDeviceHandler(): Promise<boolean> {
         this.selectedInput = NO_INPUT;
-        /**
-         * @type {MIDIOutput}
-         */
         this.selectedOutput = NO_INPUT;
-        if (navigator.requestMIDIAccess)
-        {
+        if (navigator.requestMIDIAccess) {
             // prepare the midi access
-            try
-            {
-                const response = await navigator.requestMIDIAccess({ sysex: true, software: true });
+            try {
+                const response = await navigator.requestMIDIAccess({
+                    sysex: true,
+                    software: true
+                });
                 this.inputs = response.inputs;
                 this.outputs = response.outputs;
-                util.SpessaSynthInfo("%cMIDI handler created!", consoleColors.recognized);
+                util.SpessaSynthInfo(
+                    "%cMIDI handler created!",
+                    consoleColors.recognized
+                );
                 return true;
-            }
-            catch (e)
-            {
+            } catch (e) {
                 util.SpessaSynthWarn(`Could not get MIDI Devices:`, e);
-                this.inputs = [];
-                this.outputs = [];
                 return false;
             }
-        }
-        else
-        {
-            util.SpessaSynthWarn("Web MIDI Api not supported!", consoleColors.unrecognized);
-            this.inputs = [];
-            this.outputs = [];
+        } else {
+            util.SpessaSynthWarn(
+                "Web MIDI Api not supported!",
+                consoleColors.unrecognized
+            );
             return false;
         }
     }
-    
+
     /**
-     * Connects the sequencer to a given MIDI output port
-     * @param output {MIDIOutput}
-     * @param seq {Sequencer}
+     * Connects the sequencer to a given MIDI output port.
+     * @param output The output to connect the sequencer to.
+     * @param seq The sequencer instance.
      */
-    connectMIDIOutputToSeq(output, seq)
-    {
+    connectMIDIOutputToSeq(output: MIDIOutput, seq: Sequencer) {
         this.selectedOutput = output;
         seq.connectMidiOutput(output);
         util.SpessaSynthInfo(
@@ -71,13 +73,12 @@ export class MIDIDeviceHandler
             consoleColors.recognized
         );
     }
-    
+
     /**
-     * Disconnects a midi output port from the sequencer
-     * @param seq {Sequencer}
+     * Disconnects a MIDI output port from the sequencer.
+     * @param seq The sequencer to disconnect the output from.
      */
-    disconnectSeqFromMIDI(seq)
-    {
+    disconnectSeqFromMIDI(seq: Sequencer) {
         this.selectedOutput = NO_INPUT;
         seq.connectMidiOutput(undefined);
         util.SpessaSynthInfo(
@@ -85,17 +86,15 @@ export class MIDIDeviceHandler
             consoleColors.info
         );
     }
-    
+
     /**
-     * Connects a MIDI input to the synthesizer
-     * @param input {MIDIInput}
-     * @param synth {Synthetizer}
+     * Connects a MIDI input to the synthesizer.
+     * @param input The input to connect to.
+     * @param synth The synthesizer instance.
      */
-    connectDeviceToSynth(input, synth)
-    {
+    connectDeviceToSynth(input: MIDIInput, synth: Synthetizer) {
         this.selectedInput = input;
-        input.onmidimessage = event =>
-        {
+        input.onmidimessage = (event) => {
             synth.sendMessage(event.data);
         };
         util.SpessaSynthInfo(
@@ -104,27 +103,29 @@ export class MIDIDeviceHandler
             consoleColors.recognized
         );
     }
-    
+
     /**
-     * @param input {MIDIInput}
+     * Disconnects a MIDI input from the synthesizer.
+     * @param input The input to disconnect.
      */
-    disconnectDeviceFromSynth(input)
-    {
+    disconnectDeviceFromSynth(input: MIDIInput) {
         this.selectedInput = NO_INPUT;
-        input.onmidimessage = undefined;
+        input.onmidimessage = null;
         util.SpessaSynthInfo(
             `%cDisconnected from %c${input.name}`,
             consoleColors.info,
             consoleColors.recognized
         );
     }
-    
-    disconnectAllDevicesFromSynth()
-    {
+
+    // Disconnects all MIDI inputs from the synthesizer.
+    disconnectAllDevicesFromSynth() {
         this.selectedInput = NO_INPUT;
-        for (const i of this.inputs)
-        {
-            i[1].onmidimessage = undefined;
+        if (!this.inputs) {
+            return;
+        }
+        for (const i of this.inputs) {
+            i[1].onmidimessage = null;
         }
     }
 }
