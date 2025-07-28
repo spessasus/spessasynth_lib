@@ -2,25 +2,13 @@
  * fancy_chorus.js
  * purpose: creates a simple chorus effect node
  */
+import type { ChorusConfig } from "./types";
 
-/**
- * @typedef {{
- *     oscillator: OscillatorNode,
- *     oscillatorGain: GainNode,
- *     delay: DelayNode
- * }} ChorusNode
- */
-
-/**
- * @typedef {Object} ChorusConfig
- * @property {number?} nodesAmount - the amount of delay nodes (for each channel) and the corresponding oscillators
- * @property {number?} defaultDelay - the initial delay, in seconds
- * @property {number?} delayVariation - the difference between delays in the delay nodes
- * @property {number?} stereoDifference - the difference of delays between two channels (added to the right channel)
- * @property {number?} oscillatorFrequency - the initial delay time oscillator frequency, in Hz.
- * @property {number?} oscillatorFrequencyVariation - the difference between frequencies of oscillators, in Hz
- * @property {number?} oscillatorGain - how much will oscillator alter the delay in delay nodes, in seconds
- */
+type ChorusNode = {
+    oscillator: OscillatorNode;
+    oscillatorGain: GainNode;
+    delay: DelayNode;
+};
 
 const NODES_AMOUNT = 4;
 const DEFAULT_DELAY = 0.03;
@@ -31,7 +19,7 @@ const OSC_FREQ = 0.2;
 const OSC_FREQ_VARIATION = 0.05;
 const OSC_GAIN = 0.003;
 
-export const DEFAULT_CHORUS_CONFIG = {
+export const DEFAULT_CHORUS_CONFIG: ChorusConfig = {
     nodesAmount: NODES_AMOUNT,
     defaultDelay: DEFAULT_DELAY,
     delayVariation: DELAY_VARIATION,
@@ -41,35 +29,35 @@ export const DEFAULT_CHORUS_CONFIG = {
     oscillatorGain: OSC_GAIN
 };
 
-export class FancyChorus
-{
+export class FancyChorus {
+    // The input of the processor.
+    public input: AudioNode;
+
+    private merger: ChannelMergerNode;
+    private chorusLeft: ChorusNode[];
+    private chorusRight: ChorusNode[];
+
     /**
-     * Creates a fancy chorus effect
-     * @param output {AudioNode} - the target output node
-     * @param config {ChorusConfig} - the configuration for the chorus
+     * Creates a fancy chorus effect.
+     * @param output The target output node.
+     * @param config The configuration for the chorus.
      */
-    constructor(output, config = DEFAULT_CHORUS_CONFIG)
-    {
+    constructor(
+        output: AudioNode,
+        config: ChorusConfig = DEFAULT_CHORUS_CONFIG
+    ) {
         const context = output.context;
-        
+
         this.input = context.createChannelSplitter(2);
-        
+
         const merger = context.createChannelMerger(2);
-        
-        /**
-         * @type {ChorusNode[]}
-         */
-        const chorusNodesLeft = [];
-        /**
-         * @type {ChorusNode[]}
-         */
-        const chorusNodesRight = [];
+        const chorusNodesLeft: ChorusNode[] = [];
+        const chorusNodesRight: ChorusNode[] = [];
         let freq = config.oscillatorFrequency;
         let delay = config.defaultDelay;
-        for (let i = 0; i < config.nodesAmount; i++)
-        {
+        for (let i = 0; i < config.nodesAmount; i++) {
             // left node
-            this._createChorusNode(
+            this.createChorusNode(
                 freq,
                 delay,
                 chorusNodesLeft,
@@ -80,7 +68,7 @@ export class FancyChorus
                 config
             );
             // right node
-            this._createChorusNode(
+            this.createChorusNode(
                 freq,
                 delay + config.stereoDifference,
                 chorusNodesRight,
@@ -93,55 +81,44 @@ export class FancyChorus
             freq += config.oscillatorFrequencyVariation;
             delay += config.delayVariation;
         }
-        
+
         merger.connect(output);
         this.merger = merger;
         this.chorusLeft = chorusNodesLeft;
         this.chorusRight = chorusNodesRight;
     }
-    
+
+    // noinspection JSUnusedGlobalSymbols
     /**
-     * Disconnects and deletes the chorus effect
+     * Disconnects and deletes the chorus effect.
      */
-    delete()
-    {
+    delete() {
         this.input.disconnect();
-        delete this.input;
         this.merger.disconnect();
-        delete this.merger;
-        for (const chorusLeftElement of this.chorusLeft)
-        {
+        for (const chorusLeftElement of this.chorusLeft) {
             chorusLeftElement.delay.disconnect();
             chorusLeftElement.oscillator.disconnect();
             chorusLeftElement.oscillatorGain.disconnect();
-            delete chorusLeftElement.delay;
-            delete chorusLeftElement.oscillatorGain;
-            delete chorusLeftElement.oscillatorGain;
         }
-        for (const chorusRightElement of this.chorusRight)
-        {
+        for (const chorusRightElement of this.chorusRight) {
             chorusRightElement.delay.disconnect();
             chorusRightElement.oscillator.disconnect();
             chorusRightElement.oscillatorGain.disconnect();
-            delete chorusRightElement.delay;
-            delete chorusRightElement.oscillatorGain;
-            delete chorusRightElement.oscillatorGain;
         }
+        this.chorusLeft = [];
+        this.chorusRight = [];
     }
-    
-    /**
-     * @param freq {number}
-     * @param delay {number}
-     * @param list {ChorusNode[]}
-     * @param input {number}
-     * @param output {AudioNode}
-     * @param outputNum {number}
-     * @param context {BaseAudioContext}
-     * @param config {ChorusConfig}
-     * @private
-     */
-    _createChorusNode(freq, delay, list, input, output, outputNum, context, config)
-    {
+
+    private createChorusNode(
+        freq: number,
+        delay: number,
+        list: ChorusNode[],
+        input: number,
+        output: AudioNode,
+        outputNum: number,
+        context: BaseAudioContext,
+        config: ChorusConfig
+    ) {
         const oscillator = context.createOscillator();
         oscillator.type = "sine";
         oscillator.frequency.value = freq;
@@ -149,14 +126,14 @@ export class FancyChorus
         gainNode.gain.value = config.oscillatorGain;
         const delayNode = context.createDelay();
         delayNode.delayTime.value = delay;
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(delayNode.delayTime);
         oscillator.start(context.currentTime /*+ delay*/);
-        
+
         this.input.connect(delayNode, input);
         delayNode.connect(output, 0, outputNum);
-        
+
         list.push({
             oscillator: oscillator,
             oscillatorGain: gainNode,

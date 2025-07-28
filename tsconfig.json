@@ -32,6 +32,9 @@
     "verbatimModuleSyntax": true,
     "noEmit": true
   },
+  "types": [
+    "@types/audioworklet"
+  ],
   "include": [
     "src"
   ],

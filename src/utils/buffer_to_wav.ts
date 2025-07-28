@@ -1,40 +1,47 @@
-/**
- * @typedef {Object} WaveMetadata
- * @property {string|undefined} title - the song's title
- * @property {string|undefined} artist - the song's artist
- * @property {string|undefined} album - the song's album
- * @property {string|undefined} genre - the song's genre
- */
-
 import { audioToWav } from "spessasynth_core";
+import type { WaveMetadata } from "./types";
 
-// noinspection JSUnusedGlobalSymbols
 /**
- * Converts an audio buffer into a wave file
- * @param audioBuffer {AudioBuffer} variable channels
- * @param normalizeAudio {boolean} find the max sample point and set it to 1, and scale others with it
- * @param channelOffset {number} channel offset and channel offset + 1 get saved
- * @param metadata {WaveMetadata}
- * @param loop {{start: number, end: number}} loop start and end points in seconds. Undefined if no loop
- * @param channelCount {number} the channel count, defaults to all the channels
- * @returns {Blob}
+ * Converts an audio buffer into a wave file.
+ * @param audioBuffer The audio data channels.
+ * @param normalizeAudio This will find the max sample point and set it to 1, and scale others with it. Recommended.
+ * @param channelOffset The channel offset in the AudioBuffer. Defaults to 0.
+ * @param metadata The metadata to write into the file.
+ * @param loop The loop start and end points in seconds. Undefined if no loop should be written.
+ * @param channelCount The amount of channels from the AudioBuffer to write. Defaults to all.
+ * @returns The binary file.
+ * @returns The WAV audio file.
  */
-export function audioBufferToWav(audioBuffer, normalizeAudio = true, channelOffset = 0, metadata = {}, loop = undefined, channelCount = audioBuffer.numberOfChannels)
-{
-    /**
-     * @type {Float32Array[]}
-     */
-    const channels = [];
-    for (let i = channelOffset; i < audioBuffer.numberOfChannels; i++)
-    {
+export function audioBufferToWav(
+    audioBuffer: AudioBuffer,
+    normalizeAudio: boolean = true,
+    channelOffset: number = 0,
+    metadata: Partial<WaveMetadata> = {},
+    loop:
+        | {
+              start: number;
+              end: number;
+          }
+        | undefined,
+    channelCount: number = audioBuffer.numberOfChannels
+): Blob {
+    const channels: Float32Array[] = [];
+    for (let i = channelOffset; i < audioBuffer.numberOfChannels; i++) {
         channels.push(audioBuffer.getChannelData(i));
-        if (channels.length >= channelCount)
-        {
+        if (channels.length >= channelCount) {
             break;
         }
     }
     return new Blob(
-        [audioToWav(channels, audioBuffer.sampleRate, normalizeAudio, metadata, loop)],
+        [
+            audioToWav(
+                channels,
+                audioBuffer.sampleRate,
+                normalizeAudio,
+                metadata,
+                loop
+            )
+        ],
         { type: "audio/wav" }
     );
 }

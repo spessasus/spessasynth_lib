@@ -1,115 +1,116 @@
-import { workletMessageType } from "./worklet_message.js";
-import { WorkletSoundfontManagerMessageType } from "./sfman_message.js";
 import { SpessaSynthCoreUtils } from "spessasynth_core";
+import type { Synthetizer } from "./synthetizer";
+import type { WorkletMessage, WorkletSBKManagerData } from "./types";
 
-export class SoundfontManager
-{
+export class SoundfontManager {
     /**
-     * Creates a new instance of the soundfont manager
-     * @param synth {Synthetizer}
+     * The current list of soundbanks,
+     * in order from the most important to the least.
      */
-    constructor(synth)
-    {
-        /**
-         * The current list of soundfonts, in order from the most important to the least.
-         * @type {{
-         *     id: string,
-         *     bankOffset: number
-         * }[]}
-         */
-        this.soundfontList = [{
-            id: "main",
-            bankOffset: 0
-        }];
-        
-        /**
-         * @type {MessagePort}
-         * @private
-         */
-        this._port = synth.worklet.port;
+    soundBankList: { id: string; bankOffset: number }[];
+
+    private port: MessagePort;
+
+    private synth: Synthetizer;
+
+    /**
+     * Creates a new instance of the soundfont manager.
+     */
+    constructor(synth: Synthetizer) {
+        this.soundBankList = [
+            {
+                id: "main",
+                bankOffset: 0
+            }
+        ];
+
+        this.port = synth.worklet.port;
         this.synth = synth;
     }
-    
-    /**
-     * @private
-     * @param type {WorkletSoundfontManagerMessageType}
-     * @param data {any}
-     */
-    _sendToWorklet(type, data)
-    {
-        this._port.postMessage({
-            messageType: workletMessageType.soundFontManager,
-            messageData: [
-                type,
-                data
-            ]
-        });
-    }
-    
+
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Adds a new soundfont buffer with a given ID
-     * @param soundfontBuffer {ArrayBuffer} - the soundfont's buffer
-     * @param id {string} - the soundfont's unique identifier
-     * @param bankOffset {number} - the soundfont's bank offset. Default is 0
+     * Adds a new sound bank buffer with a given ID.
+     * @param soundBankBuffer The sound bank's buffer
+     * @param id The sound bank's unique identifier.
+     * @param bankOffset The sound bank's bank offset. Default is 0.
      */
-    async addNewSoundFont(soundfontBuffer, id, bankOffset = 0)
-    {
-        this._sendToWorklet(WorkletSoundfontManagerMessageType.addNewSoundFont, [soundfontBuffer, id, bankOffset]);
-        await new Promise(r => this.synth._resolveWhenReady = r);
-        if (this.soundfontList.find(s => s.id === id) !== undefined)
-        {
-            this.soundfontList.find(s => s.id === id).bankOffset = bankOffset;
-        }
-        else
-        {
-            this.soundfontList.push({
+    async addNewSoundBank(
+        soundBankBuffer: ArrayBuffer,
+        id: string,
+        bankOffset: number = 0
+    ) {
+        this.sendToWorklet("addNewSoundBank", {
+            soundBankBuffer,
+            bankOffset,
+            id
+        });
+        await new Promise((r) => (this.synth._resolveWhenReady = r));
+        const found = this.soundBankList.find((s) => s.id === id);
+        if (found !== undefined) {
+            found.bankOffset = bankOffset;
+        } else {
+            this.soundBankList.push({
                 id: id,
                 bankOffset: bankOffset
             });
         }
     }
-    
+
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Deletes a soundfont with the given ID
-     * @param id {string} - the soundfont to delete
+     * Deletes a sound bank with the given ID.
+     * @param id The sound bank to delete.
      */
-    deleteSoundFont(id)
-    {
-        if (this.soundfontList.length === 0)
-        {
-            SpessaSynthCoreUtils.SpessaSynthWarn("1 soundfont left. Aborting!");
+    deleteSoundBank(id: string) {
+        if (this.soundBankList.length === 0) {
+            SpessaSynthCoreUtils.SpessaSynthWarn(
+                "1 sound bank left. Aborting!"
+            );
             return;
         }
-        if (this.soundfontList.findIndex(s => s.id === id) === -1)
-        {
-            SpessaSynthCoreUtils.SpessaSynthWarn(`No soundfont with id of "${id}" found. Aborting!`);
+        if (this.soundBankList.findIndex((s) => s.id === id) === -1) {
+            SpessaSynthCoreUtils.SpessaSynthWarn(
+                `No sound banks with id of "${id}" found. Aborting!`
+            );
             return;
         }
-        this._sendToWorklet(WorkletSoundfontManagerMessageType.deleteSoundFont, id);
+        this.sendToWorklet("deleteSoundBank", id);
     }
-    
+
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Rearranges the soundfonts in a given order
-     * @param newList {string[]} the order of soundfonts, a list of identifiers, first overwrites second
+     * Rearranges the sound banks in a given order.
+     * @param newList {string[]} The order of sound banks, a list of identifiers, first overwrites second.
      */
-    rearrangeSoundFonts(newList)
-    {
-        this._sendToWorklet(WorkletSoundfontManagerMessageType.rearrangeSoundFonts, newList);
-        this.soundfontList.sort((a, b) =>
-            newList.indexOf(a.id) - newList.indexOf(b.id)
+    rearrangeSoundBanks(newList: string[]) {
+        this.sendToWorklet("rearrangeSoundBanks", newList);
+        this.soundBankList.sort(
+            (a, b) => newList.indexOf(a.id) - newList.indexOf(b.id)
         );
     }
-    
+
     /**
-     * DELETES ALL SOUNDFONTS! and creates a new one with id "main"
-     * @param newBuffer {ArrayBuffer}
+     * DELETES ALL SOUND BANKS! and creates a new one with id "main".
+     * @param newBuffer The new sound bank to reload the Synth with.
      */
-    async reloadManager(newBuffer)
-    {
-        this._sendToWorklet(WorkletSoundfontManagerMessageType.reloadSoundFont, newBuffer);
-        await new Promise(r => this.synth._resolveWhenReady = r);
+    async reloadManager(newBuffer: ArrayBuffer) {
+        this.sendToWorklet("reloadSoundBank", newBuffer);
+        await new Promise((r) => (this.synth._resolveWhenReady = r));
+    }
+
+    private sendToWorklet<T extends keyof WorkletSBKManagerData>(
+        type: T,
+        data: WorkletSBKManagerData[T]
+    ) {
+        const msg: WorkletMessage = {
+            messageType: "soundBankManager",
+            channelNumber: -1,
+            messageData: {
+                type,
+                data
+            }
+        };
+        this.port.postMessage(msg);
     }
 }

@@ -8,6 +8,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:types": "tsc -b",
     "build": "node build_scripts/build.js",
     "debug": "node build_scripts/debug_enable.js",
     "release": "node build_scripts/debug_disable.js",
@@ -53,8 +54,9 @@
   },
   "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
   "devDependencies": {
-    "esbuild": "^0.25.2",
     "@eslint/js": "^9.32.0",
+    "@types/audioworklet": "^0.0.81",
+    "esbuild": "^0.25.2",
     "eslint": "^9.32.0",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
@@ -64,6 +66,6 @@
     "typescript-eslint": "^8.38.0"
   },
   "dependencies": {
-    "spessasynth_core": "latest"
+    "spessasynth_core": "file:../spessasynth_core/spessasynth_core-3.28.0.tgz"
   }
 }
