@@ -41,7 +41,6 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
                 seq = new Sequencer(synth); // create the sequencer with the parsed midis
                 seq.loadNewSongList(parsedSongs);
                 seq.play(); // play the midi
-                console.log("play");
             } else {
                 seq.loadNewSongList(parsedSongs); // the sequencer is already created, no need to create a new one.
                 seq.play();

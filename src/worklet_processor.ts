@@ -231,9 +231,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 return;
             }
         }
-        if (!channelObject) {
-            return;
-        }
         switch (m.messageType) {
             case "midiMessage":
                 this.synthesizer.processMessage(
@@ -246,7 +243,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
 
             case "customCcChange":
                 // custom controller change
-                channelObject.setCustomController(
+                channelObject?.setCustomController(
                     m.messageData.ccNumber,
                     m.messageData.ccValue
                 );
@@ -256,7 +253,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                     this.synthesizer.resetAllControllers();
                 } else {
-                    channelObject.resetControllers();
+                    channelObject?.resetControllers();
                 }
                 break;
 
@@ -284,9 +281,9 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 } else if (
                     m.messageData.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION
                 ) {
-                    channelObject.disableAndLockGSNRPN();
+                    channelObject?.disableAndLockGSNRPN();
                 } else {
-                    channelObject.setVibrato(
+                    channelObject?.setVibrato(
                         m.messageData.depth,
                         m.messageData.rate,
                         m.messageData.delay
@@ -298,7 +295,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                     this.synthesizer.stopAllChannels(m.messageData === 1);
                 } else {
-                    channelObject.stopAllNotes(m.messageData === 1);
+                    channelObject?.stopAllNotes(m.messageData === 1);
                 }
                 break;
 
@@ -307,7 +304,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 break;
 
             case "muteChannel":
-                channelObject.muteChannel(m.messageData);
+                channelObject?.muteChannel(m.messageData);
                 break;
 
             case "addNewChannel":
@@ -322,11 +319,11 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 break;
 
             case "setDrums":
-                channelObject.setDrums(m.messageData);
+                channelObject?.setDrums(m.messageData);
                 break;
 
             case "transposeChannel":
-                channelObject.transposeChannel(
+                channelObject?.transposeChannel(
                     m.messageData.semitones,
                     m.messageData.force
                 );
@@ -337,8 +334,11 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                     m.messageData.controllerNumber ===
                     ALL_CHANNELS_OR_DIFFERENT_ACTION
                 ) {
-                    channelObject.setPresetLock(m.messageData.isLocked);
+                    channelObject?.setPresetLock(m.messageData.isLocked);
                 } else {
+                    if (!channelObject) {
+                        return;
+                    }
                     channelObject.lockedControllers[
                         m.messageData.controllerNumber
                     ] = m.messageData.isLocked;
