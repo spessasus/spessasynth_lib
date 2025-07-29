@@ -1,25 +1,32 @@
-import path from "node:path";
-import esbuild from "esbuild";
-import url from "node:url";
 import { runCommandSync } from "./run_command.js";
+import { rimraf } from "rimraf";
+import path from "path";
+import esbuild from "esbuild";
 
+await rimraf.rimraf(path.resolve(import.meta.dirname, "..", "dist"));
 
-const dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const INPUT_PATH = path.join(dirname, "..", "src", "synthetizer", "worklet_processor.js");
-const OUTPUT_PATH = path.join(dirname, "..", "synthetizer", "worklet_processor.min.js");
+const dirname = import.meta.dirname;
+const INPUT_PATH = path.join(dirname, "..", "src", "worklet_processor.ts");
+const OUTPUT_PATH = path.join(
+    dirname,
+    "..",
+    "dist",
+    "worklet_processor.min.js"
+);
 
-// esbuild src/synthetizer/worklet_processor.js --bundle --tree-shaking=true --minify --sourcemap=linked --format=esm --outfile=synthetizer/worklet_processor.min.js --platform=browser
+// esbuild src/worklet_processor/ts --bundle --tree-shaking=true --minify --sourcemap=linked --format=esm --outfile=dist/worklet_processor.min.js --platform=browser
 esbuild.buildSync({
     entryPoints: [INPUT_PATH],
     bundle: true,
     treeShaking: true,
     minify: true,
-    sourcemap: "linked",
     format: "esm",
     platform: "browser",
     outfile: OUTPUT_PATH,
-    logLevel: "info"
+    logLevel: "info",
+    target: "esnext"
 });
 
-runCommandSync("npm run build_examples");
+runCommandSync("tsup src/index.ts --sourcemap --dts --format esm");
+runCommandSync("npm run build:examples");
 console.log("spessasynth_lib built successfully");

@@ -1,4 +1,4 @@
-import { Synthetizer } from "../synthetizer/synthetizer.js";
+import { WorkletSynthesizer } from "../synthetizer/synthetizer.js";
 import { consoleColors } from "../utils/other.js";
 import { SpessaSynthCoreUtils } from "spessasynth_core";
 
@@ -13,7 +13,7 @@ export class WebMIDILinkHandler {
      * Initializes support for Web MIDI Link (https://www.g200kg.com/en/docs/webmidilink/)
      * @param synth The synthesizer to enable support with.
      */
-    constructor(synth: Synthetizer) {
+    public constructor(synth: WorkletSynthesizer) {
         window.addEventListener("message", (msg) => {
             if (typeof msg.data !== "string") {
                 return;

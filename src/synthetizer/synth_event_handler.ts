@@ -8,12 +8,12 @@ type EventsMap = {
     [K in keyof ProcessorEventType]: Map<string, ProcessorEventCallback<K>>;
 };
 
-export class EventHandler {
+export class SynthEventHandler {
     /**
      * The time delay before an event is called.
      * Set to 0 to disable it.
      */
-    timeDelay = 0;
+    public timeDelay = 0;
 
     /**
      * The main list of events.
@@ -69,7 +69,7 @@ export class EventHandler {
      * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
      * @param callback The callback for the event.
      */
-    addEvent<T extends keyof ProcessorEventType>(
+    public addEvent<T extends keyof ProcessorEventType>(
         event: T,
         id: string,
         callback: ProcessorEventCallback<T>
@@ -83,7 +83,10 @@ export class EventHandler {
      * @param name The event to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
-    removeEvent<T extends keyof ProcessorEventType>(name: T, id: string) {
+    public removeEvent<T extends keyof ProcessorEventType>(
+        name: T,
+        id: string
+    ) {
         this.events[name].delete(id);
     }
 
@@ -91,7 +94,7 @@ export class EventHandler {
      * Calls the given event.
      * Internal use only.
      */
-    callEventInternal<T extends keyof ProcessorEventType>(
+    public callEventInternal<T extends keyof ProcessorEventType>(
         name: T,
         eventData: ProcessorEventType[T]
     ) {

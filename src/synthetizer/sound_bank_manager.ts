@@ -1,30 +1,26 @@
 import { SpessaSynthCoreUtils } from "spessasynth_core";
-import type { Synthetizer } from "./synthetizer";
+import type { WorkletSynthesizer } from "./synthetizer";
 import type { WorkletMessage, WorkletSBKManagerData } from "./types";
 
 export class SoundBankManager {
     /**
-     * The current list of soundbanks,
+     * The current list of sound banks,
      * in order from the most important to the least.
      */
-    soundBankList: { id: string; bankOffset: number }[];
+    public soundBankList: { id: string; bankOffset: number }[];
 
-    private port: MessagePort;
-
-    private synth: Synthetizer;
+    private synth: WorkletSynthesizer;
 
     /**
      * Creates a new instance of the soundfont manager.
      */
-    constructor(synth: Synthetizer) {
+    public constructor(synth: WorkletSynthesizer) {
         this.soundBankList = [
             {
                 id: "main",
                 bankOffset: 0
             }
         ];
-
-        this.port = synth.worklet.port;
         this.synth = synth;
     }
 
@@ -35,7 +31,7 @@ export class SoundBankManager {
      * @param id The sound bank's unique identifier.
      * @param bankOffset The sound bank's bank offset. Default is 0.
      */
-    async addNewSoundBank(
+    public async addNewSoundBank(
         soundBankBuffer: ArrayBuffer,
         id: string,
         bankOffset: number = 0
@@ -45,7 +41,7 @@ export class SoundBankManager {
             bankOffset,
             id
         });
-        await new Promise((r) => (this.synth._resolveWhenReady = r));
+        await new Promise((r) => (this.synth.resolveWhenReady = r));
         const found = this.soundBankList.find((s) => s.id === id);
         if (found !== undefined) {
             found.bankOffset = bankOffset;
@@ -62,7 +58,7 @@ export class SoundBankManager {
      * Deletes a sound bank with the given ID.
      * @param id The sound bank to delete.
      */
-    deleteSoundBank(id: string) {
+    public deleteSoundBank(id: string) {
         if (this.soundBankList.length === 0) {
             SpessaSynthCoreUtils.SpessaSynthWarn(
                 "1 sound bank left. Aborting!"
@@ -83,7 +79,7 @@ export class SoundBankManager {
      * Rearranges the sound banks in a given order.
      * @param newList {string[]} The order of sound banks, a list of identifiers, first overwrites second.
      */
-    rearrangeSoundBanks(newList: string[]) {
+    public rearrangeSoundBanks(newList: string[]) {
         this.sendToWorklet("rearrangeSoundBanks", newList);
         this.soundBankList.sort(
             (a, b) => newList.indexOf(a.id) - newList.indexOf(b.id)
@@ -94,9 +90,9 @@ export class SoundBankManager {
      * DELETES ALL SOUND BANKS! and creates a new one with id "main".
      * @param newBuffer The new sound bank to reload the Synth with.
      */
-    async reloadManager(newBuffer: ArrayBuffer) {
+    public async reloadManager(newBuffer: ArrayBuffer) {
         this.sendToWorklet("reloadSoundBank", newBuffer);
-        await new Promise((r) => (this.synth._resolveWhenReady = r));
+        await new Promise((r) => (this.synth.resolveWhenReady = r));
     }
 
     private sendToWorklet<T extends keyof WorkletSBKManagerData>(
@@ -109,8 +105,13 @@ export class SoundBankManager {
             messageData: {
                 type,
                 data
-            }
+            } as {
+                [K in keyof WorkletSBKManagerData]: {
+                    type: K;
+                    data: WorkletSBKManagerData[K];
+                };
+            }[keyof WorkletSBKManagerData]
         };
-        this.port.postMessage(msg);
+        this.synth.worklet.port.postMessage(msg);
     }
 }

@@ -1,21 +1,32 @@
+import type { PassedProcessorParameters } from "../types";
+
 export type SynthConfig = {
-    // Indicates if the chorus effect is enabled.
-    chorusEnabled: boolean;
-    // The configuration for chorus. Pass undefined to use defaults.
-    chorusConfig: Partial<ChorusConfig>;
-    // Indicates if the reverb effect is enabled.
-    reverbEnabled: boolean;
-    // The impulse response for the reverb. Pass undefined to use defaults
-    reverbImpulseResponse?: AudioBuffer;
+    // Configuration for the effects.
+    effectsConfig: EffectsConfig;
     // Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.
     // Pass undefined to use the Web Audio API.
     audioNodeCreators?: {
         worklet: (
-            context: BaseAudioContext | object,
+            context: BaseAudioContext,
             workletName: string,
-            options?: object
+            options?: AudioWorkletNodeOptions & {
+                processorOptions: PassedProcessorParameters;
+            }
         ) => unknown;
     };
+};
+
+export type EffectsConfig = {
+    // Indicates if the chorus effect is enabled.
+    // This can only be set once.
+    readonly chorusEnabled: boolean;
+    // The configuration for chorus. Pass undefined to use defaults.
+    chorusConfig: Partial<ChorusConfig>;
+    // Indicates if the reverb effect is enabled.
+    // This can only be set once.
+    readonly reverbEnabled: boolean;
+    // The impulse response for the reverb. Pass undefined to use defaults
+    reverbImpulseResponse?: AudioBuffer;
 };
 
 export type ChorusConfig = {

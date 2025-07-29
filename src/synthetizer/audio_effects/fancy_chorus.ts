@@ -42,7 +42,7 @@ export class FancyChorus {
      * @param output The target output node.
      * @param config The configuration for the chorus.
      */
-    constructor(
+    public constructor(
         output: AudioNode,
         config: ChorusConfig = DEFAULT_CHORUS_CONFIG
     ) {
@@ -92,7 +92,7 @@ export class FancyChorus {
     /**
      * Disconnects and deletes the chorus effect.
      */
-    delete() {
+    public delete() {
         this.input.disconnect();
         this.merger.disconnect();
         for (const chorusLeftElement of this.chorusLeft) {

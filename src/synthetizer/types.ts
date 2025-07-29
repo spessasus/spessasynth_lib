@@ -14,6 +14,11 @@ import type {
     SequencerReturnMessage
 } from "../sequencer/types";
 
+export type PassedProcessorParameters = {
+    midiChannels: number;
+    enableEventSystem: boolean;
+    startRenderingData?: StartRenderingDataConfig;
+};
 export type StartRenderingDataConfig = Partial<{
     // The MIDI to render.
     parsedMIDI: BasicMIDI;
@@ -133,25 +138,18 @@ type EventCallObject<T extends keyof ProcessorEventType> = {
     data: ProcessorEventType[T];
 };
 
-export type WorkletReturnMessage =
-    | {
-          type: "eventCall";
-          data: EventCallObject<keyof ProcessorEventType>;
-      }
-    | {
-          type: "sequencerSpecific";
-          data: SequencerReturnMessage;
-      }
-    | {
-          type: "synthesizerSnapshot";
-          data: SynthesizerSnapshot;
-      }
-    | {
-          type: "isFullyInitialized";
-          data: null;
-      }
-    | {
-          type: "soundBankError";
-          // An error message related to the sound bank. It contains a string description of the error.
-          data: Error;
-      };
+type WorkletReturnMessageData = {
+    eventCall: EventCallObject<keyof ProcessorEventType>;
+    sequencerSpecific: SequencerReturnMessage;
+    synthesizerSnapshot: SynthesizerSnapshot;
+    isFullyInitialized: null;
+    // An error message related to the sound bank. It contains a string description of the error.
+    soundBankError: Error;
+};
+
+export type WorkletReturnMessage = {
+    [K in keyof WorkletReturnMessageData]: {
+        type: K;
+        data: WorkletReturnMessageData[K];
+    };
+}[keyof WorkletReturnMessageData];

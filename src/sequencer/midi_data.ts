@@ -10,13 +10,13 @@ export class MIDIData extends MIDISequenceData {
      * A boolean indicating if the MIDI file contains an embedded sound bank.
      * If the embedded soundfont is undefined, this will be false.
      */
-    isEmbedded = false;
+    public readonly isEmbedded: boolean;
 
     /**
      * Constructor that copies data from a BasicMIDI instance.
      * @param midi - The BasicMIDI instance to copy data from.
      */
-    constructor(midi: BasicMIDI) {
+    public constructor(midi: BasicMIDI) {
         super();
         this._copyFromSequence(midi);
 

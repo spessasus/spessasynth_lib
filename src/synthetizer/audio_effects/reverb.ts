@@ -2,6 +2,7 @@ import { reverbBufferBinary } from "./reverb_as_binary.js";
 
 /**
  * Creates a reverb processor.
+ * @returns The convolver node and a promise for when the audio buffer gets set.
  */
 export function getReverbProcessor(
     context: BaseAudioContext,
@@ -18,7 +19,7 @@ export function getReverbProcessor(
     } else {
         // decode
         promise = context.decodeAudioData(reverbBufferBinary.slice(0));
-        promise.then((b) => {
+        void promise.then((b) => {
             convolver.buffer = b;
         });
     }

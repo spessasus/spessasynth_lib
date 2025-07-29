@@ -9,10 +9,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:types": "tsc -b",
-    "build": "node build_scripts/build.js",
+    "lint": "eslint src/",
+    "validate": "npm run lint && npm run test:types",
+    "build": "npm run validate && npm run build:fast",
     "debug": "node build_scripts/debug_enable.js",
+    "build:fast": "node build_scripts/build.js",
     "release": "node build_scripts/debug_disable.js",
-    "build_examples": "node examples/build_examples.js"
+    "build:examples": "node examples/build_examples.js"
   },
   "repository": {
     "type": "git",
@@ -56,7 +59,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@types/audioworklet": "^0.0.81",
-    "esbuild": "^0.25.2",
+    "esbuild": "^0.25.8",
     "eslint": "^9.32.0",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",

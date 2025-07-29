@@ -1,123 +1,120 @@
 import { consoleColors } from "../utils/other.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    BasicMIDI,
     channelConfiguration,
+    type ChannelProperty,
+    DEFAULT_MASTER_PARAMETERS,
     DEFAULT_PERCUSSION,
-    DEFAULT_SYNTH_MODE,
-    interpolationTypes,
-    masterParameterType,
-    messageTypes,
+    type MasterParameterChangeCallback,
+    type MasterParameterType,
     MIDI_CHANNEL_COUNT,
+    type MIDIController,
     midiControllers,
+    midiMessageTypes,
+    type PresetListChangeCallback,
     SpessaSynthCoreUtils as util,
     SynthesizerSnapshot,
-    VOICE_CAP
+    type SynthMethodOptions
 } from "spessasynth_core";
-import { EventHandler } from "./synth_event_handler.js";
-import { FancyChorus } from "./audio_effects/fancy_chorus.js";
+import { SynthEventHandler } from "./synth_event_handler.js";
+import { DEFAULT_CHORUS_CONFIG, FancyChorus } from "./audio_effects/fancy_chorus.js";
 import { getReverbProcessor } from "./audio_effects/reverb.js";
-import { returnMessageType, workletMessageType } from "./worklet_message.js";
 import { DEFAULT_SYNTH_CONFIG } from "./audio_effects/effects_config.js";
 import { SoundBankManager } from "./sound_bank_manager.js";
 import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.js";
 import { fillWithDefaults } from "../utils/fill_with_defaults.js";
-import { DEFAULT_SEQUENCER_OPTIONS } from "../sequencer/default_sequencer_options.js";
 import { WORKLET_PROCESSOR_NAME } from "./worklet_url.js";
-import type { WorkletMessage } from "./types";
+import type { WorkletMessage, WorkletReturnMessage } from "./types";
+import type { SequencerReturnMessage } from "../sequencer/types";
+import type { ChorusConfig, SynthConfig } from "./audio_effects/types";
+import { LibSynthesizerSnapshot } from "./snapshot";
 
 /**
  * synthesizer.js
  * purpose: responds to midi messages and called functions, managing the channels and passing the messages to them
  */
 
-/**
- * @typedef {Object} SynthMethodOptions
- * @property {number} time - the audio context time when the event should execute, in seconds.
- */
-
-/**
- * @type {SynthMethodOptions}
- */
-const DEFAULT_SYNTH_METHOD_OPTIONS = {
+const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
 };
 
 // the "remote controller" of the worklet processor in the audio thread from the main thread
 // noinspection JSUnusedGlobalSymbols
-export class Synthetizer {
-    worklet: AudioWorkletNode;
-
+export class WorkletSynthesizer {
     /**
-     * Allows setting up custom event listeners for the synthesizer
-     * @type {EventHandler}
+     * Allows managing the sound bank list.
      */
-    eventHandler = new EventHandler();
-
+    public readonly soundBankManager = new SoundBankManager(this);
     /**
-     * Synthesizer's parent AudioContext instance
-     * @type {BaseAudioContext}
+     * Allows managing key modifications.
      */
-    context;
-
+    public readonly keyModifierManager = new WorkletKeyModifierManagerWrapper(
+        this
+    );
     /**
-     * Synthesizer's output node
-     * @type {AudioNode}
+     * Allows setting up custom event listeners for the synthesizer.
      */
-    targetNode;
+    public readonly eventHandler: SynthEventHandler = new SynthEventHandler();
     /**
-     * @type {boolean}
-     * @private
+     * Synthesizer's parent AudioContext instance.
      */
-    _destroyed = false;
-
+    public readonly context: BaseAudioContext;
+    /**
+     * Synth's current channel properties.
+     */
+    public readonly channelProperties: ChannelProperty[] = [];
+    /**
+     * The current preset list.
+     */
+    public presetList: PresetListChangeCallback = [];
+    // INTERNAL USE ONLY!
+    public sequencerCallbackFunction?: (m: SequencerReturnMessage) => unknown;
+    /**
+     * Resolves when the synthesizer is ready.
+     */
+    public readonly isReady: Promise<unknown>;
+    // Effects configuration for the synthesizer.
+    public synthConfig: SynthConfig;
+    /**
+     * Synthesizer's reverb processor.
+     * Undefined if reverb is disabled.
+     */
+    public readonly reverbProcessor?: ConvolverNode;
+    /**
+     * Synthesizer's chorus processor.
+     * Undefined if chorus is disabled.
+     */
+    public chorusProcessor?: FancyChorus;
+    public readonly worklet: AudioWorkletNode;
+    // initialize internal promise resolution
+    public resolveWhenReady?: (...args: unknown[]) => unknown = undefined;
+    /**
+     * Synthesizer's output node.
+     */
+    private readonly targetNode: AudioNode;
+    private _destroyed = false;
     /**
      * the new channels will have their audio sent to the modulated output by this constant.
      * what does that mean?
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
-     * @type {number}
-     * @private
      */
-    _outputsAmount = MIDI_CHANNEL_COUNT;
-
+    private readonly _outputsAmount = MIDI_CHANNEL_COUNT;
     /**
      * The current number of MIDI channels the synthesizer has
-     * @type {number}
      */
-    channelsAmount = this._outputsAmount;
-
-    /**
-     * Synth's current channel properties
-     * @type {ChannelProperty[]}
-     */
-    channelProperties = [];
-
-    /**
-     * The current preset list
-     * @type {{presetName: string, bank: number, program: number}[]}
-     */
-    presetList = [];
-
-    // initialize internal promise resolution
-    _resolveWhenReady?: (...args: unknown[]) => unknown = undefined;
+    public channelsAmount = this._outputsAmount;
+    private snapshotCallback?: (s: SynthesizerSnapshot) => unknown;
+    private readonly masterParameters: MasterParameterType =
+        DEFAULT_MASTER_PARAMETERS;
 
     /**
      * Creates a new instance of the SpessaSynth synthesizer.
-     * @param targetNode {AudioNode}
-     * @param soundFontBuffer {ArrayBuffer} the soundfont file array buffer.
-     * @param enableEventSystem {boolean} enables the event system.
-     * Defaults to true.
-     * Disable only when you're rendering audio offline with no actions from the main thread
-     * @param startRenderingData {StartRenderingDataConfig} if it is set,
-     * starts playing this immediately and restores the values.
-     * @param synthConfig {SynthConfig} optional configuration for the synthesizer.
+     * @param targetNode The target node to connect to.
+     * @param config Optional configuration for the synthesizer.
      */
-    constructor(
-        targetNode,
-        soundFontBuffer,
-        enableEventSystem = true,
-        startRenderingData = undefined,
-        synthConfig = DEFAULT_SYNTH_CONFIG
+    public constructor(
+        targetNode: AudioNode,
+        config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
         util.SpessaSynthInfo(
             "%cInitializing SpessaSynth synthesizer...",
@@ -127,64 +124,27 @@ export class Synthetizer {
         this.targetNode = targetNode;
 
         // ensure default values for options
-        enableEventSystem = enableEventSystem ?? true;
-        synthConfig = synthConfig ?? DEFAULT_SYNTH_CONFIG;
+        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
         this.isReady = new Promise(
-            (resolve) => (this._resolveWhenReady = resolve)
+            (resolve) => (this.resolveWhenReady = resolve)
         );
 
         // create initial channels
         for (let i = 0; i < this.channelsAmount; i++) {
-            this.addNewChannel(false);
+            this.addNewChannelInternal(false);
         }
         this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
 
         // determine output mode and channel configuration
-        const oneOutputMode = startRenderingData?.oneOutput ?? false;
-        let processorChannelCount = Array(this._outputsAmount + 2).fill(2);
-        let processorOutputsCount = this._outputsAmount + 2;
-        if (oneOutputMode) {
-            processorOutputsCount = 1;
-            processorChannelCount = [32];
-        }
+        const processorChannelCount = Array(this._outputsAmount + 2).fill(2);
+        const processorOutputsCount = this._outputsAmount + 2;
 
         // initialize effects configuration
-        this.effectsConfig = fillWithDefaults(
-            synthConfig,
-            DEFAULT_SYNTH_CONFIG
-        );
+        this.synthConfig = fillWithDefaults(synthConfig, DEFAULT_SYNTH_CONFIG);
 
         // process start rendering data
         const sequencerRenderingData = {};
-        if (startRenderingData?.parsedMIDI !== undefined) {
-            sequencerRenderingData.parsedMIDI = BasicMIDI.copyFrom(
-                startRenderingData.parsedMIDI
-            );
-            if (startRenderingData?.snapshot) {
-                const snapshot = startRenderingData.snapshot;
-                if (snapshot?.effectsConfig !== undefined) {
-                    // overwrite effects configuration with the snapshot
-                    this.effectsConfig = fillWithDefaults(
-                        snapshot.effectsConfig,
-                        DEFAULT_SYNTH_CONFIG
-                    );
-                    // delete effects config as it cannot be cloned to the worklet (and does not need to be)
-                    delete snapshot.effectsConfig;
-                }
-                sequencerRenderingData.snapshot = snapshot;
-            }
-            if (startRenderingData?.sequencerOptions) {
-                // sequencer options
-                sequencerRenderingData.sequencerOptions = fillWithDefaults(
-                    startRenderingData.sequencerOptions,
-                    DEFAULT_SEQUENCER_OPTIONS
-                );
-            }
-
-            sequencerRenderingData.loopCount =
-                startRenderingData?.loopCount ?? 0;
-        }
 
         // create the audio worklet node
         try {
@@ -200,13 +160,12 @@ export class Synthetizer {
                     outputChannelCount: processorChannelCount,
                     numberOfOutputs: processorOutputsCount,
                     processorOptions: {
-                        midiChannels: oneOutputMode ? 1 : this._outputsAmount,
-                        soundfont: soundFontBuffer,
-                        enableEventSystem: enableEventSystem,
+                        midiChannels: this._outputsAmount,
+                        enableEventSystem: true,
                         startRenderingData: sequencerRenderingData
                     }
                 }
-            );
+            ) as AudioWorkletNode;
         } catch (e) {
             console.error(e);
             throw new Error(
@@ -215,276 +174,152 @@ export class Synthetizer {
         }
 
         // set up message handling and managers
-        this.worklet.port.onmessage = (e) => this.handleMessage(e.data);
-        this.soundfontManager = new SoundBankManager(this);
-        this.keyModifierManager = new WorkletKeyModifierManagerWrapper(this);
-        this._snapshotCallback = undefined;
-        this.sequencerCallbackFunction = undefined;
+        this.worklet.port.onmessage = (e: MessageEvent<WorkletReturnMessage>) =>
+            this.handleMessage(e.data);
 
         // connect worklet outputs
-        if (oneOutputMode) {
-            this.worklet.connect(targetNode, 0);
-        } else {
-            const reverbOn = this.effectsConfig?.reverbEnabled ?? true;
-            const chorusOn = this.effectsConfig?.chorusEnabled ?? true;
-            if (reverbOn) {
-                const proc = getReverbProcessor(
-                    this.context,
-                    this.effectsConfig.reverbImpulseResponse
-                );
-                this.reverbProcessor = proc.conv;
-                this.isReady = Promise.all([this.isReady, proc.promise]);
-                this.reverbProcessor.connect(targetNode);
-                this.worklet.connect(this.reverbProcessor, 0);
-            }
-            if (chorusOn) {
-                this.chorusProcessor = new FancyChorus(
-                    targetNode,
-                    this.effectsConfig.chorusConfig
-                );
-                this.worklet.connect(this.chorusProcessor.input, 1);
-            }
-            for (let i = 2; i < this.channelsAmount + 2; i++) {
-                this.worklet.connect(targetNode, i);
-            }
+
+        const reverbOn = this.synthConfig?.effectsConfig?.reverbEnabled ?? true;
+        const chorusOn = this.synthConfig?.effectsConfig?.chorusEnabled ?? true;
+        if (reverbOn) {
+            const proc = getReverbProcessor(
+                this.context,
+                this.synthConfig.effectsConfig.reverbImpulseResponse
+            );
+            this.reverbProcessor = proc.conv;
+            this.isReady = Promise.all([this.isReady, proc.promise]);
+            this.reverbProcessor.connect(targetNode);
+            this.worklet.connect(this.reverbProcessor, 0);
+        }
+        if (chorusOn) {
+            const chorusConfig = fillWithDefaults(
+                this.synthConfig.effectsConfig.chorusConfig,
+                DEFAULT_CHORUS_CONFIG
+            );
+            this.chorusProcessor = new FancyChorus(targetNode, chorusConfig);
+            this.worklet.connect(this.chorusProcessor.input, 1);
+        }
+        for (let i = 2; i < this.channelsAmount + 2; i++) {
+            this.worklet.connect(targetNode, i);
         }
 
         // attach event handlers
         this.eventHandler.addEvent(
-            "newchannel",
+            "newChannel",
             `synth-new-channel-${Math.random()}`,
             () => {
                 this.channelsAmount++;
             }
         );
         this.eventHandler.addEvent(
-            "presetlistchange",
+            "presetListChange",
             `synth-preset-list-change-${Math.random()}`,
             (e) => {
                 this.presetList = e;
             }
         );
-    }
-
-    /**
-     * @type {"gm"|"gm2"|"gs"|"xg"}
-     * @private
-     */
-    _midiSystem = DEFAULT_SYNTH_MODE;
-
-    /**
-     * The current MIDI system used by the synthesizer
-     * @returns {"gm"|"gm2"|"gs"|"xg"}
-     */
-    get midiSystem() {
-        return this._midiSystem;
-    }
-
-    /**
-     * The current MIDI system used by the synthesizer
-     * @param value {"gm"|"gm2"|"gs"|"xg"}
-     */
-    set midiSystem(value) {
-        this._midiSystem = value;
-    }
-
-    /**
-     * current voice amount
-     * @type {number}
-     * @private
-     */
-    _voicesAmount = 0;
-
-    /**
-     * @returns {number} the current number of voices playing.
-     */
-    get voicesAmount() {
-        return this._voicesAmount;
-    }
-
-    /**
-     * For Black MIDI's - forces release time to 50 ms
-     * @type {boolean}
-     */
-    _highPerformanceMode = false;
-
-    get highPerformanceMode() {
-        return this._highPerformanceMode;
-    }
-
-    /**
-     * For Black MIDI's - forces release time to 50 ms.
-     * @param {boolean} value
-     */
-    set highPerformanceMode(value) {
-        this._highPerformanceMode = value;
-        this.post({
-            messageType: workletMessageType.blackMIDIMode,
-            messageData: value
-        });
-    }
-
-    /**
-     * @type {number}
-     * @private
-     */
-    _voiceCap = VOICE_CAP;
-
-    /**
-     * The maximum number of voices allowed at once.
-     * @returns {number}
-     */
-    get voiceCap() {
-        return this._voiceCap;
-    }
-
-    /**
-     * The maximum number of voices allowed at once.
-     * @param value {number}
-     */
-    set voiceCap(value) {
-        this._setMasterParam(masterParameterType.voicesCap, value);
-        this._voiceCap = value;
-    }
-
-    /**
-     * @returns {number} the audioContext's current time.
-     */
-    get currentTime() {
-        return this.context.currentTime;
-    }
-
-    /**
-     * Sets the SpessaSynth's log level.
-     * @param enableInfo {boolean} - enable info (verbose)
-     * @param enableWarning {boolean} - enable warnings (unrecognized messages)
-     * @param enableGroup {boolean} - enable groups (to group a lot of logs)
-     * @param enableTable {boolean} - enable table (debug message)
-     */
-    setLogLevel(enableInfo, enableWarning, enableGroup, enableTable) {
-        this.post({
-            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: workletMessageType.setLogLevel,
-            messageData: [enableInfo, enableWarning, enableGroup, enableTable]
-        });
-    }
-
-    /**
-     * @param type {masterParameterType}
-     * @param data {any}
-     * @private
-     */
-    _setMasterParam(type, data) {
-        this.post({
-            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: workletMessageType.setMasterParameter,
-            messageData: [type, data]
-        });
-    }
-
-    /**
-     * Sets the interpolation type for the synthesizer:
-     * 0. - linear
-     * 1. - nearest neighbor
-     * 2. - cubic
-     * @param type {interpolationTypes}
-     */
-    setInterpolationType(type) {
-        this._setMasterParam(masterParameterType.interpolationType, type);
-    }
-
-    /**
-     * Handles the messages received from the worklet.
-     * @param message {WorkletReturnMessage}
-     * @private
-     */
-    handleMessage(message) {
-        const messageData = message.messageData;
-        switch (message.messageType) {
-            case returnMessageType.channelPropertyChange:
-                /**
-                 * @type {number}
-                 */
-                const channelNumber = messageData[0];
-                /**
-                 * @type {ChannelProperty}
-                 */
-                const property = messageData[1];
-
-                this.channelProperties[channelNumber] = property;
+        this.eventHandler.addEvent(
+            "masterParameterChange",
+            `synth-master-parameter-change-${Math.random()}`,
+            <P extends keyof MasterParameterType>(
+                e: MasterParameterChangeCallback<P>
+            ) => {
+                this.masterParameters[e.parameter] = e.value;
+            }
+        );
+        this.eventHandler.addEvent(
+            "channelPropertyChange",
+            `synth-channel-property-change-${Math.random()}`,
+            (e) => {
+                this.channelProperties[e.channel] = e.property;
 
                 this._voicesAmount = this.channelProperties.reduce(
                     (sum, voices) => sum + voices.voicesAmount,
                     0
                 );
-                break;
-
-            case returnMessageType.eventCall:
-                this.eventHandler.callEventInternal(
-                    messageData.eventName,
-                    messageData.eventData
-                );
-                break;
-
-            case returnMessageType.sequencerSpecific:
-                if (this.sequencerCallbackFunction) {
-                    this.sequencerCallbackFunction(
-                        messageData.messageType,
-                        messageData.messageData
-                    );
-                }
-                break;
-
-            case returnMessageType.masterParameterChange:
-                /**
-                 * @type {masterParameterType}
-                 */
-                const param = messageData[0];
-                const value = messageData[1];
-                switch (param) {
-                    default:
-                        break;
-
-                    case masterParameterType.midiSystem:
-                        this._midiSystem = value;
-                        break;
-                }
-                break;
-
-            case returnMessageType.synthesizerSnapshot:
-                if (this._snapshotCallback) {
-                    this._snapshotCallback(messageData);
-                }
-                break;
-
-            case returnMessageType.isFullyInitialized:
-                this._resolveWhenReady();
-                break;
-
-            case returnMessageType.soundfontError:
-                util.SpessaSynthWarn(new Error(messageData));
-                this.eventHandler.callEventInternal(
-                    "soundfonterror",
-                    messageData
-                );
-                break;
-        }
+            }
+        );
     }
 
     /**
-     * Gets a complete snapshot of the synthesizer, including controllers.
-     * @returns {Promise<SynthesizerSnapshot>}
+     * current voice amount
      */
-    async getSynthesizerSnapshot() {
+    private _voicesAmount = 0;
+
+    /**
+     * The current number of voices playing.
+     */
+    public get voicesAmount() {
+        return this._voicesAmount;
+    }
+
+    /**
+     * @returns The audioContext's current time.
+     */
+    public get currentTime() {
+        return this.context.currentTime;
+    }
+
+    /**
+     * Sets the SpessaSynth's log level in the worklet processor.
+     * @param enableInfo Enable info (verbose)
+     * @param enableWarning Enable warnings (unrecognized messages)
+     * @param enableGroup Enable groups (to group a lot of logs)
+     */
+    public setLogLevel(
+        enableInfo: boolean,
+        enableWarning: boolean,
+        enableGroup: boolean
+    ) {
+        this.post({
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
+            messageType: "setLogLevel",
+            messageData: {
+                enableInfo,
+                enableWarning,
+                enableGroup
+            }
+        });
+    }
+
+    public setMasterParameter<K extends keyof MasterParameterType>(
+        type: K,
+        value: MasterParameterType[K]
+    ) {
+        this.masterParameters[type] = value;
+        this.post({
+            messageType: "setMasterParameter",
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
+            messageData: {
+                type,
+                data: value
+            } as {
+                [K in keyof MasterParameterType]: {
+                    type: K;
+                    data: MasterParameterType[K];
+                };
+            }[keyof MasterParameterType]
+        });
+    }
+
+    /**
+     * Gets a complete snapshot of the synthesizer, effects.
+     */
+    public async getSynthesizerSnapshot(): Promise<LibSynthesizerSnapshot> {
         return new Promise((resolve) => {
-            this._snapshotCallback = (s) => {
-                this._snapshotCallback = undefined;
-                s.effectsConfig = this.effectsConfig;
-                resolve(s);
+            this.snapshotCallback = (s: SynthesizerSnapshot) => {
+                this.snapshotCallback = undefined;
+                const snapshot = new LibSynthesizerSnapshot(
+                    s.channelSnapshots,
+                    s.masterParameters,
+                    s.keyMappings,
+                    this.synthConfig.effectsConfig
+                );
+                resolve(snapshot);
             };
             this.post({
-                messageType: workletMessageType.requestSynthesizerSnapshot,
-                messageData: undefined,
+                messageType: "requestSynthesizerSnapshot",
+                messageData: null,
                 channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
             });
         });
@@ -492,46 +327,32 @@ export class Synthetizer {
 
     /**
      * Adds a new channel to the synthesizer.
-     * @param postMessage {boolean} leave at true, set to false only at initialization.
      */
-    addNewChannel(postMessage = true) {
-        this.channelProperties.push({
-            voicesAmount: 0,
-            pitchBend: 0,
-            pitchBendRangeSemitones: 0,
-            isMuted: false,
-            isDrum: false,
-            transposition: 0,
-            program: 0,
-            bank: this.channelsAmount % 16 === DEFAULT_PERCUSSION ? 128 : 0
-        });
-        if (!postMessage) {
-            return;
-        }
-        this.post({
-            channelNumber: 0,
-            messageType: workletMessageType.addNewChannel,
-            messageData: null
-        });
+    public addNewChannel() {
+        this.addNewChannelInternal(true);
     }
 
     /**
-     * @param channel {number}
-     * @param value {{delay: number, depth: number, rate: number}}
+     * Sets custom vibrato for the channel.
+     * @param channel The channel number.
+     * @param value The vibrato parameters.
      */
-    setVibrato(channel, value) {
+    public setVibrato(
+        channel: number,
+        value: { delay: number; depth: number; rate: number }
+    ) {
         this.post({
             channelNumber: channel,
-            messageType: workletMessageType.setChannelVibrato,
+            messageType: "setChannelVibrato",
             messageData: value
         });
     }
 
     /**
      * Connects the individual audio outputs to the given audio nodes. In the app, it's used by the renderer.
-     * @param audioNodes {AudioNode[]}
+     * @param audioNodes Exactly 16 outputs.
      */
-    connectIndividualOutputs(audioNodes) {
+    public connectIndividualOutputs(audioNodes: AudioNode[]) {
         if (audioNodes.length !== this._outputsAmount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
             Expected ${this._outputsAmount} got ${audioNodes.length}`);
@@ -548,9 +369,9 @@ export class Synthetizer {
 
     /**
      * Disconnects the individual audio outputs to the given audio nodes. In the app, it's used by the renderer.
-     * @param audioNodes {AudioNode[]}
+     * @param audioNodes Exactly 16 outputs.
      */
-    disconnectIndividualOutputs(audioNodes) {
+    public disconnectIndividualOutputs(audioNodes: AudioNode[]) {
         if (audioNodes.length !== this._outputsAmount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
             Expected ${this._outputsAmount} got ${audioNodes.length}`);
@@ -568,7 +389,7 @@ export class Synthetizer {
     /*
      * Disables the GS NRPN parameters like vibrato or drum key tuning.
      */
-    disableGSNRPparams() {
+    public disableGSNPRNParams() {
         // rate -1 disables, see worklet_message.js line 9
         // channel -1 is all
         this.setVibrato(ALL_CHANNELS_OR_DIFFERENT_ACTION, {
@@ -579,72 +400,38 @@ export class Synthetizer {
     }
 
     /**
-     * A message for debugging.
-     */
-    debugMessage() {
-        util.SpessaSynthInfo(this);
-        this.post({
-            channelNumber: 0,
-            messageType: workletMessageType.debugMessage,
-            messageData: undefined
-        });
-    }
-
-    /**
      * sends a raw MIDI message to the synthesizer.
      * @param message {number[]|Uint8Array} the midi message, each number is a byte.
      * @param channelOffset {number} the channel offset of the message.
      * @param eventOptions {SynthMethodOptions} additional options for this command.
      */
-    sendMessage(
-        message,
-        channelOffset = 0,
-        eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    public sendMessage(
+        message: Iterable<number>,
+        channelOffset: number = 0,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         this._sendInternal(message, channelOffset, false, eventOptions);
     }
 
     /**
-     * @param message {number[]|Uint8Array}
-     * @param offset {number}
-     * @param force {boolean}
-     * @param eventOptions {SynthMethodOptions}
-     * @private
-     */
-    _sendInternal(message, offset, force = false, eventOptions) {
-        const opts = fillWithDefaults(
-            eventOptions ?? {},
-            DEFAULT_SYNTH_METHOD_OPTIONS
-        );
-        this.post({
-            messageType: workletMessageType.midiMessage,
-            messageData: [new Uint8Array(message), offset, force, opts]
-        });
-    }
-
-    /**
      * Starts playing a note
-     * @param channel {number} usually 0-15: the channel to play the note.
-     * @param midiNote {number} 0-127 the key number of the note.
-     * @param velocity {number} 0-127 the velocity of the note (generally controls loudness).
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param channel Usually 0-15: the channel to play the note.
+     * @param midiNote 0-127 the key number of the note.
+     * @param velocity 0-127 the velocity of the note (generally controls loudness).
+     * @param eventOptions Additional options for this command.
      */
-    noteOn(
-        channel,
-        midiNote,
-        velocity,
-        eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    public noteOn(
+        channel: number,
+        midiNote: number,
+        velocity: number,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         const ch = channel % 16;
         const offset = channel - ch;
         midiNote %= 128;
         velocity %= 128;
-        // check for legacy "enableDebugging"
-        if (eventOptions === true) {
-            eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS;
-        }
         this.sendMessage(
-            [messageTypes.noteOn | ch, midiNote, velocity],
+            [midiMessageTypes.noteOn | ch, midiNote, velocity],
             offset,
             eventOptions
         );
@@ -652,23 +439,23 @@ export class Synthetizer {
 
     /**
      * Stops playing a note.
-     * @param channel {number} usually 0-15: the channel of the note.
+     * @param channel Usually 0-15: the channel of the note.
      * @param midiNote {number} 0-127 the key number of the note.
-     * @param force {boolean} instantly kills the note if true.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param force Instantly kills the note if true.
+     * @param eventOptions Additional options for this command.
      */
-    noteOff(
-        channel,
-        midiNote,
-        force = false,
-        eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    public noteOff(
+        channel: number,
+        midiNote: number,
+        force: boolean = false,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         midiNote %= 128;
 
         const ch = channel % 16;
         const offset = channel - ch;
         this._sendInternal(
-            [messageTypes.noteOff | ch, midiNote],
+            [midiMessageTypes.noteOff | ch, midiNote],
             offset,
             force,
             eventOptions
@@ -677,30 +464,30 @@ export class Synthetizer {
 
     /**
      * Stops all notes.
-     * @param force {boolean} if we should instantly kill the note, defaults to false.
+     * @param force If we should instantly kill the note, defaults to false.
      */
-    stopAll(force = false) {
+    public stopAll(force = false) {
         this.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: workletMessageType.stopAll,
+            messageType: "stopAll",
             messageData: force ? 1 : 0
         });
     }
 
     /**
      * Changes the given controller
-     * @param channel {number} usually 0-15: the channel to change the controller.
-     * @param controllerNumber {number} 0-127 the MIDI CC number.
-     * @param controllerValue {number} 0-127 the controller value.
-     * @param force {boolean} forces the controller-change message, even if it's locked or gm system is set and the cc is bank select.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param channel Usually 0-15: the channel to change the controller.
+     * @param controllerNumber 0-127 the MIDI CC number.
+     * @param controllerValue 0-127 the controller value.
+     * @param force Forces the controller-change message, even if it's locked or gm system is set and the cc is bank select.
+     * @param eventOptions Additional options for this command.
      */
-    controllerChange(
-        channel,
-        controllerNumber,
-        controllerValue,
-        force = false,
-        eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    public controllerChange(
+        channel: number,
+        controllerNumber: MIDIController,
+        controllerValue: number,
+        force: boolean = false,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         if (controllerNumber > 127 || controllerNumber < 0) {
             throw new Error(`Invalid controller number: ${controllerNumber}`);
@@ -712,7 +499,7 @@ export class Synthetizer {
         const offset = channel - ch;
         this._sendInternal(
             [
-                messageTypes.controllerChange | ch,
+                midiMessageTypes.controllerChange | ch,
                 controllerNumber,
                 controllerValue
             ],
@@ -725,30 +512,30 @@ export class Synthetizer {
     /**
      * Resets all controllers (for every channel)
      */
-    resetControllers() {
+    public resetControllers() {
         this.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: workletMessageType.ccReset,
-            messageData: undefined
+            messageType: "ccReset",
+            messageData: null
         });
     }
 
     /**
      * Applies pressure to a given channel.
-     * @param channel {number} usually 0-15: the channel to change the controller.
-     * @param pressure {number} 0-127: the pressure to apply.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param channel Usually 0-15: the channel to change the controller.
+     * @param pressure 0-127: the pressure to apply.
+     * @param eventOptions Additional options for this command.
      */
-    channelPressure(
-        channel,
-        pressure,
+    public channelPressure(
+        channel: number,
+        pressure: number,
         eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         const ch = channel % 16;
         const offset = channel - ch;
         pressure %= 128;
         this.sendMessage(
-            [messageTypes.channelPressure | ch, pressure],
+            [midiMessageTypes.channelPressure | ch, pressure],
             offset,
             eventOptions
         );
@@ -756,23 +543,23 @@ export class Synthetizer {
 
     /**
      * Applies pressure to a given note.
-     * @param channel {number} usually 0-15: the channel to change the controller.
-     * @param midiNote {number} 0-127: the MIDI note.
-     * @param pressure {number} 0-127: the pressure to apply.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param channel Usually 0-15: the channel to change the controller.
+     * @param midiNote 0-127: the MIDI note.
+     * @param pressure 0-127: the pressure to apply.
+     * @param eventOptions Additional options for this command.
      */
-    polyPressure(
-        channel,
-        midiNote,
-        pressure,
-        eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    public polyPressure(
+        channel: number,
+        midiNote: number,
+        pressure: number,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         const ch = channel % 16;
         const offset = channel - ch;
         midiNote %= 128;
         pressure %= 128;
         this.sendMessage(
-            [messageTypes.polyPressure | ch, midiNote, pressure],
+            [midiMessageTypes.polyPressure | ch, midiNote, pressure],
             offset,
             eventOptions
         );
@@ -780,79 +567,56 @@ export class Synthetizer {
 
     /**
      * Sets the pitch of the given channel.
-     * @param channel {number} usually 0-15: the channel to change pitch.
-     * @param MSB {number} SECOND byte of the MIDI pitchWheel message.
-     * @param LSB {number} FIRST byte of the MIDI pitchWheel message.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param channel Usually 0-15: the channel to change pitch.
+     * @param MSB SECOND byte of the MIDI pitchWheel message.
+     * @param LSB FIRST byte of the MIDI pitchWheel message.
+     * @param eventOptions Additional options for this command.
      */
-    pitchWheel(channel, MSB, LSB, eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS) {
+    public pitchWheel(
+        channel: number,
+        MSB: number,
+        LSB: number,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    ) {
         const ch = channel % 16;
         const offset = channel - ch;
         this.sendMessage(
-            [messageTypes.pitchBend | ch, LSB, MSB],
+            [midiMessageTypes.pitchBend | ch, LSB, MSB],
             offset,
             eventOptions
         );
     }
 
-    post(data: WorkletMessage) {
-        if (this._destroyed) {
-            throw new Error("This synthesizer instance has been destroyed!");
-        }
-        this.worklet.port.postMessage(data);
-    }
-
-    /**
-     * Transposes the synthesizer's pitch by given the semitone amount (percussion channels don’t get affected).
-     * @param semitones {number} the semitones to transpose by.
-     * It can be a floating point number for more precision.
-     */
-    transpose(semitones) {
-        this.transposeChannel(
-            ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            semitones,
-            false
-        );
-    }
-
     /**
      * Transposes the channel by given number of semitones.
-     * @param channel {number} the channel number.
-     * @param semitones {number} the transposition of the channel, it can be a float.
-     * @param force {boolean} defaults to false, if true transposes the channel even if it's a drum channel.
+     * @param channel The channel number.
+     * @param semitones The transposition of the channel, it can be a float.
+     * @param force Defaults to false, if true transposes the channel even if it's a drum channel.
      */
-    transposeChannel(channel, semitones, force = false) {
+    public transposeChannel(
+        channel: number,
+        semitones: number,
+        force: boolean = false
+    ) {
         this.post({
             channelNumber: channel,
-            messageType: workletMessageType.transpose,
-            messageData: [semitones, force]
+            messageType: "transposeChannel",
+            messageData: {
+                semitones,
+                force
+            }
         });
     }
 
     /**
-     * Sets the main volume.
-     * @param volume {number} 0-1 the volume.
+     * Sets the channel's pitch bend range, in semitones.
+     * @param channel Usually 0-15: the channel to change.
+     * @param pitchBendRangeSemitones The bend range in semitones.
      */
-    setMainVolume(volume) {
-        this._setMasterParam(masterParameterType.mainVolume, volume);
-    }
-
-    /**
-     * Sets the master stereo panning.
-     * @param pan {number} (-1 to 1), the pan (-1 is left, 0 is middle, 1 is right)
-     */
-    setMasterPan(pan) {
-        this._setMasterParam(masterParameterType.masterPan, pan);
-    }
-
-    /**
-     * Sets the channel's pitch bend range, in semitones
-     * @param channel {number} usually 0-15: the channel to change
-     * @param pitchBendRangeSemitones {number} the bend range in semitones
-     */
-    setPitchBendRange(channel, pitchBendRangeSemitones) {
+    public setPitchBendRange(channel: number, pitchBendRangeSemitones: number) {
         // set range
         this.controllerChange(channel, midiControllers.RPNMsb, 0);
+        this.controllerChange(channel, midiControllers.RPNLsb, 0);
         this.controllerChange(
             channel,
             midiControllers.dataEntryMsb,
@@ -866,33 +630,34 @@ export class Synthetizer {
     }
 
     /**
-     * Changes the patch for a given channel
-     * @param channel {number} usually 0-15: the channel to change
-     * @param programNumber {number} 0-127 the MIDI patch number
+     * Changes the program for a given channel
+     * @param channel Usually 0-15: the channel to change.
+     * @param programNumber 0-127 the MIDI patch number.
      * defaults to false
      */
-    programChange(channel, programNumber) {
+    public programChange(channel: number, programNumber: number) {
         const ch = channel % 16;
         const offset = channel - ch;
         programNumber %= 128;
         this.sendMessage(
-            [messageTypes.programChange | ch, programNumber],
+            [midiMessageTypes.programChange | ch, programNumber],
             offset
         );
     }
 
     /**
      * Overrides velocity on a given channel.
-     * @param channel {number} usually 0-15: the channel to change.
-     * @param velocity {number} 1-127, the velocity to use.
-     * 0 Disables this functionality
+     * @param channel Usually 0-15: the channel to change.
+     * @param velocity 1-127, the velocity to use.
+     * @remarks
+     * 0 Disables this functionality.
      */
-    velocityOverride(channel, velocity) {
+    public velocityOverride(channel: number, velocity: number) {
         const ch = channel % 16;
         const offset = channel - ch;
         this._sendInternal(
             [
-                messageTypes.controllerChange | ch,
+                midiMessageTypes.controllerChange | ch,
                 channelConfiguration.velocityOverride,
                 velocity
             ],
@@ -904,60 +669,53 @@ export class Synthetizer {
 
     /**
      * Causes the given midi channel to ignore controller messages for the given controller number.
-     * @param channel {number} usually 0-15: the channel to lock.
-     * @param controllerNumber {number} 0-127 MIDI CC number NOTE: -1 locks the preset.
-     * @param isLocked {boolean} true if locked, false if unlocked
+     * @param channel Usually 0-15: the channel to lock.
+     * @param controllerNumber 0-127 MIDI CC number.
+     * @param isLocked True if locked, false if unlocked.
+     * @remarks
+     *  Controller number -1 locks the preset.
      */
-    lockController(channel, controllerNumber, isLocked) {
+    public lockController(
+        channel: number,
+        controllerNumber: MIDIController | -1,
+        isLocked: boolean
+    ) {
         this.post({
             channelNumber: channel,
-            messageType: workletMessageType.lockController,
-            messageData: [controllerNumber, isLocked]
+            messageType: "lockController",
+            messageData: {
+                controllerNumber,
+                isLocked
+            }
         });
     }
 
     /**
      * Mutes or unmutes the given channel.
-     * @param channel {number} usually 0-15: the channel to lock.
-     * @param isMuted {boolean} indicates if the channel is muted.
+     * @param channel Usually 0-15: the channel to lock.
+     * @param isMuted Indicates if the channel is muted.
      */
-    muteChannel(channel, isMuted) {
+    public muteChannel(channel: number, isMuted: boolean) {
         this.post({
             channelNumber: channel,
-            messageType: workletMessageType.muteChannel,
+            messageType: "muteChannel",
             messageData: isMuted
         });
     }
 
     /**
-     * Reloads the soundfont.
-     * THIS IS DEPRECATED!
-     * USE soundfontManager instead.
-     * @param soundFontBuffer {ArrayBuffer} the new soundfont file array buffer.
-     * @return {Promise<void>}
-     * @deprecated Use the soundfontManager property.
-     */
-    async reloadSoundFont(soundFontBuffer) {
-        util.SpessaSynthWarn(
-            "reloadSoundFont is deprecated. Please use the soundfontManager property instead."
-        );
-        await this.soundfontManager.reloadManager(soundFontBuffer);
-    }
-
-    /**
      * Sends a MIDI Sysex message to the synthesizer.
-     * @param messageData {number[]|ArrayLike|Uint8Array} the message's data
-     * (excluding the F0 byte, but including the F7 at the end).
-     * @param channelOffset {number} channel offset for the system exclusive message, defaults to zero.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * @param messageData The message's data, excluding the F0 byte, but including the F7 at the end.
+     * @param channelOffset Channel offset for the system exclusive message, defaults to zero.
+     * @param eventOptions Additional options for this command.
      */
-    systemExclusive(
-        messageData,
-        channelOffset = 0,
-        eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    public systemExclusive(
+        messageData: number[] | Iterable<number> | Uint8Array,
+        channelOffset: number = 0,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         this._sendInternal(
-            [messageTypes.systemExclusive, ...Array.from(messageData)],
+            [midiMessageTypes.systemExclusive, ...Array.from(messageData)],
             channelOffset,
             false,
             eventOptions
@@ -967,11 +725,14 @@ export class Synthetizer {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Tune MIDI keys of a given program using the MIDI Tuning Standard.
-     * @param program {number} 0 - 127 the MIDI program number to use.
-     * @param tunings {{sourceKey: number, targetPitch: number}[]} - the keys and their tunings.
+     * @param program  0 - 127 the MIDI program number to use.
+     * @param tunings The keys and their tunings.
      * TargetPitch of -1 sets the tuning for this key to be tuned regularly.
      */
-    tuneKeys(program, tunings) {
+    public tuneKeys(
+        program: number,
+        tunings: { sourceKey: number; targetPitch: number }[]
+    ) {
         if (tunings.length > 127) {
             throw new Error("Too many tunings. Maximum allowed is 127.");
         }
@@ -1006,76 +767,162 @@ export class Synthetizer {
 
     /**
      * Toggles drums on a given channel.
-     * @param channel {number}
-     * @param isDrum {boolean}
+     * @param channel The channel number.
+     * @param isDrum If the channel should be drums.
      */
-    setDrums(channel, isDrum) {
+    public setDrums(channel: number, isDrum: boolean) {
         this.post({
             channelNumber: channel,
-            messageType: workletMessageType.setDrums,
+            messageType: "setDrums",
             messageData: isDrum
         });
     }
 
     /**
      * Updates the reverb processor with a new impulse response.
-     * @param buffer {AudioBuffer} the new reverb impulse response.
+     * @param buffer the new reverb impulse response.
      */
-    setReverbResponse(buffer) {
+    public setReverbResponse(buffer: AudioBuffer) {
+        if (!this.reverbProcessor) {
+            throw new Error(
+                "Attempted to change reverb response without reverb being enabled."
+            );
+        }
         this.reverbProcessor.buffer = buffer;
-        this.effectsConfig.reverbImpulseResponse = buffer;
+        this.synthConfig.effectsConfig.reverbImpulseResponse = buffer;
     }
 
     /**
      * Updates the chorus processor parameters.
-     * @param config {ChorusConfig} the new chorus.
+     * @param config the new chorus.
      */
-    setChorusConfig(config) {
+    public setChorusConfig(config: Partial<ChorusConfig>) {
+        if (!this.chorusProcessor) {
+            throw new Error(
+                "Attempted to change chorus config without chorus being enabled."
+            );
+        }
+        const fullConfig = fillWithDefaults(config, DEFAULT_CHORUS_CONFIG);
         this.worklet.disconnect(this.chorusProcessor.input);
         this.chorusProcessor.delete();
         delete this.chorusProcessor;
-        this.chorusProcessor = new FancyChorus(this.targetNode, config);
+        this.chorusProcessor = new FancyChorus(this.targetNode, fullConfig);
         this.worklet.connect(this.chorusProcessor.input, 1);
-        this.effectsConfig.chorusConfig = config;
-    }
-
-    /**
-     * Changes the effects gain.
-     * @param reverbGain {number} the reverb gain, 0-1.
-     * @param chorusGain {number} the chorus gain, 0-1.
-     */
-    setEffectsGain(reverbGain, chorusGain) {
-        // noinspection JSCheckFunctionSignatures
-        this.post({
-            messageType: workletMessageType.setEffectsGain,
-            messageData: [reverbGain, chorusGain]
-        });
+        this.synthConfig.effectsConfig.chorusConfig = fullConfig;
     }
 
     /**
      * Destroys the synthesizer instance.
      */
-    destroy() {
-        this.reverbProcessor.disconnect();
-        this.chorusProcessor.delete();
+    public destroy() {
+        this.reverbProcessor?.disconnect();
+        this.chorusProcessor?.delete();
         // noinspection JSCheckFunctionSignatures
         this.post({
-            messageType: workletMessageType.destroyWorklet,
-            messageData: undefined
+            channelNumber: 0,
+            messageType: "destroyWorklet",
+            messageData: null
         });
         this.worklet.disconnect();
+        // @ts-expect-error destruction!
+        // noinspection JSConstantReassignment
         delete this.worklet;
+        // @ts-expect-error destruction!
+        // noinspection JSConstantReassignment
         delete this.reverbProcessor;
         delete this.chorusProcessor;
         this._destroyed = true;
     }
 
     // noinspection JSUnusedGlobalSymbols
-    reverbateEverythingBecauseWhyNot() {
+    /**
+     * Yes please!
+     */
+    public reverbateEverythingBecauseWhyNot(): "That's the spirit!" {
         for (let i = 0; i < this.channelsAmount; i++) {
             this.controllerChange(i, midiControllers.reverbDepth, 127);
             this.lockController(i, midiControllers.reverbDepth, true);
         }
         return "That's the spirit!";
+    }
+
+    // INTERNAL USE ONLY!
+    public post(data: WorkletMessage) {
+        if (this._destroyed) {
+            throw new Error("This synthesizer instance has been destroyed!");
+        }
+        this.worklet.port.postMessage(data);
+    }
+
+    protected _sendInternal(
+        message: Iterable<number>,
+        channelOffset: number,
+        force: boolean = false,
+        eventOptions: Partial<SynthMethodOptions>
+    ) {
+        const options = fillWithDefaults(
+            eventOptions,
+            DEFAULT_SYNTH_METHOD_OPTIONS
+        );
+        this.post({
+            messageType: "midiMessage",
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
+            messageData: {
+                messageData: new Uint8Array(message),
+                channelOffset,
+                force,
+                options
+            }
+            //[new Uint8Array(message), offset, force, opts]
+        });
+    }
+
+    /**
+     * Handles the messages received from the worklet.
+     */
+    protected handleMessage(m: WorkletReturnMessage) {
+        switch (m.type) {
+            case "eventCall":
+                this.eventHandler.callEventInternal(m.data.type, m.data.data);
+                break;
+
+            case "sequencerSpecific":
+                this.sequencerCallbackFunction?.(m.data);
+                break;
+
+            case "synthesizerSnapshot":
+                this.snapshotCallback?.(SynthesizerSnapshot.copyFrom(m.data));
+                break;
+
+            case "isFullyInitialized":
+                this.resolveWhenReady?.();
+                break;
+
+            case "soundBankError":
+                util.SpessaSynthWarn(m.data as unknown as string);
+                this.eventHandler.callEventInternal("soundBankError", m.data);
+                break;
+        }
+    }
+
+    private addNewChannelInternal(post: boolean) {
+        this.channelProperties.push({
+            voicesAmount: 0,
+            pitchBend: 0,
+            pitchBendRangeSemitones: 0,
+            isMuted: false,
+            isDrum: false,
+            transposition: 0,
+            program: 0,
+            bank: this.channelsAmount % 16 === DEFAULT_PERCUSSION ? 128 : 0
+        });
+        if (!post) {
+            return;
+        }
+        this.post({
+            channelNumber: 0,
+            messageType: "addNewChannel",
+            messageData: null
+        });
     }
 }

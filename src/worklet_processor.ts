@@ -1,4 +1,4 @@
-import { consoleColors } from "../utils/other.js";
+import { consoleColors } from "./utils/other.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
@@ -11,46 +11,41 @@ import {
     SpessaSynthSequencer,
     SynthesizerSnapshot
 } from "spessasynth_core";
-import { WORKLET_PROCESSOR_NAME } from "./worklet_url.js";
-import { songChangeType } from "../sequencer/enums.js";
-import { fillWithDefaults } from "../utils/fill_with_defaults.js";
-import { DEFAULT_SEQUENCER_OPTIONS } from "../sequencer/default_sequencer_options.js";
-import { MIDIData } from "../sequencer/midi_data.js";
+import { WORKLET_PROCESSOR_NAME } from "./synthetizer/worklet_url.js";
+import { songChangeType } from "./sequencer/enums.js";
+import { fillWithDefaults } from "./utils/fill_with_defaults.js";
+import { DEFAULT_SEQUENCER_OPTIONS } from "./sequencer/default_sequencer_options.js";
+import { MIDIData } from "./sequencer/midi_data.js";
 import type {
-    StartRenderingDataConfig,
+    PassedProcessorParameters,
     WorkletMessage,
     WorkletReturnMessage
-} from "./types";
+} from "./synthetizer/types";
 import type {
     SequencerOptions,
     SequencerReturnMessage
-} from "../sequencer/types";
+} from "./sequencer/types";
 
 // a worklet processor wrapper for the synthesizer core
 class WorkletSpessaProcessor extends AudioWorkletProcessor {
     /**
      * If the worklet is alive.
      */
-    alive = true;
+    public alive = true;
 
     /**
      * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
      */
-    oneOutputMode = false;
+    public oneOutputMode = false;
 
-    synthesizer: SpessaSynthProcessor;
-    sequencer: SpessaSynthSequencer | undefined;
+    public synthesizer: SpessaSynthProcessor;
+    public sequencer: SpessaSynthSequencer | undefined;
 
     /**
      * Creates a new worklet synthesis system. contains all channels.
      */
-    constructor(options: {
-        processorOptions: {
-            midiChannels: number;
-            soundBank: ArrayBuffer;
-            enableEventSystem: boolean;
-            startRenderingData: StartRenderingDataConfig;
-        };
+    public constructor(options: {
+        processorOptions: PassedProcessorParameters;
     }) {
         super();
         const opts = options.processorOptions;
@@ -93,10 +88,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
             });
         };
 
-        const bank = SoundBankLoader.fromArrayBuffer(opts.soundBank);
-        this.synthesizer.soundBankManager.reloadManager(bank);
-
-        this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.processorInitialized.then(() => {
             // initialize the sequencer engine
             this.sequencer = new SpessaSynthSequencer(this.synthesizer);
 
@@ -108,7 +100,8 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
             };
 
             // receive messages from the main thread
-            this.port.onmessage = (e) => this.handleMessage(e.data);
+            this.port.onmessage = (e: MessageEvent<WorkletMessage>) =>
+                this.handleMessage(e.data);
 
             // sequencer events
             this.sequencer.onMIDIMessage = (m) => {
@@ -129,12 +122,11 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                     data: p
                 });
             };
-            this.sequencer.onSongChange = (songIndex, isAutoPlayed) => {
+            this.sequencer.onSongChange = (songIndex) => {
                 postSeq({
                     type: "songChange",
                     data: {
-                        songIndex,
-                        isAutoPlayed
+                        songIndex
                     }
                 });
             };
@@ -191,8 +183,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                     );
                     this.sequencer.skipToFirstNoteOn =
                         seqOptions.skipToFirstNoteOn;
-                    this.sequencer.preservePlaybackState =
-                        seqOptions.preservePlaybackState;
                     this.sequencer.playbackRate =
                         seqOptions.initialPlaybackRate;
                     // autoplay is ignored
@@ -215,18 +205,18 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
         });
     }
 
-    postReady() {
+    public postReady() {
         this.postMessageToMainThread({
             type: "isFullyInitialized",
             data: null
         });
     }
 
-    postMessageToMainThread(data: WorkletReturnMessage) {
+    public postMessageToMainThread(data: WorkletReturnMessage) {
         this.port.postMessage(data);
     }
 
-    handleMessage(m: WorkletMessage) {
+    public handleMessage(m: WorkletMessage) {
         const channel = m.channelNumber;
 
         let channelObject:
@@ -367,7 +357,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
 
                     case "loadNewSongList":
                         try {
-                            const sList = seqMsg.data.midis;
+                            const sList = seqMsg.data;
                             const songMap = sList.map((s) => {
                                 if ("duration" in s) {
                                     // cloned objects don't have methods
@@ -378,7 +368,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                                     s.altName
                                 );
                             });
-                            seq.loadNewSongList(songMap, seqMsg.data.autoPlay);
+                            seq.loadNewSongList(songMap);
                         } catch (e) {
                             console.error(e);
                             this.postMessageToMainThread({
@@ -396,7 +386,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                         break;
 
                     case "play":
-                        seq.play(seqMsg.data);
+                        seq.play();
                         break;
 
                     case "setTime":
@@ -404,7 +394,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                         break;
 
                     case "changeMIDIMessageSending":
-                        seq.sendMIDIMessages = seqMsg.data;
+                        seq.externalMIDIPlayback = seqMsg.data;
                         break;
 
                     case "setPlaybackRate":
@@ -424,14 +414,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
 
                     case "changeSong":
                         switch (seqMsg.data.changeType) {
-                            case songChangeType.forwards:
-                                seq.nextSong();
-                                break;
-
-                            case songChangeType.backwards:
-                                seq.previousSong();
-                                break;
-
                             case songChangeType.shuffleOff:
                                 seq.shuffleMode = false;
                                 break;
@@ -460,9 +442,6 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                     case "setSkipToFirstNote":
                         seq.skipToFirstNoteOn = seqMsg.data;
                         break;
-
-                    case "setPreservePlaybackState":
-                        seq.preservePlaybackState = seqMsg.data;
                 }
                 break;
             }
@@ -578,7 +557,10 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
      * @param outputs the outputs to write to, only the first two channels of each are populated
      * @returns {boolean} true unless it's not alive
      */
-    process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    public process(
+        _inputs: Float32Array[][],
+        outputs: Float32Array[][]
+    ): boolean {
         if (!this.alive || !this.sequencer) {
             return false;
         }

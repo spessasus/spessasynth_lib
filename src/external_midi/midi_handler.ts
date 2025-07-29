@@ -1,4 +1,4 @@
-import { Synthetizer } from "../synthetizer/synthetizer.js";
+import { WorkletSynthesizer } from "../synthetizer/synthetizer.js";
 import { SpessaSynthCoreUtils as util } from "spessasynth_core";
 import { consoleColors } from "../utils/other.js";
 import type { Sequencer } from "../sequencer/sequencer";
@@ -16,20 +16,20 @@ const NO_INPUT = undefined;
  */
 export class MIDIDeviceHandler {
     // The currently selected MIDI input.
-    selectedInput?: MIDIInput;
+    public selectedInput?: MIDIInput;
     // The currently selected MIDI output.
-    selectedOutput?: MIDIOutput;
+    public selectedOutput?: MIDIOutput;
 
     // The available MIDI inputs.
-    inputs?: MIDIInputMap;
+    public inputs?: MIDIInputMap;
     // The available MIDI outputs.
-    outputs?: MIDIOutputMap;
+    public outputs?: MIDIOutputMap;
 
     /**
      * Attempts to initialize the MIDI Device Handler.
      * @returns True if succeeded.
      */
-    async createMIDIDeviceHandler(): Promise<boolean> {
+    public async createMIDIDeviceHandler(): Promise<boolean> {
         this.selectedInput = NO_INPUT;
         this.selectedOutput = NO_INPUT;
         if (navigator.requestMIDIAccess) {
@@ -64,7 +64,7 @@ export class MIDIDeviceHandler {
      * @param output The output to connect the sequencer to.
      * @param seq The sequencer instance.
      */
-    connectMIDIOutputToSeq(output: MIDIOutput, seq: Sequencer) {
+    public connectMIDIOutputToSeq(output: MIDIOutput, seq: Sequencer) {
         this.selectedOutput = output;
         seq.connectMidiOutput(output);
         util.SpessaSynthInfo(
@@ -78,7 +78,7 @@ export class MIDIDeviceHandler {
      * Disconnects a MIDI output port from the sequencer.
      * @param seq The sequencer to disconnect the output from.
      */
-    disconnectSeqFromMIDI(seq: Sequencer) {
+    public disconnectSeqFromMIDI(seq: Sequencer) {
         this.selectedOutput = NO_INPUT;
         seq.connectMidiOutput(undefined);
         util.SpessaSynthInfo(
@@ -92,10 +92,10 @@ export class MIDIDeviceHandler {
      * @param input The input to connect to.
      * @param synth The synthesizer instance.
      */
-    connectDeviceToSynth(input: MIDIInput, synth: Synthetizer) {
+    public connectDeviceToSynth(input: MIDIInput, synth: WorkletSynthesizer) {
         this.selectedInput = input;
         input.onmidimessage = (event) => {
-            synth.sendMessage(event.data);
+            synth.sendMessage(event.data as Iterable<number>);
         };
         util.SpessaSynthInfo(
             `%cListening for messages on %c${input.name}`,
@@ -108,7 +108,7 @@ export class MIDIDeviceHandler {
      * Disconnects a MIDI input from the synthesizer.
      * @param input The input to disconnect.
      */
-    disconnectDeviceFromSynth(input: MIDIInput) {
+    public disconnectDeviceFromSynth(input: MIDIInput) {
         this.selectedInput = NO_INPUT;
         input.onmidimessage = null;
         util.SpessaSynthInfo(
@@ -119,7 +119,7 @@ export class MIDIDeviceHandler {
     }
 
     // Disconnects all MIDI inputs from the synthesizer.
-    disconnectAllDevicesFromSynth() {
+    public disconnectAllDevicesFromSynth() {
         this.selectedInput = NO_INPUT;
         if (!this.inputs) {
             return;

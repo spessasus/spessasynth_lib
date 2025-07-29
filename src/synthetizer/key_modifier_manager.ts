@@ -1,14 +1,14 @@
 import { KeyModifier } from "spessasynth_core";
-import type { Synthetizer } from "./synthetizer";
+import type { WorkletSynthesizer } from "./synthetizer";
 import type { WorkletKMManagerData } from "./types";
 
 export class WorkletKeyModifierManagerWrapper {
     // The velocity override mappings for MIDI keys
     private keyModifiers: (KeyModifier | undefined)[][] = [];
 
-    private synth: Synthetizer;
+    private synth: WorkletSynthesizer;
 
-    constructor(synth: Synthetizer) {
+    public constructor(synth: WorkletSynthesizer) {
         this.synth = synth;
     }
 
@@ -19,7 +19,7 @@ export class WorkletKeyModifierManagerWrapper {
      * @param midiNote The MIDI note to change. 0-127.
      * @param options The key's modifiers.
      */
-    addModifier(
+    public addModifier(
         channel: number,
         midiNote: number,
         options: Partial<{
@@ -54,7 +54,10 @@ export class WorkletKeyModifierManagerWrapper {
      * @param midiNote The MIDI note to change. 0-127.
      * @returns The key modifier if it exists.
      */
-    getModifier(channel: number, midiNote: number): KeyModifier | undefined {
+    public getModifier(
+        channel: number,
+        midiNote: number
+    ): KeyModifier | undefined {
         return this.keyModifiers?.[channel]?.[midiNote];
     }
 
@@ -64,7 +67,7 @@ export class WorkletKeyModifierManagerWrapper {
      * @param channel The channel affected. Usually 0-15.
      * @param midiNote The MIDI note to change. 0-127.
      */
-    deleteModifier(channel: number, midiNote: number) {
+    public deleteModifier(channel: number, midiNote: number) {
         this.sendToWorklet("deleteMapping", {
             channel,
             midiNote
@@ -79,7 +82,7 @@ export class WorkletKeyModifierManagerWrapper {
     /**
      * Clears ALL Modifiers
      */
-    clearModifiers() {
+    public clearModifiers() {
         this.sendToWorklet("clearMappings", null);
         this.keyModifiers = [];
     }
@@ -88,13 +91,19 @@ export class WorkletKeyModifierManagerWrapper {
         type: T,
         data: WorkletKMManagerData[T]
     ) {
+        const msg = {
+            type,
+            data
+        } as {
+            [K in keyof WorkletKMManagerData]: {
+                type: K;
+                data: WorkletKMManagerData[K];
+            };
+        }[keyof WorkletKMManagerData];
         this.synth.post({
             messageType: "keyModifierManager",
             channelNumber: -1,
-            messageData: {
-                type,
-                data
-            }
+            messageData: msg
         });
     }
 }

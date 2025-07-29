@@ -5,8 +5,6 @@ import type { MIDIData } from "./midi_data";
 export type SequencerOptions = {
     // If true, the sequencer will skip to the first note.
     skipToFirstNoteOn: boolean;
-    // If true, the sequencer will automatically start playing the MIDI.
-    autoPlay: boolean;
     // If true, the sequencer will stay paused when seeking or changing the playback rate.
     preservePlaybackState: boolean;
     // The initial playback rate, defaults to 1.0 (normal speed).
@@ -20,13 +18,11 @@ export type SequencerMessage = {
     };
 }[keyof SequencerMessageData];
 
-type SequencerMessageData = {
+export type SequencerMessageData = {
     // loadNewSongList
-    loadNewSongList: { midis: SuppliedMIDIData[]; autoPlay: boolean };
-    // isFinished
-    pause: boolean;
-    // resetTime
-    play: boolean;
+    loadNewSongList: SuppliedMIDIData[];
+    pause: null;
+    play: null;
     // time
     setTime: number;
     // sendMIDIMessages
@@ -46,8 +42,6 @@ type SequencerMessageData = {
     getMIDI: null;
     // skipToFirstNoteOn
     setSkipToFirstNote: boolean;
-    // preservePlaybackState
-    setPreservePlaybackState: boolean;
 };
 
 export type SequencerReturnMessage = {
@@ -62,7 +56,6 @@ type SequencerReturnMessageData = {
     midiEvent: number[];
     songChange: {
         songIndex: number;
-        isAutoPlayed: boolean;
     };
     // newTime
     timeChange: number;
@@ -97,3 +90,26 @@ export type SuppliedMIDIData =
           // The alternative name for the file.
           altName?: string;
       };
+
+export type SequencerEventType = {
+    // New song.
+    songChange: MIDIData;
+    // New time.
+    timeChange: number;
+    // No data.
+    songEnded: null;
+    // New tempo in BPM.
+    tempoChange: number;
+    metaEvent: {
+        event: MIDIMessage;
+        trackNumber: number;
+    };
+    textEvent: {
+        // The raw event.
+        event: MIDIMessage;
+        // If the text is a lyric, the index of the lyric in BasicMIDI's "lyrics" property, otherwise -1.
+        lyricsIndex: number;
+    };
+
+    midiError: Error;
+};
