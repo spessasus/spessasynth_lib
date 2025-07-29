@@ -52,7 +52,15 @@ export class EventHandler {
             string,
             ProcessorEventCallback<"soundBankError">
         >(), // called when a sound bank parsing error occurs
-        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>() // called when there's a SysEx message to display some text
+        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // called when there's a SysEx message to display some text
+        masterParameterChange: new Map<
+            string,
+            ProcessorEventCallback<"masterParameterChange">
+        >(), // called when a master parameter changes
+        channelPropertyChange: new Map<
+            string,
+            ProcessorEventCallback<"channelPropertyChange">
+        >() // called when a channel property changes
     };
 
     /**

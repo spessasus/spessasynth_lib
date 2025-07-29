@@ -711,11 +711,4 @@ export class Sequencer {
         this.unpause();
         this._sendMessage(sequencerMessageType.play, resetTime);
     }
-
-    /**
-     * Stops the playback
-     */
-    stop() {
-        this._sendMessage(sequencerMessageType.stop);
-    }
 }

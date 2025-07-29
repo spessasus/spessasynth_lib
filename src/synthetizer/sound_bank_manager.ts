@@ -2,7 +2,7 @@ import { SpessaSynthCoreUtils } from "spessasynth_core";
 import type { Synthetizer } from "./synthetizer";
 import type { WorkletMessage, WorkletSBKManagerData } from "./types";
 
-export class SoundfontManager {
+export class SoundBankManager {
     /**
      * The current list of soundbanks,
      * in order from the most important to the least.

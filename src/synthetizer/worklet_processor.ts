@@ -2,7 +2,6 @@ import { consoleColors } from "../utils/other.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
-    loadSoundFont,
     MIDI_CHANNEL_COUNT,
     type ProcessorEventType,
     SoundBankLoader,
@@ -13,20 +12,14 @@ import {
     SynthesizerSnapshot
 } from "spessasynth_core";
 import { WORKLET_PROCESSOR_NAME } from "./worklet_url.js";
-import { WorkletSoundfontManagerMessageType } from "./sfman_message.js";
-import {
-    sequencerMessageType,
-    sequencerReturnMessageType,
-    songChangeType
-} from "../sequencer/enums.js";
+import { songChangeType } from "../sequencer/enums.js";
 import { fillWithDefaults } from "../utils/fill_with_defaults.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "../sequencer/default_sequencer_options.js";
 import { MIDIData } from "../sequencer/midi_data.js";
 import type {
     StartRenderingDataConfig,
     WorkletMessage,
-    WorkletReturnMessage,
-    WorkletReturnMessageData
+    WorkletReturnMessage
 } from "./types";
 import type {
     SequencerOptions,
@@ -94,25 +87,11 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
             type: K,
             data: ProcessorEventType[K]
         ) => {
-            const d: WorkletReturnMessageData["eventCall"] = { type, data };
             postSyn({
                 type: "eventCall",
-                data: d
+                data: { type, data }
             });
         };
-        this.synthesizer.onChannelPropertyChange = (p, n) =>
-            postSyn({
-                type: "channelPropertyChange",
-                data: { channelNumber: n, property: p }
-            });
-        this.synthesizer.onMasterParameterChange = (t, v) =>
-            postSyn({
-                type: "masterParameterChange",
-                data: {
-                    type: t,
-                    data: v
-                }
-            });
 
         const bank = SoundBankLoader.fromArrayBuffer(opts.soundBank);
         this.synthesizer.soundBankManager.reloadManager(bank);
@@ -226,7 +205,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                         console.error(e);
                         postSeq({
                             type: "midiError",
-                            data: e as string
+                            data: e as Error
                         });
                     }
                 }
@@ -334,7 +313,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 break;
 
             case "killNotes":
-                this.synthesizer.voiceKilling(m.messageData);
+                this.synthesizer.killVoices(m.messageData);
                 break;
 
             case "muteChannel":
@@ -342,13 +321,13 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 break;
 
             case "addNewChannel":
-                this.synthesizer.createMidiChannel();
+                this.synthesizer.createMIDIChannel();
                 break;
 
             case "setMasterParameter":
                 this.synthesizer.setMasterParameter(
-                    m.messageData.parameter,
-                    m.messageData.value
+                    m.messageData.type,
+                    m.messageData.data
                 );
                 break;
 
@@ -403,43 +382,37 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                         } catch (e) {
                             console.error(e);
                             this.postMessageToMainThread({
-                                messageType:
-                                    returnMessageType.sequencerSpecific,
-                                messageData: {
-                                    messageType:
-                                        sequencerReturnMessageType.midiError,
-                                    messageData: e
+                                type: "sequencerSpecific",
+                                data: {
+                                    type: "midiError",
+                                    data: e as Error
                                 }
                             });
                         }
                         break;
 
-                    case sequencerMessageType.pause:
+                    case "pause":
                         seq.pause();
                         break;
 
-                    case sequencerMessageType.play:
-                        seq.play(messageData);
+                    case "play":
+                        seq.play(seqMsg.data);
                         break;
 
-                    case sequencerMessageType.stop:
-                        seq.stop();
+                    case "setTime":
+                        seq.currentTime = seqMsg.data;
                         break;
 
-                    case sequencerMessageType.setTime:
-                        seq.currentTime = messageData;
+                    case "changeMIDIMessageSending":
+                        seq.sendMIDIMessages = seqMsg.data;
                         break;
 
-                    case sequencerMessageType.changeMIDIMessageSending:
-                        seq.sendMIDIMessages = messageData;
+                    case "setPlaybackRate":
+                        seq.playbackRate = seqMsg.data;
                         break;
 
-                    case sequencerMessageType.setPlaybackRate:
-                        seq.playbackRate = messageData;
-                        break;
-
-                    case sequencerMessageType.setLoop:
-                        const [loop, count] = messageData;
+                    case "setLoop": {
+                        const { loop, count } = seqMsg.data;
                         seq.loop = loop;
                         if (count === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                             seq.loopCount = Infinity;
@@ -447,9 +420,10 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                             seq.loopCount = count;
                         }
                         break;
+                    }
 
-                    case sequencerMessageType.changeSong:
-                        switch (messageData[0]) {
+                    case "changeSong":
+                        switch (seqMsg.data.changeType) {
                             case songChangeType.forwards:
                                 seq.nextSong();
                                 break;
@@ -460,143 +434,139 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
 
                             case songChangeType.shuffleOff:
                                 seq.shuffleMode = false;
-                                seq.songIndex =
-                                    seq.shuffledSongIndexes[seq.songIndex];
                                 break;
 
                             case songChangeType.shuffleOn:
                                 seq.shuffleMode = true;
-                                seq.shuffleSongIndexes();
-                                seq.songIndex = 0;
-                                seq.loadCurrentSong();
                                 break;
 
                             case songChangeType.index:
-                                seq.songIndex = messageData[1];
-                                seq.loadCurrentSong();
+                                if (seqMsg.data.data)
+                                    seq.songIndex = seqMsg.data.data;
                                 break;
                         }
                         break;
 
-                    case sequencerMessageType.getMIDI:
+                    case "getMIDI":
                         this.postMessageToMainThread({
-                            messageType: returnMessageType.sequencerSpecific,
-                            messageData: {
-                                messageType: sequencerReturnMessageType.getMIDI,
-                                messageData: seq.midiData
+                            type: "sequencerSpecific",
+                            data: {
+                                type: "getMIDI",
+                                data: seq.midiData
                             }
                         });
                         break;
 
-                    case sequencerMessageType.setSkipToFirstNote:
-                        seq.skipToFirstNoteOn = messageData;
+                    case "setSkipToFirstNote":
+                        seq.skipToFirstNoteOn = seqMsg.data;
                         break;
 
-                    case sequencerMessageType.setPreservePlaybackState:
-                        seq.preservePlaybackState = messageData;
+                    case "setPreservePlaybackState":
+                        seq.preservePlaybackState = seqMsg.data;
                 }
                 break;
             }
 
-            case workletMessageType.soundFontManager:
+            case "soundBankManager":
                 try {
-                    const sfManager = this.synthesizer.soundfontManager;
-                    const type = data[0];
-                    const messageData = data[1];
+                    const sfManager = this.synthesizer.soundBankManager;
+                    const sfManMsg = m.messageData;
                     let font;
-                    switch (type) {
-                        case WorkletSoundfontManagerMessageType.addNewSoundFont:
-                            font = loadSoundFont(messageData[0]);
-                            sfManager.addNewSoundFont(
+                    switch (sfManMsg.type) {
+                        case "addNewSoundBank":
+                            font = SoundBankLoader.fromArrayBuffer(
+                                sfManMsg.data.soundBankBuffer
+                            );
+                            sfManager.addNewSoundBank(
                                 font,
-                                messageData[1],
-                                messageData[2]
+                                sfManMsg.data.id,
+                                sfManMsg.data.bankOffset
                             );
                             this.postMessageToMainThread({
-                                messageType:
-                                    returnMessageType.isFullyInitialized,
-                                messageData: undefined
+                                type: "isFullyInitialized",
+                                data: null
                             });
                             break;
 
-                        case WorkletSoundfontManagerMessageType.reloadSoundFont:
-                            font = loadSoundFont(messageData);
+                        case "reloadSoundBank":
+                            font = SoundBankLoader.fromArrayBuffer(
+                                sfManMsg.data
+                            );
                             sfManager.reloadManager(font);
                             this.postMessageToMainThread({
-                                messageType:
-                                    returnMessageType.isFullyInitialized,
-                                messageData: undefined
+                                type: "isFullyInitialized",
+                                data: null
                             });
                             break;
 
-                        case WorkletSoundfontManagerMessageType.deleteSoundFont:
-                            sfManager.deleteSoundFont(messageData);
+                        case "deleteSoundBank":
+                            sfManager.deleteSoundBank(sfManMsg.data);
                             break;
 
-                        case WorkletSoundfontManagerMessageType.rearrangeSoundFonts:
-                            sfManager.rearrangeSoundFonts(messageData);
+                        case "rearrangeSoundBanks":
+                            sfManager.setSoundBankOrder(sfManMsg.data);
                     }
                 } catch (e) {
                     this.postMessageToMainThread({
-                        messageType: returnMessageType.soundfontError,
-                        messageData: e
+                        type: "soundBankError",
+                        data: e as Error
                     });
                 }
                 break;
 
-            case workletMessageType.keyModifierManager:
-                /**
-                 * @type {workletKeyModifierMessageType}
-                 */
-                const keyMessageType = data[0];
+            case "keyModifierManager": {
+                const kmMsg = m.messageData;
                 const man = this.synthesizer.keyModifierManager;
-                const keyMessageData = data[1];
-                switch (keyMessageType) {
+                switch (kmMsg.type) {
                     default:
                         return;
 
-                    case workletKeyModifierMessageType.addMapping:
-                        man.addMapping(...keyMessageData);
+                    case "addMapping":
+                        man.addMapping(
+                            kmMsg.data.channel,
+                            kmMsg.data.midiNote,
+                            kmMsg.data.mapping
+                        );
                         break;
 
-                    case workletKeyModifierMessageType.clearMappings:
+                    case "clearMappings":
                         man.clearMappings();
                         break;
 
-                    case workletKeyModifierMessageType.deleteMapping:
-                        man.deleteMapping(...keyMessageData);
+                    case "deleteMapping":
+                        man.deleteMapping(
+                            kmMsg.data.channel,
+                            kmMsg.data.midiNote
+                        );
                 }
                 break;
+            }
 
-            case workletMessageType.requestSynthesizerSnapshot:
-                const snapshot = SynthesizerSnapshot.createSynthesizerSnapshot(
-                    this.synthesizer
-                );
+            case "requestSynthesizerSnapshot": {
+                const snapshot = SynthesizerSnapshot.create(this.synthesizer);
                 this.postMessageToMainThread({
-                    messageType: returnMessageType.synthesizerSnapshot,
-                    messageData: snapshot
+                    type: "synthesizerSnapshot",
+                    data: snapshot
                 });
                 break;
+            }
 
-            case workletMessageType.setLogLevel:
-                SpessaSynthLogging(data[0], data[1], data[2], data[3]);
+            case "setLogLevel":
+                SpessaSynthLogging(
+                    m.messageData.enableInfo,
+                    m.messageData.enableWarning,
+                    m.messageData.enableGroup
+                );
                 break;
 
-            case workletMessageType.setEffectsGain:
-                this.synthesizer.reverbGain = data[0];
-                this.synthesizer.chorusGain = data[1];
-                break;
-
-            case workletMessageType.destroyWorklet:
+            case "destroyWorklet":
                 this.alive = false;
                 this.synthesizer.destroySynthProcessor();
-                delete this.synthesizer;
-                delete this.sequencer.midiData;
                 delete this.sequencer;
                 break;
 
             default:
-                util.SpessaSynthWarn("Unrecognized event:", data);
+                util.SpessaSynthWarn("Unrecognized event!", m);
                 break;
         }
     }
@@ -604,12 +574,12 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
     // noinspection JSUnusedGlobalSymbols
     /**
      * the audio worklet processing logic
-     * @param inputs {Float32Array[][]} required by WebAudioAPI
-     * @param outputs {Float32Array[][]} the outputs to write to, only the first two channels of each are populated
+     * @param _inputs required by WebAudioAPI
+     * @param outputs the outputs to write to, only the first two channels of each are populated
      * @returns {boolean} true unless it's not alive
      */
-    process(inputs, outputs) {
-        if (!this.alive) {
+    process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+        if (!this.alive || !this.sequencer) {
             return false;
         }
         // process sequencer
@@ -622,10 +592,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
             // midiChannel1L, midiChannel1R,
             // midiChannel2L, midiChannel2R
             // and so on
-            /**
-             * @type {Float32Array[][]}
-             */
-            const channelMap = [];
+            const channelMap: Float32Array[][] = [];
             for (let i = 0; i < 32; i += 2) {
                 channelMap.push([out[i], out[i + 1]]);
             }

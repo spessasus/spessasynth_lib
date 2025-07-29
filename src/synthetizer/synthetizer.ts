@@ -19,7 +19,7 @@ import { FancyChorus } from "./audio_effects/fancy_chorus.js";
 import { getReverbProcessor } from "./audio_effects/reverb.js";
 import { returnMessageType, workletMessageType } from "./worklet_message.js";
 import { DEFAULT_SYNTH_CONFIG } from "./audio_effects/effects_config.js";
-import { SoundfontManager } from "./synth_soundfont_manager.js";
+import { SoundBankManager } from "./sound_bank_manager.js";
 import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.js";
 import { fillWithDefaults } from "../utils/fill_with_defaults.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "../sequencer/default_sequencer_options.js";
@@ -216,7 +216,7 @@ export class Synthetizer {
 
         // set up message handling and managers
         this.worklet.port.onmessage = (e) => this.handleMessage(e.data);
-        this.soundfontManager = new SoundfontManager(this);
+        this.soundfontManager = new SoundBankManager(this);
         this.keyModifierManager = new WorkletKeyModifierManagerWrapper(this);
         this._snapshotCallback = undefined;
         this.sequencerCallbackFunction = undefined;

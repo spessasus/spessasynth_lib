@@ -1,6 +1,5 @@
 import type {
     BasicMIDI,
-    ChannelProperty,
     CustomController,
     KeyModifier,
     MasterParameterType,
@@ -114,24 +113,19 @@ type WorkletMessageData = {
             data: MasterParameterType[K];
         };
     }[keyof MasterParameterType];
-    soundBankManager: WorkletSBKManagerObject<keyof WorkletSBKManagerData>;
-    keyModifierManager: WorkletKMManagerObject<keyof WorkletKMManagerData>;
+    soundBankManager: {
+        [K in keyof WorkletSBKManagerData]: {
+            type: K;
+            data: WorkletSBKManagerData[K];
+        };
+    }[keyof WorkletSBKManagerData];
+    keyModifierManager: {
+        [K in keyof WorkletKMManagerData]: {
+            type: K;
+            data: WorkletKMManagerData[K];
+        };
+    }[keyof WorkletKMManagerData];
     destroyWorklet: null;
-};
-
-type WorkletSBKManagerObject<T extends keyof WorkletSBKManagerData> = {
-    type: T;
-    data: WorkletSBKManagerData[T];
-};
-
-type WorkletKMManagerObject<T extends keyof WorkletKMManagerData> = {
-    type: T;
-    data: WorkletKMManagerData[T];
-};
-
-type MasterParameterObject<T extends keyof MasterParameterType> = {
-    type: T;
-    data: MasterParameterType[T];
 };
 
 type EventCallObject<T extends keyof ProcessorEventType> = {
@@ -141,19 +135,8 @@ type EventCallObject<T extends keyof ProcessorEventType> = {
 
 export type WorkletReturnMessage =
     | {
-          type: "channelPropertyChange";
-          data: {
-              channelNumber: number;
-              property: ChannelProperty;
-          };
-      }
-    | {
           type: "eventCall";
           data: EventCallObject<keyof ProcessorEventType>;
-      }
-    | {
-          type: "masterParameterChange";
-          data: MasterParameterObject<keyof MasterParameterType>;
       }
     | {
           type: "sequencerSpecific";
@@ -170,5 +153,5 @@ export type WorkletReturnMessage =
     | {
           type: "soundBankError";
           // An error message related to the sound bank. It contains a string description of the error.
-          data: string;
+          data: Error;
       };

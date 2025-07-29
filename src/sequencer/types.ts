@@ -25,7 +25,6 @@ type SequencerMessageData = {
     loadNewSongList: { midis: SuppliedMIDIData[]; autoPlay: boolean };
     // isFinished
     pause: boolean;
-    stop: null;
     // resetTime
     play: boolean;
     // time
@@ -72,7 +71,7 @@ type SequencerReturnMessageData = {
     // midiData
     getMIDI: BasicMIDI;
     // errorMSG
-    midiError: string;
+    midiError: Error;
     metaEvent: {
         event: MIDIMessage;
         trackNum: number;
