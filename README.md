@@ -14,6 +14,11 @@ It allows you to:
 - Convert DLS to SF2! (and back!)
 - [and more!](#current-features)
 
+**The next major update (4.0) will include many breaking changes. 
+The documentation will be updated when the update releases.
+[The migration guide will be published here.](https://github.com/spessasus/spessasynth_lib/pull/10)**
+
+
 **SpessaSynth Project index**
 
 - [spessasynth_core](https://github.com/spessasus/spessasynth_core) - SF2/DLS/MIDI library
@@ -36,7 +41,7 @@ npm install --save spessasynth_lib
 - [SpessaFont - Online SoundFont/DLS Editor](https://spessasus.github.io/SpessaFont)
 
 
-### [Complete documentation](https://github.com/spessasus/spessasynth_lib/wiki/)
+### [Complete documentation](https://spessasus.github.io/spessasynth_lib/)
 
 #### Basic example: play a single note
 
@@ -67,10 +72,10 @@ Please consider voting for it on the bug tracker to get it fixed!*
 
 ### On top of that...
 - **Modular design:** *Easy integration into other projects (load what you need)*
-- **[Detailed documentation:](https://github.com/spessasus/spessasynth_lib/wiki/Home)** *With [examples!](https://github.com/spessasus/spessasynth_lib/wiki/Getting-Started#examples)*
-- **Easy to Use:** *Basic setup is just [two lines of code!](https://github.com/spessasus/spessasynth_lib/wiki/Getting-Started#minimal-setup)*
+- **[Detailed documentation:](https://spessasus.github.io/spessasynth_lib/)** *With [examples!](https://spessasus.github.io/spessasynth_lib/getting-started/#examples)*
+- **Easy to Use:** *Basic setup is just [two lines of code!](https://spessasus.github.io/spessasynth_lib/getting-started/#minimal-setup)*
 - **No external dependencies:** *Just spessasynth_core!*
-- **Reverb and chorus support:** [customizable!](https://github.com/spessasus/spessasynth_lib/wiki/Synthetizer-Class#effects-configuration-object)
+- **Reverb and chorus support:** [customizable!](https://spessasus.github.io/spessasynth_lib/synthesizer/#effects-configuration-object)
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)
 - **Written using AudioWorklets:** 
   - Runs in a **separate thread** for maximum performance

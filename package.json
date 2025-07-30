@@ -1,6 +1,6 @@
 {
   "name": "spessasynth_lib",
-  "version": "3.27.7",
+  "version": "3.27.8",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
   "browser": "index.js",
   "type": "module",
@@ -35,6 +35,11 @@
     "soundfont2",
     "soundfont3",
     "audio-buffer-to-wav"
+  ],
+  "files": [
+    "src",
+    "synthetizer/worklet_processor.min.js",
+    "index.js"
   ],
   "author": {
     "name": "spessasus",
