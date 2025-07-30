@@ -69,3 +69,4 @@ $RECYCLE.BIN/
 dist/
 synthetizer/
 *.tgz
+gh-pages/
