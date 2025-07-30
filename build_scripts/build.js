@@ -27,6 +27,7 @@ esbuild.buildSync({
     target: "esnext"
 });
 
+runCommandSync("npm run build:pages");
 runCommandSync("tsup src/index.ts --sourcemap --dts --format esm");
 runCommandSync("npm run build:examples");
 console.log("spessasynth_lib built successfully");
