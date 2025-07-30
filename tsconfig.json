@@ -30,17 +30,20 @@
     "noUncheckedSideEffectImports": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "types": [
     "@types/audioworklet"
   ],
   "include": [
-    "src"
+    "src",
+    "examples",
+    "build_scripts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "examples"
+    "gh-pages"
   ]
 }

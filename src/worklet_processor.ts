@@ -596,6 +596,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 outputs.slice(2)
             );
         }
+        console.log(this.sequencer?.currentTime);
         return true;
     }
 }

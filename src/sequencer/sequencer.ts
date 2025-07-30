@@ -162,7 +162,7 @@ export class Sequencer {
     /**
      * Internal loop marker.
      */
-    protected _loop = true;
+    protected _loop = false;
 
     /**
      * Indicates if the sequencer is currently looping.
@@ -256,6 +256,7 @@ export class Sequencer {
         if (this.pausedTime !== undefined) {
             return this.pausedTime;
         }
+        console.log("playing");
 
         return (
             (this.synth.currentTime - this.absoluteStartTime) *
@@ -366,7 +367,7 @@ export class Sequencer {
      * Starts or resumes the playback.
      */
     public play() {
-        this._recalculateStartTime(this.pausedTime || 0);
+        this.recalculateStartTime(this.pausedTime || 0);
         this.unpause();
         this.sendMessage("play", null);
     }
@@ -401,7 +402,7 @@ export class Sequencer {
                 // message data is absolute time
                 const time = m.data;
                 this.callEventInternal("timeChange", time);
-                this._recalculateStartTime(time);
+                this.recalculateStartTime(time);
                 if (this.paused) {
                     this.pausedTime = time;
                 }
@@ -411,6 +412,7 @@ export class Sequencer {
                 this.pausedTime = this.currentTime;
                 this.isFinished = m.data;
                 if (this.isFinished) {
+                    console.log(this.isFinished);
                     this.callEventInternal("songEnded", null);
                 }
                 break;
@@ -530,7 +532,7 @@ export class Sequencer {
         this.midiOut.send([midiMessageTypes.reset]); // reset
     }
 
-    private _recalculateStartTime(time: number) {
+    private recalculateStartTime(time: number) {
         this.absoluteStartTime =
             this.synth.currentTime - time / this._playbackRate;
         this.highResTimeOffset =

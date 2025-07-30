@@ -2,27 +2,23 @@ import fs from "fs";
 import path from "path";
 import esbuild from "esbuild";
 import url from "url";
+import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util.ts";
 
-
-console.log("building pages");
 // file paths and directories
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const TEMPLATE_FILE = path.join(dirname, `template.html`);
 const PARTIALS_DIR = path.join(dirname, "examples_src");
-const OUTPUT_DIR = path.join(dirname, "..", "dist", "examples");
+const OUTPUT_DIR = path.join(dirname, "..", GH_PAGES_DIR, "examples");
 const CSS_FILE = path.join(dirname, "examples.css");
 
 const WORKLET_JS_FILE = path.join(
     dirname,
     "..",
-    "dist",
+    NPM_DIST_DIR,
     "worklet_processor.min.js"
 );
 
-// create out and clear old files
-if (fs.existsSync(OUTPUT_DIR)) {
-    fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-}
+// create out
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // copy CSS file to the output directory
@@ -30,6 +26,10 @@ fs.copyFileSync(CSS_FILE, path.join(OUTPUT_DIR, "examples.css"));
 fs.copyFileSync(
     WORKLET_JS_FILE,
     path.join(OUTPUT_DIR, "worklet_processor.min.js")
+);
+fs.copyFileSync(
+    WORKLET_JS_FILE + ".map",
+    path.join(OUTPUT_DIR, "worklet_processor.min.js.map")
 );
 
 // read the HTML template content
@@ -45,7 +45,7 @@ partials.forEach((partial) => {
     const outputFile = path.join(OUTPUT_DIR, `${basename}.html`);
 
     // modify the template content with the specific title
-    let modifiedTemplate = TEMPLATE_CONTENT.replace(
+    const modifiedTemplate = TEMPLATE_CONTENT.replace(
         /<title>.*<\/title>/,
         `<title>spessasynth_lib example: ${basename}</title>`
     );
@@ -89,7 +89,7 @@ jsFiles.forEach((jsFile) => {
         });
         console.log(`built: ${outputJsFile}`);
     } catch (err) {
-        console.error(`error bundling: ${err.message}`);
+        console.error(`error bundling: ${err as string}`);
     }
 });
 

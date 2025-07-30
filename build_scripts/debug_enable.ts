@@ -1,4 +1,4 @@
-import { runCommandSync } from "./run_command.js";
+import { runCommandSync } from "./run_command.ts";
 
 runCommandSync("npm uninstall spessasynth_core");
 runCommandSync("npm install ../spessasynth_core");

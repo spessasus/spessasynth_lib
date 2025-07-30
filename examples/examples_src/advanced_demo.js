@@ -23,14 +23,18 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
         .getElementById("midi_input")
         .addEventListener("change", async (event) => {
             // check if any files are added
-            if (!event.target.files[0]) {
+            /**
+             * @type {HTMLInputElement}
+             */
+            const target = event.target;
+            if (target.files.length < 1) {
                 return;
             }
             // resume the context if paused
             await context.resume();
             // parse all the files
             const parsedSongs = [];
-            for (let file of event.target.files) {
+            for (let file of target.files) {
                 const buffer = await file.arrayBuffer();
                 parsedSongs.push({
                     binary: buffer, // binary: the binary data of the file
