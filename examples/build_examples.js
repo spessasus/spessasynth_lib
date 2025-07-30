@@ -3,7 +3,8 @@ import path from "path";
 import esbuild from "esbuild";
 import url from "url";
 
-console.log("building examples");
+
+console.log("building pages");
 // file paths and directories
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const TEMPLATE_FILE = path.join(dirname, `template.html`);
@@ -12,12 +13,6 @@ const OUTPUT_DIR = path.join(dirname, "..", "dist", "examples");
 const CSS_FILE = path.join(dirname, "examples.css");
 const WORKLET_JS_FILE = path.join(dirname, "..", "synthetizer", "worklet_processor.min.js");
 
-
-// create out and clear old files
-if (fs.existsSync(OUTPUT_DIR))
-{
-    fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-}
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // copy CSS file to the output directory

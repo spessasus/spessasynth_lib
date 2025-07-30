@@ -9,7 +9,9 @@
     "build": "node build_scripts/build.js",
     "debug": "node build_scripts/debug_enable.js",
     "release": "node build_scripts/debug_disable.js",
-    "build_examples": "node examples/build_examples.js"
+    "build:pages": "node build_scripts/build_pages.js",
+    "build:examples": "node examples/build_examples.js",
+    "build:docs": "node build_scripts/build_docs.js"
   },
   "repository": {
     "type": "git",

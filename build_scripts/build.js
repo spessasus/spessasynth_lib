@@ -21,5 +21,5 @@ esbuild.buildSync({
     logLevel: "info"
 });
 
-runCommandSync("npm run build_examples");
+runCommandSync("npm run build:pages");
 console.log("spessasynth_lib built successfully");

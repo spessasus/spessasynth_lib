@@ -1,4 +1,4 @@
-name: Deploy Examples
+name: Deploy GitHub Pages
 
 on:
   # Runs on pushes targeting the default branch
@@ -30,10 +30,14 @@ jobs:
         with:
           node-version: lts/*
           cache: 'npm'
-      - name: Install dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Node dependencies
         run: npm ci
-      - name: Build Examples
-        run: npm run build_examples
+      - name: Build Pages
+        run: npm run build:pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

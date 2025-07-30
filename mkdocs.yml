@@ -1,0 +1,103 @@
+site_name: spessasynth_lib documentation
+site_description: Documentation for the spessasynth_lib JavaScript SoundFont2/DLS MIDI Library for web browsers.
+site_author: spessasus
+site_url: https://spessasus.github.io/spessasynth_lib
+copyright: Copyright (C) spessasus 2025, licensed under the Apache-2.0 License.
+repo_url: https://github.com/spessasus/spessasynth_lib
+repo_name: spessasus/spessasynth_lib
+
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - smarty
+  - toc
+  - tables
+  - meta
+
+theme:
+  name: material
+  logo: assets/images/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  features:
+    - content.code.copy
+    - content.code.select
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.top
+    - navigation.expand
+
+    - toc.follow
+
+    - header.autohide
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Issue Tracker: 'https://github.com/spessasus/spessasynth_lib/issues'
+  - Documentation:
+      - getting-started/index.md
+      - Synthesizer:
+          - synthesizer/index.md
+          - synthesizer/sound-bank-manager.md
+          - synthesizer/key-modifier-manager.md
+          - synthesizer/direct-audio-engine-access.md
+          - synthesizer/importing-the-worklet.md
+          - synthesizer/synth-event-handler.md
+          - Callback Event Types: https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/
+      - Sequencer: sequencer/index.md
+      - Web MIDI Support:
+          - midi/web-midi-api.md
+          - midi/web-midi-link.md
+      - writing-files/writing-wav-files.md
+
+  - Extra Info:
+      - extra/all-npm-exports.md
+      - extra/working-with-browsers.md
+      - extra/migrating-from-pre-3-26.md
+      - About Multi-Port MIDI Files: https://spessasus.github.io/spessasynth_core/extra/about-multi-port/
+      - SF2 RMIDI Extension Specification: https://github.com/spessasus/sf2-rmidi-specification#readme
+      - MIDI Implementation: https://spessasus.github.io/spessasynth_core/extra/midi-implementation/
