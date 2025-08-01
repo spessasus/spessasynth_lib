@@ -1,0 +1,565 @@
+import { consoleColors } from "./utils/other.js";
+import {
+    ALL_CHANNELS_OR_DIFFERENT_ACTION,
+    BasicMIDI,
+    type ProcessorEventType,
+    type SequencerEventType,
+    SoundBankLoader,
+    SpessaSynthCoreUtils as util,
+    SpessaSynthLogging,
+    SpessaSynthProcessor,
+    SpessaSynthSequencer,
+    SynthesizerSnapshot
+} from "spessasynth_core";
+import { WORKLET_PROCESSOR_NAME } from "./synthetizer/worklet_url.js";
+import { songChangeType } from "./sequencer/enums.js";
+import { fillWithDefaults } from "./utils/fill_with_defaults.js";
+import { DEFAULT_SEQUENCER_OPTIONS } from "./sequencer/default_sequencer_options.js";
+import type {
+    PassedProcessorParameters,
+    WorkletMessage,
+    WorkletReturnMessage
+} from "./synthetizer/types";
+import type {
+    SequencerOptions,
+    SequencerReturnMessage
+} from "./sequencer/types";
+import { MIDIData } from "./sequencer/midi_data.ts";
+
+// a worklet processor wrapper for the synthesizer core
+class WorkletSpessaProcessor extends AudioWorkletProcessor {
+    /**
+     * If the worklet is alive.
+     */
+    public alive = true;
+
+    /**
+     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
+     */
+    public oneOutputMode = false;
+
+    public synthesizer: SpessaSynthProcessor;
+    public sequencer: SpessaSynthSequencer | undefined;
+
+    /**
+     * Creates a new worklet synthesis system. contains all channels.
+     */
+    public constructor(options: {
+        processorOptions: PassedProcessorParameters;
+    }) {
+        super();
+        const opts = options.processorOptions;
+
+        // one output is indicated by setting midiChannels to 1
+        this.oneOutputMode = opts.midiChannels === 1;
+
+        // prepare synthesizer connections
+        const postSyn = (m: WorkletReturnMessage) => {
+            this.postMessageToMainThread(m);
+        };
+
+        // start rendering data
+        const startRenderingData = opts?.startRenderingData;
+        /**
+         * The snapshot that synth was restored from.
+         */
+        const snapshot: SynthesizerSnapshot | undefined =
+            startRenderingData?.snapshot;
+
+        /**
+         * Initialize the synthesis engine.
+         */
+        this.synthesizer = new SpessaSynthProcessor(
+            sampleRate, // AudioWorkletGlobalScope
+            {
+                effectsEnabled: !this.oneOutputMode, // one output mode disables effects
+                enableEventSystem: opts?.enableEventSystem, // enable message port?
+                midiChannels: 16, // midi channel count (16)
+                initialTime: currentTime // AudioWorkletGlobalScope, sync with audioContext time
+            }
+        );
+        this.synthesizer.onEventCall = <K extends keyof ProcessorEventType>(
+            type: K,
+            data: ProcessorEventType[K]
+        ) => {
+            postSyn({
+                type: "eventCall",
+                data: { type, data }
+            });
+        };
+
+        void this.synthesizer.processorInitialized.then(() => {
+            // initialize the sequencer engine
+            this.sequencer = new SpessaSynthSequencer(this.synthesizer);
+
+            const postSeq = (m: SequencerReturnMessage) => {
+                this.postMessageToMainThread({
+                    type: "sequencerReturn",
+                    data: m
+                });
+            };
+
+            this.sequencer.onEventCall = <K extends keyof SequencerEventType>(
+                type: K,
+                data: SequencerEventType[K]
+            ) => {
+                let sentData = data;
+                if (type === "songListChange") {
+                    const songs = data as unknown as BasicMIDI[];
+                    sentData = songs.map((s) => {
+                        const d = new MIDIData();
+                        d.copyFrom(s);
+                        return d;
+                    }) as unknown as SequencerEventType[K];
+                }
+                postSeq({
+                    type,
+                    data: sentData
+                } as SequencerReturnMessage);
+            };
+
+            // receive messages from the main thread
+            this.port.onmessage = (e: MessageEvent<WorkletMessage>) =>
+                this.handleMessage(e.data);
+
+            if (snapshot !== undefined) {
+                this.synthesizer.applySynthesizerSnapshot(snapshot);
+            }
+
+            // if sent, start rendering
+            if (startRenderingData) {
+                util.SpessaSynthInfo(
+                    "%cRendering enabled! Starting render.",
+                    consoleColors.info
+                );
+                if (startRenderingData.parsedMIDI) {
+                    this.sequencer.loopCount = startRenderingData.loopCount;
+                    // set voice cap to unlimited
+                    this.synthesizer.setMasterParameter("voiceCap", Infinity);
+
+                    /**
+                     * set options
+                     */
+                    const seqOptions: SequencerOptions = fillWithDefaults(
+                        startRenderingData.sequencerOptions,
+                        DEFAULT_SEQUENCER_OPTIONS
+                    );
+                    this.sequencer.skipToFirstNoteOn =
+                        seqOptions.skipToFirstNoteOn;
+                    this.sequencer.playbackRate =
+                        seqOptions.initialPlaybackRate;
+                    // autoplay is ignored
+                    try {
+                        // cloned objects don't have methods
+                        this.sequencer.loadNewSongList([
+                            BasicMIDI.copyFrom(startRenderingData.parsedMIDI)
+                        ]);
+                    } catch (e) {
+                        console.error(e);
+                        postSeq({
+                            type: "midiError",
+                            data: e as Error
+                        });
+                    }
+                }
+            }
+
+            this.postReady();
+        });
+    }
+
+    public postReady() {
+        this.postMessageToMainThread({
+            type: "isFullyInitialized",
+            data: null
+        });
+    }
+
+    public postMessageToMainThread(data: WorkletReturnMessage) {
+        this.port.postMessage(data);
+    }
+
+    public handleMessage(m: WorkletMessage) {
+        const channel = m.channelNumber;
+
+        let channelObject:
+            | (typeof this.synthesizer.midiChannels)[number]
+            | undefined = undefined;
+        if (channel >= 0) {
+            channelObject = this.synthesizer.midiChannels[channel];
+            if (channelObject === undefined) {
+                util.SpessaSynthWarn(
+                    `Trying to access channel ${channel} which does not exist... ignoring!`
+                );
+                return;
+            }
+        }
+        switch (m.messageType) {
+            case "midiMessage":
+                this.synthesizer.processMessage(
+                    m.messageData.messageData,
+                    m.messageData.channelOffset,
+                    m.messageData.force,
+                    m.messageData.options
+                );
+                break;
+
+            case "customCcChange":
+                // custom controller change
+                channelObject?.setCustomController(
+                    m.messageData.ccNumber,
+                    m.messageData.ccValue
+                );
+                break;
+
+            case "ccReset":
+                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
+                    this.synthesizer.resetAllControllers();
+                } else {
+                    channelObject?.resetControllers();
+                }
+                break;
+
+            case "setChannelVibrato":
+                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
+                    for (
+                        let i = 0;
+                        i < this.synthesizer.midiChannels.length;
+                        i++
+                    ) {
+                        const chan = this.synthesizer.midiChannels[i];
+                        if (
+                            m.messageData.rate ===
+                            ALL_CHANNELS_OR_DIFFERENT_ACTION
+                        ) {
+                            chan.disableAndLockGSNRPN();
+                        } else {
+                            chan.setVibrato(
+                                m.messageData.depth,
+                                m.messageData.rate,
+                                m.messageData.delay
+                            );
+                        }
+                    }
+                } else if (
+                    m.messageData.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION
+                ) {
+                    channelObject?.disableAndLockGSNRPN();
+                } else {
+                    channelObject?.setVibrato(
+                        m.messageData.depth,
+                        m.messageData.rate,
+                        m.messageData.delay
+                    );
+                }
+                break;
+
+            case "stopAll":
+                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
+                    this.synthesizer.stopAllChannels(m.messageData === 1);
+                } else {
+                    channelObject?.stopAllNotes(m.messageData === 1);
+                }
+                break;
+
+            case "killNotes":
+                this.synthesizer.killVoices(m.messageData);
+                break;
+
+            case "muteChannel":
+                channelObject?.muteChannel(m.messageData);
+                break;
+
+            case "addNewChannel":
+                this.synthesizer.createMIDIChannel();
+                break;
+
+            case "setMasterParameter":
+                this.synthesizer.setMasterParameter(
+                    m.messageData.type,
+                    m.messageData.data
+                );
+                break;
+
+            case "setDrums":
+                channelObject?.setDrums(m.messageData);
+                break;
+
+            case "transposeChannel":
+                channelObject?.transposeChannel(
+                    m.messageData.semitones,
+                    m.messageData.force
+                );
+                break;
+
+            case "lockController":
+                if (
+                    m.messageData.controllerNumber ===
+                    ALL_CHANNELS_OR_DIFFERENT_ACTION
+                ) {
+                    channelObject?.setPresetLock(m.messageData.isLocked);
+                } else {
+                    if (!channelObject) {
+                        return;
+                    }
+                    channelObject.lockedControllers[
+                        m.messageData.controllerNumber
+                    ] = m.messageData.isLocked;
+                }
+                break;
+
+            case "sequencerSpecific": {
+                if (!this.sequencer) {
+                    return;
+                }
+                const seq = this.sequencer;
+                const seqMsg = m.messageData;
+                switch (seqMsg.type) {
+                    default:
+                        break;
+
+                    case "loadNewSongList":
+                        try {
+                            const sList = seqMsg.data;
+                            const songMap = sList.map((s) => {
+                                if ("duration" in s) {
+                                    // cloned objects don't have methods
+                                    return BasicMIDI.copyFrom(s);
+                                }
+                                return BasicMIDI.fromArrayBuffer(
+                                    s.binary,
+                                    s.altName
+                                );
+                            });
+                            seq.loadNewSongList(songMap);
+                        } catch (e) {
+                            console.error(e);
+                            this.postMessageToMainThread({
+                                type: "sequencerReturn",
+                                data: {
+                                    type: "midiError",
+                                    data: e as Error
+                                }
+                            });
+                        }
+                        break;
+
+                    case "pause":
+                        seq.pause();
+                        break;
+
+                    case "play":
+                        seq.play();
+                        break;
+
+                    case "setTime":
+                        seq.currentTime = seqMsg.data;
+                        break;
+
+                    case "changeMIDIMessageSending":
+                        seq.externalMIDIPlayback = seqMsg.data;
+                        break;
+
+                    case "setPlaybackRate":
+                        seq.playbackRate = seqMsg.data;
+                        break;
+
+                    case "setLoop":
+                        seq.loopCount = seqMsg.data;
+                        break;
+
+                    case "changeSong":
+                        switch (seqMsg.data.changeType) {
+                            case songChangeType.shuffleOff:
+                                seq.shuffleMode = false;
+                                break;
+
+                            case songChangeType.shuffleOn:
+                                seq.shuffleMode = true;
+                                break;
+
+                            case songChangeType.index:
+                                if (seqMsg.data.data)
+                                    seq.songIndex = seqMsg.data.data;
+                                break;
+                        }
+                        break;
+
+                    case "getMIDI":
+                        this.postMessageToMainThread({
+                            type: "sequencerReturn",
+                            data: {
+                                type: "getMIDI",
+                                data: seq.midiData
+                            }
+                        });
+                        break;
+
+                    case "setSkipToFirstNote":
+                        seq.skipToFirstNoteOn = seqMsg.data;
+                        break;
+                }
+                break;
+            }
+
+            case "soundBankManager":
+                try {
+                    const sfManager = this.synthesizer.soundBankManager;
+                    const sfManMsg = m.messageData;
+                    let font;
+                    switch (sfManMsg.type) {
+                        case "addNewSoundBank":
+                            font = SoundBankLoader.fromArrayBuffer(
+                                sfManMsg.data.soundBankBuffer
+                            );
+                            sfManager.addNewSoundBank(
+                                font,
+                                sfManMsg.data.id,
+                                sfManMsg.data.bankOffset
+                            );
+                            this.postMessageToMainThread({
+                                type: "isFullyInitialized",
+                                data: null
+                            });
+                            break;
+
+                        case "reloadSoundBank":
+                            font = SoundBankLoader.fromArrayBuffer(
+                                sfManMsg.data
+                            );
+                            sfManager.reloadManager(font);
+                            this.postMessageToMainThread({
+                                type: "isFullyInitialized",
+                                data: null
+                            });
+                            break;
+
+                        case "deleteSoundBank":
+                            sfManager.deleteSoundBank(sfManMsg.data);
+                            break;
+
+                        case "rearrangeSoundBanks":
+                            sfManager.setSoundBankOrder(sfManMsg.data);
+                    }
+                } catch (e) {
+                    this.postMessageToMainThread({
+                        type: "soundBankError",
+                        data: e as Error
+                    });
+                }
+                break;
+
+            case "keyModifierManager": {
+                const kmMsg = m.messageData;
+                const man = this.synthesizer.keyModifierManager;
+                switch (kmMsg.type) {
+                    default:
+                        return;
+
+                    case "addMapping":
+                        man.addMapping(
+                            kmMsg.data.channel,
+                            kmMsg.data.midiNote,
+                            kmMsg.data.mapping
+                        );
+                        break;
+
+                    case "clearMappings":
+                        man.clearMappings();
+                        break;
+
+                    case "deleteMapping":
+                        man.deleteMapping(
+                            kmMsg.data.channel,
+                            kmMsg.data.midiNote
+                        );
+                }
+                break;
+            }
+
+            case "requestSynthesizerSnapshot": {
+                const snapshot = SynthesizerSnapshot.create(this.synthesizer);
+                this.postMessageToMainThread({
+                    type: "synthesizerSnapshot",
+                    data: snapshot
+                });
+                break;
+            }
+
+            case "setLogLevel":
+                SpessaSynthLogging(
+                    m.messageData.enableInfo,
+                    m.messageData.enableWarning,
+                    m.messageData.enableGroup
+                );
+                break;
+
+            case "destroyWorklet":
+                this.alive = false;
+                this.synthesizer.destroySynthProcessor();
+                delete this.sequencer;
+                break;
+
+            default:
+                util.SpessaSynthWarn("Unrecognized event!", m);
+                break;
+        }
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * the audio worklet processing logic
+     * @param _inputs required by WebAudioAPI
+     * @param outputs the outputs to write to, only the first two channels of each are populated
+     * @returns {boolean} true unless it's not alive
+     */
+    public process(
+        _inputs: Float32Array[][],
+        outputs: Float32Array[][]
+    ): boolean {
+        if (!this.alive || !this.sequencer) {
+            return false;
+        }
+        // process sequencer
+        this.sequencer.processTick();
+
+        if (this.oneOutputMode) {
+            const out = outputs[0];
+            // 1 output with 32 channels.
+            // channels are ordered as follows:
+            // midiChannel1L, midiChannel1R,
+            // midiChannel2L, midiChannel2R
+            // and so on
+            const channelMap: Float32Array[][] = [];
+            for (let i = 0; i < 32; i += 2) {
+                channelMap.push([out[i], out[i + 1]]);
+            }
+            this.synthesizer.renderAudioSplit(
+                [],
+                [], // effects are disabled
+                channelMap
+            );
+        } else {
+            // 18 outputs, each a stereo one
+            // 0: reverb
+            // 1: chorus
+            // 2: channel 1
+            // 3: channel 2
+            // and so on
+            this.synthesizer.renderAudioSplit(
+                outputs[0], // reverb
+                outputs[1], // chorus
+                outputs.slice(2)
+            );
+        }
+        console.log(this.sequencer?.currentTime);
+        return true;
+    }
+}
+
+// noinspection JSUnresolvedReference
+registerProcessor(WORKLET_PROCESSOR_NAME, WorkletSpessaProcessor);
+util.SpessaSynthInfo(
+    "%cProcessor successfully registered!",
+    consoleColors.recognized
+);

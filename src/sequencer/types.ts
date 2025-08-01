@@ -1,0 +1,98 @@
+import { type SongChangeType } from "./enums";
+import {
+    type BasicMIDI,
+    type MIDIMessage,
+    type SequencerEventType
+} from "spessasynth_core";
+import type { MIDIData } from "./midi_data";
+
+export type SequencerOptions = {
+    // If true, the sequencer will skip to the first note.
+    skipToFirstNoteOn: boolean;
+    // If true, the sequencer will stay paused when seeking or changing the playback rate.
+    preservePlaybackState: boolean;
+    // The initial playback rate, defaults to 1.0 (normal speed).
+    initialPlaybackRate: number;
+};
+
+export type SequencerMessage = {
+    [K in keyof SequencerMessageData]: {
+        type: K;
+        data: SequencerMessageData[K];
+    };
+}[keyof SequencerMessageData];
+
+export type SequencerMessageData = {
+    // loadNewSongList
+    loadNewSongList: SuppliedMIDIData[];
+    pause: null;
+    play: null;
+    // time
+    setTime: number;
+    // sendMIDIMessages
+    changeMIDIMessageSending: boolean;
+    // playbackRate
+    setPlaybackRate: number;
+    // count
+    setLoop: number;
+    // [changeType, data]
+    changeSong: {
+        changeType: SongChangeType;
+        data?: number;
+    };
+    getMIDI: null;
+    // skipToFirstNoteOn
+    setSkipToFirstNote: boolean;
+};
+
+export interface SequencerReturnMessageData extends SequencerEventType {
+    getMIDI: BasicMIDI;
+    midiError: Error;
+}
+
+export type SequencerReturnMessage = {
+    [K in keyof SequencerReturnMessageData]: {
+        type: K;
+        data: SequencerReturnMessageData[K];
+    };
+}[keyof SequencerReturnMessageData];
+
+/**
+ * sequencer.js
+ * purpose: plays back the midi file decoded by midi_loader.js, including support for multichannel midis
+ * (adding channels when more than one midi port is detected)
+ * note: this is the sequencer class that runs on the main thread
+ * and only communicates with the worklet sequencer which does the actual playback
+ */
+
+export type SuppliedMIDIData =
+    | BasicMIDI
+    | {
+          // The binary data of the file.
+          binary: ArrayBuffer;
+          // The alternative name for the file.
+          altName?: string;
+      };
+
+export type WorkletSequencerEventType = {
+    // New song.
+    songChange: MIDIData;
+    // New time.
+    timeChange: number;
+    // No data.
+    songEnded: null;
+    // New tempo in BPM.
+    tempoChange: number;
+    metaEvent: {
+        event: MIDIMessage;
+        trackNumber: number;
+    };
+    textEvent: {
+        // The raw event.
+        event: MIDIMessage;
+        // If the text is a lyric, the index of the lyric in BasicMIDI's "lyrics" property, otherwise -1.
+        lyricsIndex: number;
+    };
+
+    midiError: Error;
+};
