@@ -1,11 +1,14 @@
-import type { SequencerEventType } from "./types";
+import type { WorkletSequencerEventType } from "./types";
 
-type SequencerEventCallback<T extends keyof SequencerEventType> = (
-    callbackData: SequencerEventType[T]
+type SequencerEventCallback<T extends keyof WorkletSequencerEventType> = (
+    callbackData: WorkletSequencerEventType[T]
 ) => unknown;
 
 type EventsMap = {
-    [K in keyof SequencerEventType]: Map<string, SequencerEventCallback<K>>;
+    [K in keyof WorkletSequencerEventType]: Map<
+        string,
+        SequencerEventCallback<K>
+    >;
 };
 
 export class SeqEventHandler {
@@ -32,7 +35,7 @@ export class SeqEventHandler {
      * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
      * @param callback The callback for the event.
      */
-    public addEvent<T extends keyof SequencerEventType>(
+    public addEvent<T extends keyof WorkletSequencerEventType>(
         event: T,
         id: string,
         callback: SequencerEventCallback<T>
@@ -46,7 +49,7 @@ export class SeqEventHandler {
      * @param name The event to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
-    public removeEvent<T extends keyof SequencerEventType>(
+    public removeEvent<T extends keyof WorkletSequencerEventType>(
         name: T,
         id: string
     ) {
@@ -57,9 +60,9 @@ export class SeqEventHandler {
      * Calls the given event.
      * Internal use only.
      */
-    public callEventInternal<T extends keyof SequencerEventType>(
+    public callEventInternal<T extends keyof WorkletSequencerEventType>(
         name: T,
-        eventData: SequencerEventType[T]
+        eventData: WorkletSequencerEventType[T]
     ) {
         const eventList = this.events[name];
         const callback = () => {

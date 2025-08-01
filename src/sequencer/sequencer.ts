@@ -10,12 +10,12 @@ import { songChangeType } from "./enums.js";
 import { DUMMY_MIDI_DATA, MIDIData } from "./midi_data.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
 import type {
-    SequencerEventType,
     SequencerMessage,
     SequencerMessageData,
     SequencerOptions,
     SequencerReturnMessage,
-    SuppliedMIDIData
+    SuppliedMIDIData,
+    WorkletSequencerEventType
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
 
@@ -65,6 +65,10 @@ export class Sequencer {
      * Absolute playback startTime, bases on the synth's time.
      */
     protected absoluteStartTime: number;
+    /**
+     * Internal loop marker.
+     */
+    protected _loop = false;
 
     /**
      * Creates a new MIDI sequencer for playing back MIDI files.
@@ -160,26 +164,6 @@ export class Sequencer {
     }
 
     /**
-     * Internal loop marker.
-     */
-    protected _loop = false;
-
-    /**
-     * Indicates if the sequencer is currently looping.
-     */
-    public get loop() {
-        return this._loop;
-    }
-
-    public set loop(value) {
-        this.sendMessage("setLoop", {
-            loop: value,
-            count: this._loopsRemaining
-        });
-        this._loop = value;
-    }
-
-    /**
      * Internal loop count marker (-1 is infinite).
      */
     protected _loopsRemaining = -1;
@@ -196,10 +180,7 @@ export class Sequencer {
      */
     public set loopsRemaining(val) {
         this._loopsRemaining = val;
-        this.sendMessage("setLoop", {
-            loop: this._loop,
-            count: val
-        });
+        this.sendMessage("setLoop", val);
     }
 
     /**
@@ -333,9 +314,6 @@ export class Sequencer {
         this.sendMessage("loadNewSongList", midiBuffers);
         this._songIndex = 0;
         this._songsAmount = midiBuffers.length;
-        if (this._songsAmount > 1) {
-            this.loop = false;
-        }
         if (!autoPlay) {
             this.pausedTime = this.currentTime;
         }
@@ -379,8 +357,8 @@ export class Sequencer {
 
     protected _handleMessage(m: SequencerReturnMessage) {
         switch (m.type) {
-            case "midiEvent":
-                const midiEventData = m.data;
+            case "midiMessage":
+                const midiEventData = m.data.message as number[];
                 if (this.midiOut) {
                     if (midiEventData[0] >= 0x80) {
                         this.midiOut.send(midiEventData);
@@ -400,7 +378,7 @@ export class Sequencer {
 
             case "timeChange":
                 // message data is absolute time
-                const time = m.data;
+                const time = m.data.newTime;
                 this.callEventInternal("timeChange", time);
                 this.recalculateStartTime(time);
                 if (this.paused) {
@@ -410,7 +388,7 @@ export class Sequencer {
 
             case "pause":
                 this.pausedTime = this.currentTime;
-                this.isFinished = m.data;
+                this.isFinished = m.data.isFinished;
                 if (this.isFinished) {
                     console.log(this.isFinished);
                     this.callEventInternal("songEnded", null);
@@ -429,13 +407,13 @@ export class Sequencer {
 
             case "metaEvent":
                 const event = m.data.event;
-                switch (event.messageStatusByte) {
+                switch (event.statusByte) {
                     case midiMessageTypes.setTempo:
-                        event.messageData.currentIndex = 0;
+                        event.data.currentIndex = 0;
                         const bpm =
                             60000000 /
-                            util.readBytesAsUintBigEndian(event.messageData, 3);
-                        event.messageData.currentIndex = 0;
+                            util.readBytesAsUintBigEndian(event.data, 3);
+                        event.data.currentIndex = 0;
                         this._currentTempo = Math.round(bpm * 100) / 100;
                         this.callEventInternal(
                             "tempoChange",
@@ -455,11 +433,11 @@ export class Sequencer {
                             break;
                         }
                         let lyricsIndex = -1;
-                        if (
-                            event.messageStatusByte === midiMessageTypes.lyric
-                        ) {
+                        if (event.statusByte === midiMessageTypes.lyric) {
                             lyricsIndex = Math.min(
-                                this.midiData.lyricsTicks.indexOf(event.ticks),
+                                this.midiData.lyrics.findIndex(
+                                    (l) => l.ticks === event.ticks
+                                ),
                                 this.midiData.lyrics.length - 1
                             );
                         }
@@ -475,14 +453,14 @@ export class Sequencer {
                         // if it's a karaoke file
                         if (
                             this.midiData.isKaraokeFile &&
-                            (event.messageStatusByte ===
-                                midiMessageTypes.text ||
-                                event.messageStatusByte ===
-                                    midiMessageTypes.lyric)
+                            (event.statusByte === midiMessageTypes.text ||
+                                event.statusByte === midiMessageTypes.lyric)
                         ) {
                             lyricsIndex = Math.min(
-                                this.midiData.lyricsTicks.indexOf(event.ticks),
-                                this.midiData.lyricsTicks.length
+                                this.midiData.lyrics.findIndex(
+                                    (l) => l.ticks === event.ticks
+                                ),
+                                this.midiData.lyrics.length
                             );
                         }
                         this.callEventInternal("textEvent", {
@@ -493,19 +471,18 @@ export class Sequencer {
                 }
                 this.callEventInternal("metaEvent", {
                     event: m.data.event,
-                    trackNumber: m.data.trackNum
+                    trackNumber: m.data.trackIndex
                 });
                 break;
 
             case "loopCountChange":
-                this._loopsRemaining = m.data;
+                this._loopsRemaining = m.data.newCount;
                 if (this._loopsRemaining === 0) {
-                    this._loop = false;
                 }
                 break;
 
             case "songListChange":
-                this.songListData = m.data;
+                this.songListData = m.data.newSongList as MIDIData[];
                 this.midiData = this.songListData[this._songIndex];
                 break;
 
@@ -514,10 +491,9 @@ export class Sequencer {
         }
     }
 
-    protected callEventInternal<EventType extends keyof SequencerEventType>(
-        type: EventType,
-        data: SequencerEventType[EventType]
-    ) {
+    protected callEventInternal<
+        EventType extends keyof WorkletSequencerEventType
+    >(type: EventType, data: WorkletSequencerEventType[EventType]) {
         this.eventHandler.callEventInternal(type, data);
     }
 

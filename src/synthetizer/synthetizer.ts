@@ -7,7 +7,6 @@ import {
     DEFAULT_PERCUSSION,
     type MasterParameterChangeCallback,
     type MasterParameterType,
-    MIDI_CHANNEL_COUNT,
     type MIDIController,
     midiControllers,
     midiMessageTypes,
@@ -98,7 +97,7 @@ export class WorkletSynthesizer {
      * what does that mean?
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
      */
-    private readonly _outputsAmount = MIDI_CHANNEL_COUNT;
+    private readonly _outputsAmount = 16;
     /**
      * The current number of MIDI channels the synthesizer has
      */
@@ -143,9 +142,6 @@ export class WorkletSynthesizer {
         // initialize effects configuration
         this.synthConfig = fillWithDefaults(synthConfig, DEFAULT_SYNTH_CONFIG);
 
-        // process start rendering data
-        const sequencerRenderingData = {};
-
         // create the audio worklet node
         try {
             const workletConstructor =
@@ -161,8 +157,7 @@ export class WorkletSynthesizer {
                     numberOfOutputs: processorOutputsCount,
                     processorOptions: {
                         midiChannels: this._outputsAmount,
-                        enableEventSystem: true,
-                        startRenderingData: sequencerRenderingData
+                        enableEventSystem: true
                     }
                 }
             ) as AudioWorkletNode;
@@ -886,7 +881,7 @@ export class WorkletSynthesizer {
                 this.eventHandler.callEventInternal(m.data.type, m.data.data);
                 break;
 
-            case "sequencerSpecific":
+            case "sequencerReturn":
                 this.sequencerCallbackFunction?.(m.data);
                 break;
 

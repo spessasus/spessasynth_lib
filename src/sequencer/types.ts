@@ -1,5 +1,9 @@
 import { type SongChangeType } from "./enums";
-import { type BasicMIDI, type MIDIMessage } from "spessasynth_core";
+import {
+    type BasicMIDI,
+    type MIDIMessage,
+    type SequencerEventType
+} from "spessasynth_core";
 import type { MIDIData } from "./midi_data";
 
 export type SequencerOptions = {
@@ -29,11 +33,8 @@ export type SequencerMessageData = {
     changeMIDIMessageSending: boolean;
     // playbackRate
     setPlaybackRate: number;
-    // [loop, count]
-    setLoop: {
-        loop: boolean;
-        count: number;
-    };
+    // count
+    setLoop: number;
     // [changeType, data]
     changeSong: {
         changeType: SongChangeType;
@@ -44,6 +45,11 @@ export type SequencerMessageData = {
     setSkipToFirstNote: boolean;
 };
 
+export interface SequencerReturnMessageData extends SequencerEventType {
+    getMIDI: BasicMIDI;
+    midiError: Error;
+}
+
 export type SequencerReturnMessage = {
     [K in keyof SequencerReturnMessageData]: {
         type: K;
@@ -51,29 +57,6 @@ export type SequencerReturnMessage = {
     };
 }[keyof SequencerReturnMessageData];
 
-type SequencerReturnMessageData = {
-    // [...midiEventBytes]
-    midiEvent: number[];
-    songChange: {
-        songIndex: number;
-    };
-    // newTime
-    timeChange: number;
-    // isFinished
-    pause: boolean;
-    // midiData
-    getMIDI: BasicMIDI;
-    // errorMSG
-    midiError: Error;
-    metaEvent: {
-        event: MIDIMessage;
-        trackNum: number;
-    };
-    // newLoopCount
-    loopCountChange: number;
-    // songListData
-    songListChange: MIDIData[];
-};
 /**
  * sequencer.js
  * purpose: plays back the midi file decoded by midi_loader.js, including support for multichannel midis
@@ -91,7 +74,7 @@ export type SuppliedMIDIData =
           altName?: string;
       };
 
-export type SequencerEventType = {
+export type WorkletSequencerEventType = {
     // New song.
     songChange: MIDIData;
     // New time.

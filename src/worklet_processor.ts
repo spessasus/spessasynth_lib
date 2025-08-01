@@ -2,8 +2,8 @@ import { consoleColors } from "./utils/other.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
-    MIDI_CHANNEL_COUNT,
     type ProcessorEventType,
+    type SequencerEventType,
     SoundBankLoader,
     SpessaSynthCoreUtils as util,
     SpessaSynthLogging,
@@ -15,7 +15,6 @@ import { WORKLET_PROCESSOR_NAME } from "./synthetizer/worklet_url.js";
 import { songChangeType } from "./sequencer/enums.js";
 import { fillWithDefaults } from "./utils/fill_with_defaults.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./sequencer/default_sequencer_options.js";
-import { MIDIData } from "./sequencer/midi_data.js";
 import type {
     PassedProcessorParameters,
     WorkletMessage,
@@ -25,6 +24,7 @@ import type {
     SequencerOptions,
     SequencerReturnMessage
 } from "./sequencer/types";
+import { MIDIData } from "./sequencer/midi_data.ts";
 
 // a worklet processor wrapper for the synthesizer core
 class WorkletSpessaProcessor extends AudioWorkletProcessor {
@@ -74,7 +74,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
             {
                 effectsEnabled: !this.oneOutputMode, // one output mode disables effects
                 enableEventSystem: opts?.enableEventSystem, // enable message port?
-                midiChannels: MIDI_CHANNEL_COUNT, // midi channel count (16)
+                midiChannels: 16, // midi channel count (16)
                 initialTime: currentTime // AudioWorkletGlobalScope, sync with audioContext time
             }
         );
@@ -94,64 +94,33 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
 
             const postSeq = (m: SequencerReturnMessage) => {
                 this.postMessageToMainThread({
-                    type: "sequencerSpecific",
+                    type: "sequencerReturn",
                     data: m
                 });
+            };
+
+            this.sequencer.onEventCall = <K extends keyof SequencerEventType>(
+                type: K,
+                data: SequencerEventType[K]
+            ) => {
+                let sentData = data;
+                if (type === "songListChange") {
+                    const songs = data as unknown as BasicMIDI[];
+                    sentData = songs.map((s) => {
+                        const d = new MIDIData();
+                        d.copyFrom(s);
+                        return d;
+                    }) as unknown as SequencerEventType[K];
+                }
+                postSeq({
+                    type,
+                    data: sentData
+                } as SequencerReturnMessage);
             };
 
             // receive messages from the main thread
             this.port.onmessage = (e: MessageEvent<WorkletMessage>) =>
                 this.handleMessage(e.data);
-
-            // sequencer events
-            this.sequencer.onMIDIMessage = (m) => {
-                postSeq({
-                    type: "midiEvent",
-                    data: m
-                });
-            };
-            this.sequencer.onTimeChange = (t) => {
-                postSeq({
-                    type: "timeChange",
-                    data: t
-                });
-            };
-            this.sequencer.onPlaybackStop = (p) => {
-                postSeq({
-                    type: "pause",
-                    data: p
-                });
-            };
-            this.sequencer.onSongChange = (songIndex) => {
-                postSeq({
-                    type: "songChange",
-                    data: {
-                        songIndex
-                    }
-                });
-            };
-            this.sequencer.onMetaEvent = (event, trackNum) => {
-                postSeq({
-                    type: "metaEvent",
-                    data: {
-                        event,
-                        trackNum
-                    }
-                });
-            };
-            this.sequencer.onLoopCountChange = (c) => {
-                postSeq({
-                    type: "loopCountChange",
-                    data: c
-                });
-            };
-            this.sequencer.onSongListChange = (l) => {
-                const midiDataList = l.map((s) => new MIDIData(s));
-                postSeq({
-                    type: "songListChange",
-                    data: midiDataList
-                });
-            };
 
             if (snapshot !== undefined) {
                 this.synthesizer.applySynthesizerSnapshot(snapshot);
@@ -164,13 +133,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                     consoleColors.info
                 );
                 if (startRenderingData.parsedMIDI) {
-                    if (startRenderingData?.loopCount !== undefined) {
-                        this.sequencer.loopCount =
-                            startRenderingData?.loopCount;
-                        this.sequencer.loop = true;
-                    } else {
-                        this.sequencer.loop = false;
-                    }
+                    this.sequencer.loopCount = startRenderingData.loopCount;
                     // set voice cap to unlimited
                     this.synthesizer.setMasterParameter("voiceCap", Infinity);
 
@@ -372,7 +335,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                         } catch (e) {
                             console.error(e);
                             this.postMessageToMainThread({
-                                type: "sequencerSpecific",
+                                type: "sequencerReturn",
                                 data: {
                                     type: "midiError",
                                     data: e as Error
@@ -401,16 +364,9 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                         seq.playbackRate = seqMsg.data;
                         break;
 
-                    case "setLoop": {
-                        const { loop, count } = seqMsg.data;
-                        seq.loop = loop;
-                        if (count === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                            seq.loopCount = Infinity;
-                        } else {
-                            seq.loopCount = count;
-                        }
+                    case "setLoop":
+                        seq.loopCount = seqMsg.data;
                         break;
-                    }
 
                     case "changeSong":
                         switch (seqMsg.data.changeType) {
@@ -431,7 +387,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
 
                     case "getMIDI":
                         this.postMessageToMainThread({
-                            type: "sequencerSpecific",
+                            type: "sequencerReturn",
                             data: {
                                 type: "getMIDI",
                                 data: seq.midiData

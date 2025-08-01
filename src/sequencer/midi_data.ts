@@ -1,27 +1,27 @@
-import { BasicMIDI, MIDISequenceData } from "spessasynth_core";
+import { BasicMIDI, MIDITrack } from "spessasynth_core";
 
 /**
  * A simplified version of the MIDI, accessible at all times from the Sequencer.
  * Use getMIDI() to get the actual sequence.
  * This class contains all properties that MIDI does, except for tracks and the embedded sound bank.
  */
-export class MIDIData extends MIDISequenceData {
+export class MIDIData extends BasicMIDI {
     /**
-     * A boolean indicating if the MIDI file contains an embedded sound bank.
-     * If the embedded soundfont is undefined, this will be false.
+     * THIS DATA WILL BE EMPTY! USE sequencer.getMIDI() TO GET THE ACTUAL DATA!
      */
-    public readonly isEmbedded: boolean;
+    public override tracks: MIDITrack[] = [];
 
     /**
-     * Constructor that copies data from a BasicMIDI instance.
-     * @param midi - The BasicMIDI instance to copy data from.
+     * THIS DATA WILL BE EMPTY! USE sequencer.getMIDI() TO GET THE ACTUAL DATA!
      */
-    public constructor(midi: BasicMIDI) {
-        super();
-        this._copyFromSequence(midi);
+    public override embeddedSoundBank: undefined = undefined;
 
-        // Set isEmbedded based on the presence of an embeddedSoundFont
-        this.isEmbedded = midi.embeddedSoundBank !== undefined;
+    /**
+     * Copies BasicMIDI without tracks.
+     * @param mid The MIDI to copy.
+     */
+    public copyFrom(mid: BasicMIDI) {
+        super.copyMetadataFrom(mid);
     }
 }
 
@@ -39,27 +39,18 @@ export const DUMMY_MIDI_DATA: MIDIData = Object.assign(
 
         lastVoiceEventTick: 123456,
         lyrics: [],
-        lyricsTicks: [],
+        tracks: [],
+        extraMetadata: [],
         copyright: "",
-        midiPorts: [],
-        midiPortChannelOffsets: [],
-        tracksAmount: 0,
         tempoChanges: [{ ticks: 0, tempo: 120 }],
-        trackNames: [],
         fileName: "NOT_LOADED.mid",
-        midiName: "Loading...",
-        rawMidiName: new Uint8Array([
-            76, 111, 97, 100, 105, 110, 103, 46, 46, 46
-        ]), // "Loading..."
-        usedChannelsOnTrack: [],
+        name: "Loading...",
         timeDivision: 0,
         keyRange: { min: 0, max: 127 },
-        isEmbedded: false,
         isKaraokeFile: false,
         isMultiPort: false,
-        RMIDInfo: {},
+        rmidiInfo: {},
         bankOffset: 0,
-        midiNameUsesFileName: false,
         format: 0
     },
     MIDIData.prototype

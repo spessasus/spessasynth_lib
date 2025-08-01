@@ -22,7 +22,7 @@ The `messageData` is set to the sequencer's message.
 #### From worklet
 
 `WorkletSequencer` uses `SpessaSynthProcessor`'s post to send a message with `messageData` set to
-`returnMessageType.sequencerSpecific`.
+`returnMessageType.sequencerReturn`.
 The `messageData` is set to the sequencer's return message.
 
 ### Process tick

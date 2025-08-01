@@ -19,18 +19,18 @@ export type PassedProcessorParameters = {
     enableEventSystem: boolean;
     startRenderingData?: StartRenderingDataConfig;
 };
-export type StartRenderingDataConfig = Partial<{
+export type StartRenderingDataConfig = {
     // The MIDI to render.
     parsedMIDI: BasicMIDI;
     // The snapshot to apply.
-    snapshot: SynthesizerSnapshot;
+    snapshot?: SynthesizerSnapshot;
     // If the synth should use one output with 32 channels (2 audio channels for each midi channel).
     oneOutput: boolean;
     // The times to loop the song.
     loopCount: number;
     // The options to pass to the sequencer.
     sequencerOptions: Partial<SequencerOptions>;
-}>;
+};
 
 export type WorkletSBKManagerData = {
     // buffer<ArrayBuffer>
@@ -140,7 +140,7 @@ type EventCallObject<T extends keyof ProcessorEventType> = {
 
 type WorkletReturnMessageData = {
     eventCall: EventCallObject<keyof ProcessorEventType>;
-    sequencerSpecific: SequencerReturnMessage;
+    sequencerReturn: SequencerReturnMessage;
     synthesizerSnapshot: SynthesizerSnapshot;
     isFullyInitialized: null;
     // An error message related to the sound bank. It contains a string description of the error.
