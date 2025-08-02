@@ -1,5 +1,5 @@
 import { KeyModifier } from "spessasynth_core";
-import type { WorkletSynthesizer } from "./synthetizer";
+import type { WorkletSynthesizer } from "./worklet_synthesizer.ts";
 import type { WorkletKMManagerData } from "./types";
 
 export class WorkletKeyModifierManagerWrapper {
@@ -101,9 +101,9 @@ export class WorkletKeyModifierManagerWrapper {
             };
         }[keyof WorkletKMManagerData];
         this.synth.post({
-            messageType: "keyModifierManager",
+            type: "keyModifierManager",
             channelNumber: -1,
-            messageData: msg
+            data: msg
         });
     }
 }

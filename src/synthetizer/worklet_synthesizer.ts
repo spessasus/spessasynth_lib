@@ -5,7 +5,6 @@ import {
     type ChannelProperty,
     DEFAULT_MASTER_PARAMETERS,
     DEFAULT_PERCUSSION,
-    type MasterParameterChangeCallback,
     type MasterParameterType,
     type MIDIController,
     midiControllers,
@@ -23,7 +22,7 @@ import { SoundBankManager } from "./sound_bank_manager.js";
 import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.js";
 import { fillWithDefaults } from "../utils/fill_with_defaults.js";
 import { WORKLET_PROCESSOR_NAME } from "./worklet_url.js";
-import type { WorkletMessage, WorkletReturnMessage } from "./types";
+import type { StartRenderingDataConfig, WorkletMessage, WorkletReturnMessage } from "./types";
 import type { SequencerReturnMessage } from "../sequencer/types";
 import type { ChorusConfig, SynthConfig } from "./audio_effects/types";
 import { LibSynthesizerSnapshot } from "./snapshot";
@@ -106,6 +105,8 @@ export class WorkletSynthesizer {
     private readonly masterParameters: MasterParameterType =
         DEFAULT_MASTER_PARAMETERS;
 
+    private isProcessorReady?: (value: unknown) => void;
+
     /**
      * Creates a new instance of the SpessaSynth synthesizer.
      * @param targetNode The target node to connect to.
@@ -126,7 +127,7 @@ export class WorkletSynthesizer {
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
         this.isReady = new Promise(
-            (resolve) => (this.resolveWhenReady = resolve)
+            (resolve) => (this.isProcessorReady = resolve)
         );
 
         // create initial channels
@@ -157,7 +158,7 @@ export class WorkletSynthesizer {
                     numberOfOutputs: processorOutputsCount,
                     processorOptions: {
                         midiChannels: this._outputsAmount,
-                        enableEventSystem: true
+                        enableEventSystem: synthConfig.enableEffectsSystem
                     }
                 }
             ) as AudioWorkletNode;
@@ -216,9 +217,10 @@ export class WorkletSynthesizer {
         this.eventHandler.addEvent(
             "masterParameterChange",
             `synth-master-parameter-change-${Math.random()}`,
-            <P extends keyof MasterParameterType>(
-                e: MasterParameterChangeCallback<P>
-            ) => {
+            <P extends keyof MasterParameterType>(e: {
+                parameter: P;
+                value: MasterParameterType[P];
+            }) => {
                 this.masterParameters[e.parameter] = e.value;
             }
         );
@@ -268,8 +270,8 @@ export class WorkletSynthesizer {
     ) {
         this.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: "setLogLevel",
-            messageData: {
+            type: "setLogLevel",
+            data: {
                 enableInfo,
                 enableWarning,
                 enableGroup
@@ -283,9 +285,9 @@ export class WorkletSynthesizer {
     ) {
         this.masterParameters[type] = value;
         this.post({
-            messageType: "setMasterParameter",
+            type: "setMasterParameter",
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageData: {
+            data: {
                 type,
                 data: value
             } as {
@@ -313,8 +315,8 @@ export class WorkletSynthesizer {
                 resolve(snapshot);
             };
             this.post({
-                messageType: "requestSynthesizerSnapshot",
-                messageData: null,
+                type: "requestSynthesizerSnapshot",
+                data: null,
                 channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
             });
         });
@@ -338,8 +340,8 @@ export class WorkletSynthesizer {
     ) {
         this.post({
             channelNumber: channel,
-            messageType: "setChannelVibrato",
-            messageData: value
+            type: "setChannelVibrato",
+            data: value
         });
     }
 
@@ -464,8 +466,8 @@ export class WorkletSynthesizer {
     public stopAll(force = false) {
         this.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: "stopAll",
-            messageData: force ? 1 : 0
+            type: "stopAll",
+            data: force ? 1 : 0
         });
     }
 
@@ -510,8 +512,8 @@ export class WorkletSynthesizer {
     public resetControllers() {
         this.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: "ccReset",
-            messageData: null
+            type: "ccReset",
+            data: null
         });
     }
 
@@ -595,8 +597,8 @@ export class WorkletSynthesizer {
     ) {
         this.post({
             channelNumber: channel,
-            messageType: "transposeChannel",
-            messageData: {
+            type: "transposeChannel",
+            data: {
                 semitones,
                 force
             }
@@ -677,8 +679,8 @@ export class WorkletSynthesizer {
     ) {
         this.post({
             channelNumber: channel,
-            messageType: "lockController",
-            messageData: {
+            type: "lockController",
+            data: {
                 controllerNumber,
                 isLocked
             }
@@ -693,8 +695,8 @@ export class WorkletSynthesizer {
     public muteChannel(channel: number, isMuted: boolean) {
         this.post({
             channelNumber: channel,
-            messageType: "muteChannel",
-            messageData: isMuted
+            type: "muteChannel",
+            data: isMuted
         });
     }
 
@@ -760,6 +762,17 @@ export class WorkletSynthesizer {
         this.systemExclusive(systemExclusive);
     }
 
+    public startOfflineRender(config: StartRenderingDataConfig) {
+        this.post(
+            {
+                type: "startOfflineRender",
+                data: config,
+                channelNumber: -1
+            },
+            config.soundBankList
+        );
+    }
+
     /**
      * Toggles drums on a given channel.
      * @param channel The channel number.
@@ -768,8 +781,8 @@ export class WorkletSynthesizer {
     public setDrums(channel: number, isDrum: boolean) {
         this.post({
             channelNumber: channel,
-            messageType: "setDrums",
-            messageData: isDrum
+            type: "setDrums",
+            data: isDrum
         });
     }
 
@@ -815,8 +828,8 @@ export class WorkletSynthesizer {
         // noinspection JSCheckFunctionSignatures
         this.post({
             channelNumber: 0,
-            messageType: "destroyWorklet",
-            messageData: null
+            type: "destroyWorklet",
+            data: null
         });
         this.worklet.disconnect();
         // @ts-expect-error destruction!
@@ -842,11 +855,11 @@ export class WorkletSynthesizer {
     }
 
     // INTERNAL USE ONLY!
-    public post(data: WorkletMessage) {
+    public post(data: WorkletMessage, transfer: Transferable[] = []) {
         if (this._destroyed) {
             throw new Error("This synthesizer instance has been destroyed!");
         }
-        this.worklet.port.postMessage(data);
+        this.worklet.port.postMessage(data, transfer);
     }
 
     protected _sendInternal(
@@ -860,9 +873,9 @@ export class WorkletSynthesizer {
             DEFAULT_SYNTH_METHOD_OPTIONS
         );
         this.post({
-            messageType: "midiMessage",
+            type: "midiMessage",
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageData: {
+            data: {
                 messageData: new Uint8Array(message),
                 channelOffset,
                 force,
@@ -890,6 +903,7 @@ export class WorkletSynthesizer {
                 break;
 
             case "isFullyInitialized":
+                this.isProcessorReady?.(undefined);
                 this.resolveWhenReady?.();
                 break;
 
@@ -916,8 +930,8 @@ export class WorkletSynthesizer {
         }
         this.post({
             channelNumber: 0,
-            messageType: "addNewChannel",
-            messageData: null
+            type: "addNewChannel",
+            data: null
         });
     }
 }

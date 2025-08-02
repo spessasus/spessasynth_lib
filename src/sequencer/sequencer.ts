@@ -1,4 +1,4 @@
-import { WorkletSynthesizer } from "../synthetizer/synthetizer.js";
+import { WorkletSynthesizer } from "../synthetizer/worklet_synthesizer.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
@@ -57,7 +57,7 @@ export class Sequencer {
      * Indicates if the sequencer is paused.
      * Paused if a number, undefined if playing.
      */
-    protected pausedTime?: number = undefined;
+    protected pausedTime?: number = 0;
     protected getMIDICallback?: (receivedMIDI: BasicMIDI) => unknown =
         undefined;
     protected highResTimeOffset = 0;
@@ -82,7 +82,7 @@ export class Sequencer {
         this.synth = synth;
         this.absoluteStartTime = this.synth.currentTime;
 
-        this.synth.sequencerCallbackFunction = this._handleMessage.bind(this);
+        this.synth.sequencerCallbackFunction = this.handleMessage.bind(this);
         this._skipToFirstNoteOn = options?.skipToFirstNoteOn ?? true;
 
         if (options?.initialPlaybackRate !== 1) {
@@ -166,21 +166,21 @@ export class Sequencer {
     /**
      * Internal loop count marker (-1 is infinite).
      */
-    protected _loopsRemaining = -1;
+    protected _loopCount = -1;
 
     /**
      * The current remaining number of loops. -1 means infinite looping.
      */
-    public get loopsRemaining() {
-        return this._loopsRemaining;
+    public get loopCount() {
+        return this._loopCount;
     }
 
     /**
      * The current remaining number of loops. -1 means infinite looping.
      */
-    public set loopsRemaining(val) {
-        this._loopsRemaining = val;
-        this.sendMessage("setLoop", val);
+    public set loopCount(val) {
+        this._loopCount = val;
+        this.sendMessage("setLoopCount", val);
     }
 
     /**
@@ -237,7 +237,6 @@ export class Sequencer {
         if (this.pausedTime !== undefined) {
             return this.pausedTime;
         }
-        console.log("playing");
 
         return (
             (this.synth.currentTime - this.absoluteStartTime) *
@@ -301,22 +300,14 @@ export class Sequencer {
     /**
      * Loads a new song list.
      * @param midiBuffers The MIDI files to play.
-     * @param autoPlay If true, the first sequence will automatically start playing.
      */
-    public loadNewSongList(
-        midiBuffers: SuppliedMIDIData[],
-        autoPlay: boolean = true
-    ) {
-        this.pause();
+    public loadNewSongList(midiBuffers: SuppliedMIDIData[]) {
         // add some fake data
         this.midiData = DUMMY_MIDI_DATA;
         this.hasDummyData = true;
         this.sendMessage("loadNewSongList", midiBuffers);
         this._songIndex = 0;
         this._songsAmount = midiBuffers.length;
-        if (!autoPlay) {
-            this.pausedTime = this.currentTime;
-        }
     }
 
     /**
@@ -345,17 +336,13 @@ export class Sequencer {
      * Starts or resumes the playback.
      */
     public play() {
-        this.recalculateStartTime(this.pausedTime || 0);
-        this.unpause();
+        this.recalculateStartTime(this.pausedTime ?? 0);
+        this.pausedTime = undefined;
+        this.isFinished = false;
         this.sendMessage("play", null);
     }
 
-    protected unpause() {
-        this.pausedTime = undefined;
-        this.isFinished = false;
-    }
-
-    protected _handleMessage(m: SequencerReturnMessage) {
+    protected handleMessage(m: SequencerReturnMessage) {
         switch (m.type) {
             case "midiMessage":
                 const midiEventData = m.data.message as number[];
@@ -390,7 +377,6 @@ export class Sequencer {
                 this.pausedTime = this.currentTime;
                 this.isFinished = m.data.isFinished;
                 if (this.isFinished) {
-                    console.log(this.isFinished);
                     this.callEventInternal("songEnded", null);
                 }
                 break;
@@ -476,13 +462,16 @@ export class Sequencer {
                 break;
 
             case "loopCountChange":
-                this._loopsRemaining = m.data.newCount;
-                if (this._loopsRemaining === 0) {
+                this._loopCount = m.data.newCount;
+                if (this._loopCount === 0) {
                 }
                 break;
 
             case "songListChange":
-                this.songListData = m.data.newSongList as MIDIData[];
+                // remap to MIDI data again as cloned objects don't get methods.
+                this.songListData = m.data.newSongList.map(
+                    (m) => new MIDIData(m)
+                );
                 this.midiData = this.songListData[this._songIndex];
                 break;
 
@@ -522,8 +511,8 @@ export class Sequencer {
     ) {
         this.synth.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            messageType: "sequencerSpecific",
-            messageData: {
+            type: "sequencerSpecific",
+            data: {
                 type: messageType,
                 data: messageData
             } as SequencerMessage

@@ -196,13 +196,13 @@ Boolean that controls if the sequencer loops.
 sequencer.loop = false; // the playback will stop after reaching the end
 ```
 
-#### loopsRemaining
+#### loopCount
 The number of loops remaining until the loop is disabled.
  A value of `-1` means infinite looping.
  It will automatically decrease by one every loop.
  Defaults to `-1`.
 ```js
-sequencer.loopsRemaining = 2; // the sequencer will loop two times and then the loop will turn off
+sequencer.loopCount = 2; // the sequencer will loop two times and then the loop will turn off
 ```
 
 #### shuffleSongs
@@ -299,14 +299,14 @@ console.log(sequencer.songsAmount); // 3
 #### onTextEvent
 A callback function if defined. Will be called on a text event, like lyrics.
 ```js
-sequencer.onTextEvent = (messageData, messageType, lyricsIndex) => {
-    const text = new TextDecoder("utf-8").decode(messageData.buffer);
+sequencer.onTextEvent = (data, type, lyricsIndex) => {
+    const text = new TextDecoder("utf-8").decode(data.buffer);
     console.log("Text event:", text)
 }
 ```
 Parameters:
-- messageData - `Uint8Array`, the message's data (excluding the statusByte).
-- messageType - the [Status byte of the meta-message](https://www.recordingblogs.com/wiki/midi-meta-messages) 
+- data - `Uint8Array`, the message's data (excluding the statusByte).
+- type - the [Status byte of the meta-message](https://www.recordingblogs.com/wiki/midi-meta-messages) 
 useful for determining if the message is lyrics, or something else.
 - lyricsIndex - `number`, the index of the lyrics in the song (`midiData.lyrics` array).
 If the event is not lyrics, it will be -1.

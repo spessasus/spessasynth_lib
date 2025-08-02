@@ -1,4 +1,4 @@
-import { WorkletSynthesizer } from "../synthetizer/synthetizer.js";
+import { WorkletSynthesizer } from "../synthetizer/worklet_synthesizer.js";
 import { consoleColors } from "../utils/other.js";
 import { SpessaSynthCoreUtils } from "spessasynth_core";
 

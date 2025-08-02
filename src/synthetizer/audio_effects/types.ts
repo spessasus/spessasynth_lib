@@ -1,6 +1,8 @@
 import type { PassedProcessorParameters } from "../types";
 
 export type SynthConfig = {
+    enableEffectsSystem: boolean;
+
     // Configuration for the effects.
     effectsConfig: EffectsConfig;
     // Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.

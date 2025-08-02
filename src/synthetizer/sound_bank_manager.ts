@@ -1,27 +1,47 @@
-import { SpessaSynthCoreUtils } from "spessasynth_core";
-import type { WorkletSynthesizer } from "./synthetizer";
+import {
+    type SoundBankManagerListEntry,
+    SpessaSynthCoreUtils
+} from "spessasynth_core";
+import type { WorkletSynthesizer } from "./worklet_synthesizer.ts";
 import type { WorkletMessage, WorkletSBKManagerData } from "./types";
+
+type LibSBKManagerEntry = Omit<SoundBankManagerListEntry, "soundBank">;
 
 export class SoundBankManager {
     /**
-     * The current list of sound banks,
-     * in order from the most important to the least.
+     * All the sound banks, ordered from the most important to the least.
      */
-    public soundBankList: { id: string; bankOffset: number }[];
+    public soundBankList: LibSBKManagerEntry[];
 
     private synth: WorkletSynthesizer;
 
     /**
-     * Creates a new instance of the soundfont manager.
+     * Creates a new instance of the sound bank manager.
      */
     public constructor(synth: WorkletSynthesizer) {
-        this.soundBankList = [
-            {
-                id: "main",
-                bankOffset: 0
-            }
-        ];
+        this.soundBankList = [];
         this.synth = synth;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * The current sound bank priority order.
+     * @returns The IDs of the sound banks in the current order.
+     */
+    public get priorityOrder() {
+        return this.soundBankList.map((s) => s.id);
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Rearranges the sound banks in a given order.
+     * @param newList {string[]} The order of sound banks, a list of identifiers, first overwrites second.
+     */
+    public set priorityOrder(newList: string[]) {
+        this.sendToWorklet("rearrangeSoundBanks", newList);
+        this.soundBankList.sort(
+            (a, b) => newList.indexOf(a.id) - newList.indexOf(b.id)
+        );
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -31,17 +51,21 @@ export class SoundBankManager {
      * @param id The sound bank's unique identifier.
      * @param bankOffset The sound bank's bank offset. Default is 0.
      */
-    public async addNewSoundBank(
+    public async addSoundBank(
         soundBankBuffer: ArrayBuffer,
         id: string,
         bankOffset: number = 0
     ) {
-        this.sendToWorklet("addNewSoundBank", {
-            soundBankBuffer,
-            bankOffset,
-            id
-        });
-        await new Promise((r) => (this.synth.resolveWhenReady = r));
+        this.sendToWorklet(
+            "addSoundBank",
+            {
+                soundBankBuffer,
+                bankOffset,
+                id
+            },
+            [soundBankBuffer]
+        );
+        await this.awaitResponse();
         const found = this.soundBankList.find((s) => s.id === id);
         if (found !== undefined) {
             found.bankOffset = bankOffset;
@@ -58,13 +82,14 @@ export class SoundBankManager {
      * Deletes a sound bank with the given ID.
      * @param id The sound bank to delete.
      */
-    public deleteSoundBank(id: string) {
-        if (this.soundBankList.length === 0) {
+    public async deleteSoundBank(id: string) {
+        if (this.soundBankList.length < 2) {
             SpessaSynthCoreUtils.SpessaSynthWarn(
                 "1 sound bank left. Aborting!"
             );
             return;
         }
+        await this.awaitResponse();
         if (this.soundBankList.findIndex((s) => s.id === id) === -1) {
             SpessaSynthCoreUtils.SpessaSynthWarn(
                 `No sound banks with id of "${id}" found. Aborting!`
@@ -74,35 +99,19 @@ export class SoundBankManager {
         this.sendToWorklet("deleteSoundBank", id);
     }
 
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Rearranges the sound banks in a given order.
-     * @param newList {string[]} The order of sound banks, a list of identifiers, first overwrites second.
-     */
-    public rearrangeSoundBanks(newList: string[]) {
-        this.sendToWorklet("rearrangeSoundBanks", newList);
-        this.soundBankList.sort(
-            (a, b) => newList.indexOf(a.id) - newList.indexOf(b.id)
-        );
-    }
-
-    /**
-     * DELETES ALL SOUND BANKS! and creates a new one with id "main".
-     * @param newBuffer The new sound bank to reload the Synth with.
-     */
-    public async reloadManager(newBuffer: ArrayBuffer) {
-        this.sendToWorklet("reloadSoundBank", newBuffer);
-        await new Promise((r) => (this.synth.resolveWhenReady = r));
+    private async awaitResponse() {
+        return new Promise((r) => (this.synth.resolveWhenReady = r));
     }
 
     private sendToWorklet<T extends keyof WorkletSBKManagerData>(
         type: T,
-        data: WorkletSBKManagerData[T]
+        data: WorkletSBKManagerData[T],
+        transferable: Transferable[] = []
     ) {
         const msg: WorkletMessage = {
-            messageType: "soundBankManager",
+            type: "soundBankManager",
             channelNumber: -1,
-            messageData: {
+            data: {
                 type,
                 data
             } as {
@@ -112,6 +121,6 @@ export class SoundBankManager {
                 };
             }[keyof WorkletSBKManagerData]
         };
-        this.synth.worklet.port.postMessage(msg);
+        this.synth.worklet.port.postMessage(msg, transferable);
     }
 }

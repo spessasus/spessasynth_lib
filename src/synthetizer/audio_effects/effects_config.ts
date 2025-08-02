@@ -9,5 +9,6 @@ export const DEFAULT_SYNTH_CONFIG: SynthConfig = {
         reverbEnabled: true,
         reverbImpulseResponse: undefined // will load the integrated one
     },
-    audioNodeCreators: undefined
+    audioNodeCreators: undefined,
+    enableEffectsSystem: true
 };

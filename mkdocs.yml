@@ -5,7 +5,7 @@ site_url: https://spessasus.github.io/spessasynth_lib
 copyright: Copyright (C) spessasus 2025, licensed under the Apache-2.0 License.
 repo_url: https://github.com/spessasus/spessasynth_lib
 repo_name: spessasus/spessasynth_lib
-
+use_directory_urls: false
 
 plugins:
   - search
@@ -20,14 +20,15 @@ plugins:
 
 markdown_extensions:
   - admonition
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: examples/examples_code
+  - pymdownx.superfences
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
   - smarty
   - toc
   - tables
@@ -35,7 +36,7 @@ markdown_extensions:
 
 theme:
   name: material
-  logo: assets/images/favicon.png
+  logo: ./assets/images/favicon.png
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -79,12 +80,19 @@ nav:
   - Home: index.md
   - Issue Tracker: 'https://github.com/spessasus/spessasynth_lib/issues'
   - Documentation:
-      - getting-started/index.md
+      - Getting Started:
+          - getting-started/index.md
+          - Examples:
+              - getting-started/simple-example.md
+              - getting-started/advanced-example.md
+              - getting-started/piano-example.md
+              - getting-started/visualizer-example.md
+              - getting-started/render-audio-example.md
+              - getting-started/main-thread-rendering.md
       - Synthesizer:
           - synthesizer/index.md
           - synthesizer/sound-bank-manager.md
           - synthesizer/key-modifier-manager.md
-          - synthesizer/direct-audio-engine-access.md
           - synthesizer/importing-the-worklet.md
           - synthesizer/synth-event-handler.md
           - Callback Event Types: https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/
@@ -94,10 +102,10 @@ nav:
           - midi/web-midi-link.md
       - writing-files/writing-wav-files.md
 
+  - spessasynth_core docs: https://spessasus.github.io/spessasynth_core/
   - Extra Info:
       - extra/all-npm-exports.md
       - extra/working-with-browsers.md
-      - extra/migrating-from-pre-3-26.md
       - About Multi-Port MIDI Files: https://spessasus.github.io/spessasynth_core/extra/about-multi-port/
       - SF2 RMIDI Extension Specification: https://github.com/spessasus/sf2-rmidi-specification#readme
       - MIDI Implementation: https://spessasus.github.io/spessasynth_core/extra/midi-implementation/

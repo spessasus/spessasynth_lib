@@ -1,11 +1,14 @@
-import type { ProcessorEventType } from "spessasynth_core";
+import type { SynthProcessorEventData } from "spessasynth_core";
 
-type ProcessorEventCallback<T extends keyof ProcessorEventType> = (
-    callbackData: ProcessorEventType[T]
+type ProcessorEventCallback<T extends keyof SynthProcessorEventData> = (
+    callbackData: SynthProcessorEventData[T]
 ) => unknown;
 
 type EventsMap = {
-    [K in keyof ProcessorEventType]: Map<string, ProcessorEventCallback<K>>;
+    [K in keyof SynthProcessorEventData]: Map<
+        string,
+        ProcessorEventCallback<K>
+    >;
 };
 
 export class SynthEventHandler {
@@ -69,7 +72,7 @@ export class SynthEventHandler {
      * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
      * @param callback The callback for the event.
      */
-    public addEvent<T extends keyof ProcessorEventType>(
+    public addEvent<T extends keyof SynthProcessorEventData>(
         event: T,
         id: string,
         callback: ProcessorEventCallback<T>
@@ -83,7 +86,7 @@ export class SynthEventHandler {
      * @param name The event to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
-    public removeEvent<T extends keyof ProcessorEventType>(
+    public removeEvent<T extends keyof SynthProcessorEventData>(
         name: T,
         id: string
     ) {
@@ -94,9 +97,9 @@ export class SynthEventHandler {
      * Calls the given event.
      * Internal use only.
      */
-    public callEventInternal<T extends keyof ProcessorEventType>(
+    public callEventInternal<T extends keyof SynthProcessorEventData>(
         name: T,
-        eventData: ProcessorEventType[T]
+        eventData: SynthProcessorEventData[T]
     ) {
         const eventList = this.events[name];
         const callback = () => {

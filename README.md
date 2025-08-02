@@ -64,7 +64,7 @@ It allows you to:
 
 ### Special Thanks
 - [FluidSynth](https://github.com/FluidSynth/fluidsynth) - for the source code that helped implement functionality and fixes
-- [Polyphone](https://www.polyphone-soundfonts.com/) - for the soundfont testing and editing tool
+- [Polyphone](https://www.polyphone-soundfonts.com/) - for the sound bank testing and editing tool
 - [Meltysynth](https://github.com/sinshu/meltysynth) - for the initial low-pass filter implementation
 - [RecordingBlogs](https://www.recordingblogs.com/) - for detailed explanations on MIDI messages
 - [stbvorbis.js](https://github.com/hajimehoshi/stbvorbis.js) - for the Vorbis decoder

@@ -1,4 +1,4 @@
-import { WorkletSynthesizer } from "../synthetizer/synthetizer.js";
+import { WorkletSynthesizer } from "../synthetizer/worklet_synthesizer.js";
 import { SpessaSynthCoreUtils as util } from "spessasynth_core";
 import { consoleColors } from "../utils/other.js";
 import type { Sequencer } from "../sequencer/sequencer";
@@ -52,7 +52,7 @@ export class MIDIDeviceHandler {
             }
         } else {
             util.SpessaSynthWarn(
-                "Web MIDI Api not supported!",
+                "Web MIDI API is not supported.",
                 consoleColors.unrecognized
             );
             return false;

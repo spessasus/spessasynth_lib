@@ -14,14 +14,14 @@ export class MIDIData extends BasicMIDI {
     /**
      * THIS DATA WILL BE EMPTY! USE sequencer.getMIDI() TO GET THE ACTUAL DATA!
      */
-    public override embeddedSoundBank: undefined = undefined;
+    public override embeddedSoundBank = undefined;
 
-    /**
-     * Copies BasicMIDI without tracks.
-     * @param mid The MIDI to copy.
-     */
-    public copyFrom(mid: BasicMIDI) {
+    public readonly isEmbedded: boolean;
+
+    public constructor(mid: BasicMIDI) {
+        super();
         super.copyMetadataFrom(mid);
+        this.isEmbedded = mid.embeddedSoundBank !== undefined;
     }
 }
 

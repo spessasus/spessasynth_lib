@@ -11,7 +11,7 @@ This is a (non-exhaustive) list of exports in the NPM package.
 - DEFAULT_SYNTH_CONFIG - the default synthesizer configuration.
 
 ### Audio Effects
-See [direct synth access](../synthesizer/direct-audio-engine-access.md) for more information.
+See [direct synth access](../getting-started/main-thread-rendering.md) for more information.
 - FancyChorus - the chorus processor that the synthesizer uses
 - getReverbProcessor - automatically sets up a ConvolverNode with the built-in impulse response
 

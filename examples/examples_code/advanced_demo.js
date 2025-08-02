@@ -1,22 +1,23 @@
 // import the modules
-import { Sequencer, WorkletSynthesizer } from "../../src/index.js";
+import { Sequencer, WorkletSynthesizer } from "../../src/index.ts";
 import {
-    EXAMPLE_SOUNDFONT_PATH,
+    EXAMPLE_SOUND_BANK_PATH,
     EXAMPLE_WORKLET_PATH
 } from "../examples_common.js";
 
-// load the soundfont
-fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
-    // load the soundfont into an array buffer
-    let soundFontBuffer = await response.arrayBuffer();
-    document.getElementById("message").innerText = "SoundFont has been loaded!";
+// load the sound bank
+fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
+    // load the sound bank into an array buffer
+    let sfBuffer = await response.arrayBuffer();
+    document.getElementById("message").innerText =
+        "Sound bank has been loaded!";
 
     // create the context and add audio worklet
     const context = new AudioContext();
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
-    const synth = new WorkletSynthesizer(context.destination); // create the synthetizer
-    await synth.soundBankManager.reloadManager(soundFontBuffer);
-    let seq;
+    const synth = new WorkletSynthesizer(context.destination); // create the synthesizer
+    await synth.soundBankManager.addSoundBank(sfBuffer, "main");
+    let seq = new Sequencer(synth);
 
     // add an event listener for the file inout
     document
@@ -41,15 +42,9 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
                     altName: file.name // altName: the fallback name if the MIDI doesn't have one. Here we set it to the file name
                 });
             }
-            if (seq === undefined) {
-                seq = new Sequencer(synth); // create the sequencer with the parsed midis
-                seq.loadNewSongList(parsedSongs);
-                seq.play(); // play the midi
-            } else {
-                seq.loadNewSongList(parsedSongs); // the sequencer is already created, no need to create a new one.
-                seq.play();
-            }
-            seq.loop = false; // the sequencer loops a single song by default
+            seq.loadNewSongList(parsedSongs); // load the song list
+            seq.play(); // play the midi
+            window.seq = seq;
 
             // make the slider move with the song
             let slider = document.getElementById("progress");
@@ -64,7 +59,7 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
                 "example-time-change",
                 (e) => {
                     document.getElementById("message").innerText =
-                        "Now playing: " + e.midiName;
+                        "Now playing: " + e.getName();
                 }
             ); // make sure to add a unique id!
 

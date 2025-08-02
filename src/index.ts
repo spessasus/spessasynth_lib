@@ -1,6 +1,6 @@
 // Import modules
 
-import { WorkletSynthesizer } from "./synthetizer/synthetizer.js";
+import { WorkletSynthesizer } from "./synthetizer/worklet_synthesizer.js";
 import { Sequencer } from "./sequencer/sequencer.js";
 import { getReverbProcessor } from "./synthetizer/audio_effects/reverb.js";
 import { FancyChorus } from "./synthetizer/audio_effects/fancy_chorus.js";

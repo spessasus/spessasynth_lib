@@ -7,7 +7,7 @@ import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util.ts";
 // file paths and directories
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const TEMPLATE_FILE = path.join(dirname, `template.html`);
-const PARTIALS_DIR = path.join(dirname, "examples_src");
+const PARTIALS_DIR = path.join(dirname, "..", "examples", "examples_code");
 const OUTPUT_DIR = path.join(dirname, "..", GH_PAGES_DIR, "examples");
 const CSS_FILE = path.join(dirname, "examples.css");
 
@@ -47,7 +47,7 @@ partials.forEach((partial) => {
     // modify the template content with the specific title
     const modifiedTemplate = TEMPLATE_CONTENT.replace(
         /<title>.*<\/title>/,
-        `<title>spessasynth_lib example: ${basename}</title>`
+        `<title>spessasynth_lib example: ${basename.replaceAll("_", " ")}</title>`
     );
 
     // split header and footer based on placeholder div

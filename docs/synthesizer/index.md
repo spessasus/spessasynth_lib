@@ -20,7 +20,7 @@ This is the main module that generates the sound.
 ```js
 const synth = new Synthetizer(
     tagetNode,
-    soundFontBuffer,
+    soundBankBuffer,
     enableEventSystem(optional),
     startRenderingData(optional),
     synthConfig(optional)
@@ -28,12 +28,12 @@ const synth = new Synthetizer(
 ```
 
 - targetNode - the AudioNode the synth should play to. Usually it is the `AudioContext.destination` property.
-- soundFontBuffer - the `ArrayBuffer` to your soundFont.
+- soundBankBuffer - the `ArrayBuffer` to your sound bank.
 - enableEventSystem - `boolean`, disables the event system.
 Useful
-  when [rendering audio to file](../getting-started/index.md#render-audio-to-file)
+  when [rendering audio to file](../getting-started/render-audio-example.md)
 - startRenderingData - `object`, used for rendering to file. It's formatted as follows:
-  - parsedMIDI: the same type as [passed in loadNewSongList](../sequencer/index.md#loadnewsonglist), but singular. The synthesizer will immediately start rendering it if specified
+  - midiSequence: the same type as [passed in loadNewSongList](../sequencer/index.md#loadnewsonglist), but singular. The synthesizer will immediately start rendering it if specified
   - snapshot: a [`SynthesizerSnapshot`](#getsynthesizersnapshot) object, a copy of controllers from another synthesizer
     instance.
     If specified, synth will copy this configuration.
@@ -273,10 +273,10 @@ synth.setPitchBendRange(0, 12);
 Handle a MIDI System Exclusive message.
 
 ```js
-synth.systemExclusive(messageData, channelOffset = 0, eventOptions);
+synth.systemExclusive(data, channelOffset = 0, eventOptions);
 ```
 
-- messageData - Uint8Array, the message byte data **Excluding the 0xF0 byte!**
+- data - Uint8Array, the message byte data **Excluding the 0xF0 byte!**
 - channelOffset - number, the channel offset for the message as they usually can only address the first 16 channels.
 For example, to send a system exclusive on channel 16,
 send a system exclusive for channel 0 and specify the channel offset to be 16.
@@ -338,7 +338,7 @@ Refer
 
 !!! Info
 
-    Note that theoretically all controllers are supported as it depends on the SoundFont's modulators.
+    Note that theoretically all controllers are supported as it depends on the sound bank's modulators.
 
 **Example:**
 ```js
@@ -648,7 +648,7 @@ The synthesizer's event handler. Refer to [Event handling](synth-event-handler.m
 
 ### soundfontManager
 
-The synthesizer's soundfont manager. Refer to [The soundfont manager](sound-bank-manager.md) for more.
+The synthesizer's soundfont manager. Refer to [the sound bank manager](sound-bank-manager.md) for more.
 
 ### keyModifierManager
 
@@ -657,7 +657,7 @@ The synthesizer's key modifier manager. Refer to [Key modifier manager](key-modi
 ### presetList
 
 The current preset list of the synthesizer,
-including all soundbanks with their offsets set through the soundfontManager.
+including all soundbanks with their offsets set through the sound bankManager.
 
 Stored as a list of objects:
 - `bank` - number - the bank number of the preset.
@@ -767,7 +767,7 @@ This allows for many things, such as exporting files of individual channels.
 
 ```js
 const midi = YOUR_MIDI_HERE;
-const soundfont = YOUR_SOUNDFONT_HERE;
+const soundfont = YOUR_sound_bank_HERE;
 const sampleRate = 44100;
 const offline = new OfflineAudioContext({
     numberOfChannels: 32,
@@ -779,7 +779,7 @@ const synth = new Synthetizer(
     soundfont,
     false, // disable event system for faster rendering
     {
-        parsedMIDI: midi,
+        midiSequence: midi,
         oneOutput: true
     }
 );

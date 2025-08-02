@@ -2,7 +2,7 @@ import { type SongChangeType } from "./enums";
 import {
     type BasicMIDI,
     type MIDIMessage,
-    type SequencerEventType
+    type SequencerEvent
 } from "spessasynth_core";
 import type { MIDIData } from "./midi_data";
 
@@ -34,7 +34,7 @@ export type SequencerMessageData = {
     // playbackRate
     setPlaybackRate: number;
     // count
-    setLoop: number;
+    setLoopCount: number;
     // [changeType, data]
     changeSong: {
         changeType: SongChangeType;
@@ -45,17 +45,10 @@ export type SequencerMessageData = {
     setSkipToFirstNote: boolean;
 };
 
-export interface SequencerReturnMessageData extends SequencerEventType {
-    getMIDI: BasicMIDI;
-    midiError: Error;
-}
-
-export type SequencerReturnMessage = {
-    [K in keyof SequencerReturnMessageData]: {
-        type: K;
-        data: SequencerReturnMessageData[K];
-    };
-}[keyof SequencerReturnMessageData];
+export type SequencerReturnMessage =
+    | SequencerEvent
+    | { type: "getMIDI"; data: BasicMIDI }
+    | { type: "midiError"; data: Error };
 
 /**
  * sequencer.js

@@ -12,12 +12,6 @@ hide:
     The next major update (4.0) will include many breaking changes. 
     The documentation will be updated when the update releases.
     [The migration guide will be published here.](https://github.com/spessasus/spessasynth_lib/pull/10)
-
-
-!!! TIP 
-
-    Coming from pre-3.26.0? [Here's the migration guide!](extra/migrating-from-pre-3-26.md)
-
 ## spessasynth_lib documentation
 - [Getting started with spessasynth_lib](getting-started/index.md)
 - [Synthetizer](synthesizer/index.md) - Responsible for generating sound.

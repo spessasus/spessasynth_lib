@@ -1,8 +1,7 @@
 // import the modules
-import { Sequencer } from "../../src/sequencer/sequencer.js";
-import { WorkletSynthesizer } from "../../src/synthetizer/synthetizer.js";
+import { Sequencer, WorkletSynthesizer } from "../../src/index.js";
 import {
-    EXAMPLE_SOUNDFONT_PATH,
+    EXAMPLE_SOUND_BANK_PATH,
     EXAMPLE_WORKLET_PATH
 } from "../examples_common.js";
 
@@ -29,39 +28,54 @@ const channelColors = [
 // adjust this to your liking
 const VISUALIZER_GAIN = 2;
 
-// load the soundfont
-fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
-    // load the soundfont into an array buffer
-    let soundFontArrayBuffer = await response.arrayBuffer();
-    document.getElementById("message").innerText = "SoundFont has been loaded!";
+// create a keyboard
+const keyboard = document.getElementById("keyboard");
+// create an array of 128 keys
+const keys = [];
+for (let i = 0; i < 128; i++) {
+    const key = document.createElement("td");
+    key.style.width = "5px";
+    key.style.height = "50px";
+    key.style.border = "solid black 1px";
+    keyboard.appendChild(key);
+    keys.push(key);
+}
+
+// load the sound bank
+fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
+    // load the sound bank into an array buffer
+    let sfFile = await response.arrayBuffer();
+    document.getElementById("message").innerText =
+        "Sound bank has been loaded!";
 
     // create the context and add audio worklet
     const context = new AudioContext();
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
-    const synth = new WorkletSynthesizer(
-        context.destination,
-        soundFontArrayBuffer
-    ); // create the synthetizer
-    let seq;
+    // create the synthesizer
+    const synth = new WorkletSynthesizer(context.destination);
+    await synth.soundBankManager.addSoundBank(sfFile, "main");
+    let seq = new Sequencer(synth);
 
     // add an event listener for the file inout
     document
         .getElementById("midi_input")
         .addEventListener("change", async (event) => {
             // check if any files are added
-            if (!event.target.files[0]) {
+            /**
+             * @type {File}
+             */
+            const file = event.target.files[0];
+            if (!file) {
                 return;
             }
             await context.resume();
-            const midiFile = await event.target.files[0].arrayBuffer(); // convert the file to array buffer
-            if (seq === undefined) {
-                seq = new Sequencer([{ binary: midiFile }], synth); // create the sequencer with the parsed midis
-                seq.play(); // play the midi
-            } else {
-                seq.loadNewSongList([{ binary: midiFile }]); // the sequencer is already created,
-                // no need to create a new one.
-            }
+            const midiFile = await file.arrayBuffer(); // convert the file to array buffer
+            seq.loadNewSongList([{ binary: midiFile, altName: file.name }]);
+            seq.play();
 
+            /**
+             * @type {HTMLCanvasElement}
+             */
             const canvas = document.getElementById("canvas"); // get canvas
             const drawingContext = canvas.getContext("2d");
             /**
@@ -114,24 +128,10 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
 
             render();
 
-            // create a keyboard
-            const keyboard = document.getElementById("keyboard");
-            // create an array of 128 keys
-            const keys = [];
-            for (let i = 0; i < 128; i++) {
-                const key = document.createElement("td");
-                key.style.width = "5px";
-                key.style.height = "50px";
-                key.style.border = "solid black 1px";
-                keyboard.appendChild(key);
-                keys.push(key);
-            }
-
             // add listeners to show keys being pressed
-
             // add note on listener
             synth.eventHandler.addEvent(
-                "noteon",
+                "noteOn",
                 "demo-keyboard-note-on",
                 (event) => {
                     keys[event.midiNote].style.background =
@@ -141,7 +141,7 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
 
             // add note off listener
             synth.eventHandler.addEvent(
-                "noteoff",
+                "noteOff",
                 "demo-keyboard-note-off",
                 (event) => {
                     keys[event.midiNote].style.background = "";
@@ -150,7 +150,7 @@ fetch(EXAMPLE_SOUNDFONT_PATH).then(async (response) => {
 
             // add stop-all listener
             synth.eventHandler.addEvent(
-                "stopall",
+                "stopAll",
                 "demo-keyboard-stop-all",
                 () => {
                     keys.forEach((key) => (key.style.background = ""));

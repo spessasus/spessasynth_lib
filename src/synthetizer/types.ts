@@ -4,9 +4,9 @@ import type {
     KeyModifier,
     MasterParameterType,
     MIDIController,
-    ProcessorEventType,
     SynthesizerSnapshot,
-    SynthMethodOptions
+    SynthMethodOptions,
+    SynthProcessorEvent
 } from "spessasynth_core";
 import type {
     SequencerMessage,
@@ -17,25 +17,38 @@ import type {
 export type PassedProcessorParameters = {
     midiChannels: number;
     enableEventSystem: boolean;
-    startRenderingData?: StartRenderingDataConfig;
 };
 export type StartRenderingDataConfig = {
-    // The MIDI to render.
-    parsedMIDI: BasicMIDI;
-    // The snapshot to apply.
+    /**
+     * The MIDI to render.
+     */
+    midiSequence: BasicMIDI;
+    /**
+     * The snapshot to apply.*
+     */
     snapshot?: SynthesizerSnapshot;
-    // If the synth should use one output with 32 channels (2 audio channels for each midi channel).
+    /**
+     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
+     */
     oneOutput: boolean;
-    // The times to loop the song.
+    /**
+     * The amount times to loop the song.
+     */
     loopCount: number;
-    // The options to pass to the sequencer.
+
+    /**
+     * The list of sound banks to render this file with.
+     */
+    soundBankList: ArrayBuffer[];
+
+    /**
+     * The options to pass to the sequencer.
+     */
     sequencerOptions: Partial<SequencerOptions>;
 };
 
 export type WorkletSBKManagerData = {
-    // buffer<ArrayBuffer>
-    reloadSoundBank: ArrayBuffer;
-    addNewSoundBank: {
+    addSoundBank: {
         soundBankBuffer: ArrayBuffer;
         id: string;
         bankOffset: number;
@@ -61,8 +74,8 @@ export type WorkletKMManagerData = {
 export type WorkletMessage = {
     [K in keyof WorkletMessageData]: {
         channelNumber: number;
-        messageType: K;
-        messageData: WorkletMessageData[K];
+        type: K;
+        data: WorkletMessageData[K];
     };
 }[keyof WorkletMessageData];
 
@@ -112,6 +125,8 @@ type WorkletMessageData = {
         enableGroup: boolean;
     };
 
+    startOfflineRender: StartRenderingDataConfig;
+
     setMasterParameter: {
         [K in keyof MasterParameterType]: {
             type: K;
@@ -133,13 +148,8 @@ type WorkletMessageData = {
     destroyWorklet: null;
 };
 
-type EventCallObject<T extends keyof ProcessorEventType> = {
-    type: T;
-    data: ProcessorEventType[T];
-};
-
 type WorkletReturnMessageData = {
-    eventCall: EventCallObject<keyof ProcessorEventType>;
+    eventCall: SynthProcessorEvent;
     sequencerReturn: SequencerReturnMessage;
     synthesizerSnapshot: SynthesizerSnapshot;
     isFullyInitialized: null;
