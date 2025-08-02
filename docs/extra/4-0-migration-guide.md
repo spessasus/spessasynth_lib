@@ -53,4 +53,26 @@ Removed, replaced with a `transpose` master parameter.
 
 #### soundBankManager
 
-The methods now math [spessasynth_core](https://spessasus.github.io/spessasynth_core/extra/4-0-migration-guide.html#sound-bank-manager)
+The methods now match [spessasynth_core](https://spessasus.github.io/spessasynth_core/extra/4-0-migration-guide.html#sound-bank-manager).
+
+### Sequencer
+
+The constructor no longer takes in a MIDI list, allowing the creation of a sequencer without a song list.
+
+The behavior has been overhauled:
+
+The `preservePlaybackState` has been removed and is always on.
+Loading a new song list no longer automatically starts the playback.
+
+### loop
+
+Removed, `loopCount` of zero disables the loop.
+
+
+### previousSong, nextSong
+
+Removed, replaced with setting the `songIndex` property.
+
+### onEvent...
+
+All `onSomething` have been replaced with an `eventHandler` to bring the API in-line with `WorkletSynthesizer`.
