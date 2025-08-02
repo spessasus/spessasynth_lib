@@ -79,13 +79,15 @@ It allows you to:
 ### Basic example: play a single note
 
 ```js
-import { Synthetizer } from "spessasynth_lib"
+import { WorkletSynthesizer } from "spessasynth_lib"
 
 const sfont = await (await fetch("soundfont.sf3")).arrayBuffer();
 const ctx = new AudioContext();
 // make sure you copied the worklet processor!
 await ctx.audioWorklet.addModule("./worklet_processor.min.js");
-const synth = new Synthetizer(ctx.destination, sfont);
+const synth = new WorkletSynthesizer(ctx.destination);
+await synth.soundBankManager.addSoundBank(sfont, "main");
+await synth.isReady;
 document.getElementById("button").onclick = async () =>
 {
     await ctx.resume();

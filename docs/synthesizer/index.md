@@ -1,8 +1,8 @@
-# Synthetizer Class
+# WorkletSynthesizer Class
 
 This is the main module that generates the sound.
 
-*Yes, it's spelled **"Synthetizer"** and not **"Synthesizer"** here.*
+*Yes, it's spelled **"WorkletSynthesizer"** and not **"Synthesizer"** here.*
 
 [**MIDI implementation chart**](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/)
 
@@ -18,7 +18,7 @@ This is the main module that generates the sound.
     See [Importing the worklet](importing-the-worklet.md)
 
 ```js
-const synth = new Synthetizer(
+const synth = new WorkletSynthesizer(
     tagetNode,
     soundBankBuffer,
     enableEventSystem(optional),
@@ -112,7 +112,7 @@ await context.audioWorklet.addModule("worklet_processor.min.js");
 const file = document.getElementById("file_input").files[0];
 const soundfont = await file.arrayBuffer()
 // set up synthetizer
-const synth = new Synthetizer(context.destination, soundfont);
+const synth = new WorkletSynthesizer(context.destination, soundfont);
 ```
 
 ## Destruction
@@ -774,7 +774,7 @@ const offline = new OfflineAudioContext({
     length: sampleRate * midi.duration,
     sampleRate: sampleRate
 });
-const synth = new Synthetizer(
+const synth = new WorkletSynthesizer(
     offline.destination,
     soundfont,
     false, // disable event system for faster rendering

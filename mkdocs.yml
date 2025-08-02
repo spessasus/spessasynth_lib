@@ -104,6 +104,7 @@ nav:
 
   - spessasynth_core docs: https://spessasus.github.io/spessasynth_core/
   - Extra Info:
+      - extra/4-0-migration-guide.md
       - extra/all-npm-exports.md
       - extra/working-with-browsers.md
       - About Multi-Port MIDI Files: https://spessasus.github.io/spessasynth_core/extra/about-multi-port/

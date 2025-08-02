@@ -1,0 +1,56 @@
+# 4.0 Migration guide
+
+SpessaSynth 4.0 (The TypeScript Update) updates its libraries to ship with TypeScript definitions.
+
+It also includes a few breaking changes which were made to make the API more consistent and logical.
+
+This page documents all the breaking changes in spessasynth_lib.
+
+!!! Note
+
+    Please report any innacurate or missing changes.
+    
+
+!!! Note
+
+    This is still in progress.
+
+## Breaking changes
+
+All variables with `soundfont` in them have been renamed to use `soundBank` instead.
+This is done because spessasynth can load sound bank formats other than SoundFonts as well.
+
+## worklet_processor.min.js
+
+New location: `dist/worklet_processor.min.js`
+
+Now includes a sourcemap, much like index.js.
+
+### WorkletSynthesizer
+
+Renamed from `Sythetizer` to `WorkletSynthesizer`.
+This is done as another (`WorkerSynthesizer`) synthesizer is available.
+
+The constructor has been reworked. It now takes two parameters:
+
+- `targetNode`
+- `config`
+
+A few methods and properties have been renamed for consistency.
+They behave in exactly the same way.
+
+- `soundFontManager` - `soundBankManager`
+
+#### setMasterParameter
+
+Reworked to take the new spessasynth_core master parameter strings.
+For more information, please visit [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
+
+
+#### transpose
+
+Removed, replaced with a `transpose` master parameter.
+
+#### soundBankManager
+
+The methods now math [spessasynth_core](https://spessasus.github.io/spessasynth_core/extra/4-0-migration-guide.html#sound-bank-manager)

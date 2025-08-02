@@ -1,14 +1,14 @@
 /**
- * fancy_chorus.js
+ * Fancy_chorus.js
  * purpose: creates a simple chorus effect node
  */
 import type { ChorusConfig } from "./types";
 
-type ChorusNode = {
+interface ChorusNode {
     oscillator: OscillatorNode;
     oscillatorGain: GainNode;
     delay: DelayNode;
-};
+}
 
 const NODES_AMOUNT = 4;
 const DEFAULT_DELAY = 0.03;
@@ -56,7 +56,7 @@ export class FancyChorus {
         let freq = config.oscillatorFrequency;
         let delay = config.defaultDelay;
         for (let i = 0; i < config.nodesAmount; i++) {
-            // left node
+            // Left node
             this.createChorusNode(
                 freq,
                 delay,
@@ -67,7 +67,7 @@ export class FancyChorus {
                 context,
                 config
             );
-            // right node
+            // Right node
             this.createChorusNode(
                 freq,
                 delay + config.stereoDifference,

@@ -47,9 +47,9 @@ npm install esbuild -D
 ### Preparing the code
 Example file (named `main.js` in this example)
 ```js
-import {Synthetizer} from "spessasynth_lib";
+import {WorkletSynthesizer} from "spessasynth_lib";
 
-console.log("yay, we have imported", Synthetizer);
+console.log("yay, we have imported", WorkletSynthesizer);
 ```
 
 ### Bundling and minification

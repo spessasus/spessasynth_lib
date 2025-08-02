@@ -42,7 +42,7 @@ body:
       description: Steps to reproduce the behavior.
       placeholder: |
         1. Load this MIDI...
-        2. Load this soundfont
+        2. Load this sf2/dls file
         3. Play '...'
         4. See error...
     validations:
@@ -62,6 +62,6 @@ body:
   - type: textarea
     attributes:
       label: Additional info
-      description: Any additional info and attachments (screenshots, MIDIs, soundfonts, other environments) go here.
+      description: Any additional info and attachments (screenshots, MIDIs, sf2/dls files, other environments) go here.
     validations:
       required: false

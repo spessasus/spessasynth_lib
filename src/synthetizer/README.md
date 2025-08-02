@@ -7,7 +7,7 @@ Since spessasynth_lib runs in the audioWorklet thread, here is an explanation of
 There's one processor per synthesizer, with a `MessagePort` for communication.
 Each processor has a single `SpessaSynthSequencer` instance that is idle by default.
 
-The `Synthetizer`, 
+The `WorkletSynthesizer`, 
 `Sequencer` and `SoundFontManager` classes are all interfaces 
 that do not do anything except sending the commands to te processor.
 
@@ -17,7 +17,7 @@ The sequencer sends the commands through the connected synthesizer's messagePort
 
 
 ## How it works in spessasynth_lib
-Both `Synthetizer` and `Sequencer` are essentially "remote control"
+Both `WorkletSynthesizer` and `Sequencer` are essentially "remote control"
 for the actual sequencer and synthesizer in the audio worklet thread (here)
 These core components are wrapped in the AudioWorkletProcessor, which is receiving both commands and data (MIDIs, sound banks)
 through the message port, and sends data back (events, time changes, status changes, etc.).

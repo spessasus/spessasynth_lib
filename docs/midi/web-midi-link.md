@@ -1,8 +1,8 @@
 # Web MIDI Link
-This simple module adds [Web MIDI Link](https://www.g200kg.com/en/docs/webmidilink/) support to the `Synthetizer` instance.
+This simple module adds [Web MIDI Link](https://www.g200kg.com/en/docs/webmidilink/) support to the `WorkletSynthesizer` instance.
 
 ## Initialization
 ```js
 new WebMIDILinkHandler(synth);
 ```
-- synth - a `Synthetizer` instance to connect the link to.
+- synth - a `WorkletSynthesizer` instance to connect the link to.

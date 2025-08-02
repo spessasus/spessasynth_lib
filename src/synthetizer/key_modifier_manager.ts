@@ -36,9 +36,7 @@ export class WorkletKeyModifierManagerWrapper {
         const bank = options?.patch?.bank ?? -1;
         const gain = options?.gain ?? 1;
         const mod = new KeyModifier(velocity, bank, program, gain);
-        if (this.keyModifiers[channel] === undefined) {
-            this.keyModifiers[channel] = [];
-        }
+        this.keyModifiers[channel] ??= [];
         this.keyModifiers[channel][midiNote] = mod;
         this.sendToWorklet("addMapping", {
             channel,

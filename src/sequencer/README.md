@@ -15,7 +15,7 @@ const message = {
 
 #### To worklet
 
-Sequencer uses `Synthetizer`'s `post` method to post a message with `data` set to
+Sequencer uses `WorkletSynthesizer`'s `post` method to post a message with `data` set to
 `workletMessageType.sequencerSpecific`.
 The `data` is set to the sequencer's message.
 

@@ -3,7 +3,7 @@ import { consoleColors } from "../utils/other.js";
 import { SpessaSynthCoreUtils } from "spessasynth_core";
 
 /**
- * web_midi_link.js
+ * Web_midi_link.js
  * purpose: handles the web midi link connection to the synthesizer
  * https://www.g200kg.com/en/docs/webmidilink/
  */
@@ -23,7 +23,7 @@ export class WebMIDILinkHandler {
                 return;
             }
 
-            data.shift(); // remove MIDI
+            data.shift(); // Remove MIDI
 
             const midiData = data.map((byte) => parseInt(byte, 16));
 

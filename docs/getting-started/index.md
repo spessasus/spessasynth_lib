@@ -37,11 +37,11 @@ npm install --save spessasynth_lib
     If that happens, **please open an issue.**
 
 ## Minimal setup
-The minimal working setup requires [`Synthetizer` class](../synthesizer/index.md) and [adding the worklet module](../synthesizer/importing-the-worklet.md).
+The minimal working setup requires [`WorkletSynthesizer` class](../synthesizer/index.md) and [adding the worklet module](../synthesizer/importing-the-worklet.md).
 
 The setup is initialized as follows:
 ```js
 audioContext.audioWorklet.addModule("path/to/worklet");
-const synth = new Synthetizer(outputNode, soundBankBuffer);
+const synth = new WorkletSynthesizer(outputNode, soundBankBuffer);
 ```
 Make sure to replace `/path/to/worklet/` with one of the paths described [here](../synthesizer/importing-the-worklet.md).

@@ -1,10 +1,10 @@
-export type WaveMetadata = {
-    // the song's title.
+export interface WaveMetadata {
+    // The song's title.
     title: string;
-    // the song's artist.
+    // The song's artist.
     artist: string;
-    // the song's album.
+    // The song's album.
     album: string;
-    // the song's genre.
+    // The song's genre.
     genre: string;
-};
+}

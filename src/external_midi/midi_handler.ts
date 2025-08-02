@@ -4,7 +4,7 @@ import { consoleColors } from "../utils/other.js";
 import type { Sequencer } from "../sequencer/sequencer";
 
 /**
- * midi_handler.js
+ * Midi_handler.js
  * purpose: handles the connection between MIDI devices and synthesizer/sequencer via Web MIDI API
  */
 
@@ -33,7 +33,7 @@ export class MIDIDeviceHandler {
         this.selectedInput = NO_INPUT;
         this.selectedOutput = NO_INPUT;
         if (navigator.requestMIDIAccess) {
-            // prepare the midi access
+            // Prepare the midi access
             try {
                 const response = await navigator.requestMIDIAccess({
                     sysex: true,

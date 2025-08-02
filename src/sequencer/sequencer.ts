@@ -43,7 +43,7 @@ export class Sequencer {
     public isFinished = false;
     // The synthesizer attached to this sequencer.
     public readonly synth: WorkletSynthesizer;
-    // the MIDI port to play to.
+    // The MIDI port to play to.
     protected midiOut?: MIDIOutput;
     /**
      * Fires on meta-event
@@ -90,7 +90,7 @@ export class Sequencer {
         }
 
         if (!this._skipToFirstNoteOn) {
-            // setter sends message
+            // Setter sends message
             this.sendMessage("setSkipToFirstNote", false);
         }
 
@@ -136,10 +136,10 @@ export class Sequencer {
      * The current sequence's length, in seconds.
      */
     public get duration() {
-        return this.midiData?.duration || 0;
+        return this.midiData?.duration ?? 0;
     }
 
-    protected _songsAmount: number = 0;
+    protected _songsAmount = 0;
 
     // The amount of songs in the list.
     public get songsAmount() {
@@ -233,7 +233,7 @@ export class Sequencer {
      * Current playback time, in seconds.
      */
     public get currentTime() {
-        // return the paused time if it's set to something other than undefined
+        // Return the paused time if it's set to something other than undefined
         if (this.pausedTime !== undefined) {
             return this.pausedTime;
         }
@@ -261,7 +261,7 @@ export class Sequencer {
         const highResTimeOffset = this.highResTimeOffset;
         const absoluteStartTime = this.absoluteStartTime;
 
-        // sync performance.now to current time
+        // Sync performance.now to current time
         const performanceElapsedTime =
             (performance.now() / 1000 - absoluteStartTime) * this._playbackRate;
 
@@ -270,11 +270,11 @@ export class Sequencer {
 
         const smoothingFactor = 0.01 * this._playbackRate;
 
-        // diff times smoothing factor
+        // Diff times smoothing factor
         const timeDifference = currentAudioTime - currentPerformanceTime;
         this.highResTimeOffset += timeDifference * smoothingFactor;
 
-        // return a smoothed performance time
+        // Return a smoothed performance time
         currentPerformanceTime =
             this.highResTimeOffset + performanceElapsedTime;
         return currentPerformanceTime;
@@ -302,7 +302,7 @@ export class Sequencer {
      * @param midiBuffers The MIDI files to play.
      */
     public loadNewSongList(midiBuffers: SuppliedMIDIData[]) {
-        // add some fake data
+        // Add some fake data
         this.midiData = DUMMY_MIDI_DATA;
         this.hasDummyData = true;
         this.sendMessage("loadNewSongList", midiBuffers);
@@ -364,7 +364,7 @@ export class Sequencer {
                 break;
 
             case "timeChange":
-                // message data is absolute time
+                // Message data is absolute time
                 const time = m.data.newTime;
                 this.callEventInternal("timeChange", time);
                 this.recalculateStartTime(time);
@@ -427,16 +427,16 @@ export class Sequencer {
                                 this.midiData.lyrics.length - 1
                             );
                         }
-                        // if MIDI is a karaoke file, it uses the "text" event type or "lyrics" for lyrics (duh)
-                        // why?
-                        // because the MIDI standard is a messy pile of garbage,
-                        // and it's not my fault that it's like this :(
+                        // If MIDI is a karaoke file, it uses the "text" event type or "lyrics" for lyrics (duh)
+                        // Why?
+                        // Because the MIDI standard is a messy pile of garbage,
+                        // And it's not my fault that it's like this :(
                         // I'm just trying to make the best out of a bad situation.
                         // I'm sorry
-                        // okay I should get back to work
-                        // anyway,
-                        // check for a karaoke file and change the status byte to "lyric"
-                        // if it's a karaoke file
+                        // Okay I should get back to work
+                        // Anyway,
+                        // Check for a karaoke file and change the status byte to "lyric"
+                        // If it's a karaoke file
                         if (
                             this.midiData.isKaraokeFile &&
                             (event.statusByte === midiMessageTypes.text ||
@@ -468,7 +468,7 @@ export class Sequencer {
                 break;
 
             case "songListChange":
-                // remap to MIDI data again as cloned objects don't get methods.
+                // Remap to MIDI data again as cloned objects don't get methods.
                 this.songListData = m.data.newSongList.map(
                     (m) => new MIDIData(m)
                 );
@@ -491,10 +491,10 @@ export class Sequencer {
             return;
         }
         for (let i = 0; i < 16; i++) {
-            this.midiOut.send([midiMessageTypes.controllerChange | i, 120, 0]); // all notes off
-            this.midiOut.send([midiMessageTypes.controllerChange | i, 123, 0]); // all sound off
+            this.midiOut.send([midiMessageTypes.controllerChange | i, 120, 0]); // All notes off
+            this.midiOut.send([midiMessageTypes.controllerChange | i, 123, 0]); // All sound off
         }
-        this.midiOut.send([midiMessageTypes.reset]); // reset
+        this.midiOut.send([midiMessageTypes.reset]); // Reset
     }
 
     private recalculateStartTime(time: number) {

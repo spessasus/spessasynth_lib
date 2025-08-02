@@ -16,7 +16,7 @@ const context = new AudioContext({
 });
 
 // wait for the user to upload the sound bank
-document.getElementById("soundfont_input").onchange = async (e) => {
+document.getElementById("sound_bank_input").onchange = async (e) => {
     // if no file is selected, exit early
     const files = e.target?.files;
     if (!files[0]) {

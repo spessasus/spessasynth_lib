@@ -28,7 +28,7 @@ import type { ChorusConfig, SynthConfig } from "./audio_effects/types";
 import { LibSynthesizerSnapshot } from "./snapshot";
 
 /**
- * synthesizer.js
+ * Synthesizer.js
  * purpose: responds to midi messages and called functions, managing the channels and passing the messages to them
  */
 
@@ -36,7 +36,7 @@ const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
 };
 
-// the "remote controller" of the worklet processor in the audio thread from the main thread
+// The "remote controller" of the worklet processor in the audio thread from the main thread
 // noinspection JSUnusedGlobalSymbols
 export class WorkletSynthesizer {
     /**
@@ -84,7 +84,7 @@ export class WorkletSynthesizer {
      */
     public chorusProcessor?: FancyChorus;
     public readonly worklet: AudioWorkletNode;
-    // initialize internal promise resolution
+    // Initialize internal promise resolution
     public resolveWhenReady?: (...args: unknown[]) => unknown = undefined;
     /**
      * Synthesizer's output node.
@@ -92,7 +92,7 @@ export class WorkletSynthesizer {
     private readonly targetNode: AudioNode;
     private _destroyed = false;
     /**
-     * the new channels will have their audio sent to the modulated output by this constant.
+     * The new channels will have their audio sent to the modulated output by this constant.
      * what does that mean?
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
      */
@@ -123,27 +123,27 @@ export class WorkletSynthesizer {
         this.context = targetNode.context;
         this.targetNode = targetNode;
 
-        // ensure default values for options
+        // Ensure default values for options
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
         this.isReady = new Promise(
             (resolve) => (this.isProcessorReady = resolve)
         );
 
-        // create initial channels
+        // Create initial channels
         for (let i = 0; i < this.channelsAmount; i++) {
             this.addNewChannelInternal(false);
         }
         this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
 
-        // determine output mode and channel configuration
+        // Determine output mode and channel configuration
         const processorChannelCount = Array(this._outputsAmount + 2).fill(2);
         const processorOutputsCount = this._outputsAmount + 2;
 
-        // initialize effects configuration
+        // Initialize effects configuration
         this.synthConfig = fillWithDefaults(synthConfig, DEFAULT_SYNTH_CONFIG);
 
-        // create the audio worklet node
+        // Create the audio worklet node
         try {
             const workletConstructor =
                 synthConfig?.audioNodeCreators?.worklet ??
@@ -169,11 +169,11 @@ export class WorkletSynthesizer {
             );
         }
 
-        // set up message handling and managers
+        // Set up message handling and managers
         this.worklet.port.onmessage = (e: MessageEvent<WorkletReturnMessage>) =>
             this.handleMessage(e.data);
 
-        // connect worklet outputs
+        // Connect worklet outputs
 
         const reverbOn = this.synthConfig?.effectsConfig?.reverbEnabled ?? true;
         const chorusOn = this.synthConfig?.effectsConfig?.chorusEnabled ?? true;
@@ -199,7 +199,7 @@ export class WorkletSynthesizer {
             this.worklet.connect(targetNode, i);
         }
 
-        // attach event handlers
+        // Attach event handlers
         this.eventHandler.addEvent(
             "newChannel",
             `synth-new-channel-${Math.random()}`,
@@ -239,7 +239,7 @@ export class WorkletSynthesizer {
     }
 
     /**
-     * current voice amount
+     * Current voice amount
      */
     private _voicesAmount = 0;
 
@@ -277,6 +277,12 @@ export class WorkletSynthesizer {
                 enableGroup
             }
         });
+    }
+
+    public getMasterParameter<K extends keyof MasterParameterType>(
+        type: K
+    ): MasterParameterType[K] {
+        return this.masterParameters[type];
     }
 
     public setMasterParameter<K extends keyof MasterParameterType>(
@@ -387,8 +393,8 @@ export class WorkletSynthesizer {
      * Disables the GS NRPN parameters like vibrato or drum key tuning.
      */
     public disableGSNPRNParams() {
-        // rate -1 disables, see worklet_message.js line 9
-        // channel -1 is all
+        // Rate -1 disables, see worklet_message.js line 9
+        // Channel -1 is all
         this.setVibrato(ALL_CHANNELS_OR_DIFFERENT_ACTION, {
             depth: 0,
             rate: -1,
@@ -397,14 +403,14 @@ export class WorkletSynthesizer {
     }
 
     /**
-     * sends a raw MIDI message to the synthesizer.
-     * @param message {number[]|Uint8Array} the midi message, each number is a byte.
-     * @param channelOffset {number} the channel offset of the message.
-     * @param eventOptions {SynthMethodOptions} additional options for this command.
+     * Sends a raw MIDI message to the synthesizer.
+     * @param message the midi message, each number is a byte.
+     * @param channelOffset the channel offset of the message.
+     * @param eventOptions additional options for this command.
      */
     public sendMessage(
         message: Iterable<number>,
-        channelOffset: number = 0,
+        channelOffset = 0,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         this._sendInternal(message, channelOffset, false, eventOptions);
@@ -444,7 +450,7 @@ export class WorkletSynthesizer {
     public noteOff(
         channel: number,
         midiNote: number,
-        force: boolean = false,
+        force = false,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         midiNote %= 128;
@@ -483,7 +489,7 @@ export class WorkletSynthesizer {
         channel: number,
         controllerNumber: MIDIController,
         controllerValue: number,
-        force: boolean = false,
+        force = false,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         if (controllerNumber > 127 || controllerNumber < 0) {
@@ -491,7 +497,7 @@ export class WorkletSynthesizer {
         }
         controllerValue = Math.floor(controllerValue) % 128;
         controllerNumber = Math.floor(controllerNumber) % 128;
-        // controller change has its own message for the force property
+        // Controller change has its own message for the force property
         const ch = channel % 16;
         const offset = channel - ch;
         this._sendInternal(
@@ -590,11 +596,7 @@ export class WorkletSynthesizer {
      * @param semitones The transposition of the channel, it can be a float.
      * @param force Defaults to false, if true transposes the channel even if it's a drum channel.
      */
-    public transposeChannel(
-        channel: number,
-        semitones: number,
-        force: boolean = false
-    ) {
+    public transposeChannel(channel: number, semitones: number, force = false) {
         this.post({
             channelNumber: channel,
             type: "transposeChannel",
@@ -611,7 +613,7 @@ export class WorkletSynthesizer {
      * @param pitchBendRangeSemitones The bend range in semitones.
      */
     public setPitchBendRange(channel: number, pitchBendRangeSemitones: number) {
-        // set range
+        // Set range
         this.controllerChange(channel, midiControllers.RPNMsb, 0);
         this.controllerChange(channel, midiControllers.RPNLsb, 0);
         this.controllerChange(
@@ -620,7 +622,7 @@ export class WorkletSynthesizer {
             pitchBendRangeSemitones
         );
 
-        // reset rpn
+        // Reset rpn
         this.controllerChange(channel, midiControllers.RPNMsb, 127);
         this.controllerChange(channel, midiControllers.RPNLsb, 127);
         this.controllerChange(channel, midiControllers.dataEntryMsb, 0);
@@ -708,7 +710,7 @@ export class WorkletSynthesizer {
      */
     public systemExclusive(
         messageData: number[] | Iterable<number> | Uint8Array,
-        channelOffset: number = 0,
+        channelOffset = 0,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         this._sendInternal(
@@ -734,17 +736,17 @@ export class WorkletSynthesizer {
             throw new Error("Too many tunings. Maximum allowed is 127.");
         }
         const systemExclusive = [
-            0x7f, // real-time
-            0x10, // device id
+            0x7f, // Real-time
+            0x10, // Device id
             0x08, // MIDI Tuning
-            0x02, // note change
-            program, // tuning program number
-            tunings.length // number of changes
+            0x02, // Note change
+            program, // Tuning program number
+            tunings.length // Number of changes
         ];
         for (const tuning of tunings) {
             systemExclusive.push(tuning.sourceKey); // [kk] MIDI Key number
             if (tuning.targetPitch === -1) {
-                // no change
+                // No change
                 systemExclusive.push(0x7f, 0x7f, 0x7f);
             } else {
                 const midiNote = Math.floor(tuning.targetPitch);
@@ -752,9 +754,9 @@ export class WorkletSynthesizer {
                     (tuning.targetPitch - midiNote) / 0.000061
                 );
                 systemExclusive.push(
-                    midiNote, // frequency data byte 1
-                    (fraction >> 7) & 0x7f, // frequency data byte 2
-                    fraction & 0x7f // frequency data byte 3
+                    midiNote, // Frequency data byte 1
+                    (fraction >> 7) & 0x7f, // Frequency data byte 2
+                    fraction & 0x7f // Frequency data byte 3
                 );
             }
         }
@@ -865,7 +867,7 @@ export class WorkletSynthesizer {
     protected _sendInternal(
         message: Iterable<number>,
         channelOffset: number,
-        force: boolean = false,
+        force = false,
         eventOptions: Partial<SynthMethodOptions>
     ) {
         const options = fillWithDefaults(

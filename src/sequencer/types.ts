@@ -6,14 +6,14 @@ import {
 } from "spessasynth_core";
 import type { MIDIData } from "./midi_data";
 
-export type SequencerOptions = {
+export interface SequencerOptions {
     // If true, the sequencer will skip to the first note.
     skipToFirstNoteOn: boolean;
     // If true, the sequencer will stay paused when seeking or changing the playback rate.
     preservePlaybackState: boolean;
     // The initial playback rate, defaults to 1.0 (normal speed).
     initialPlaybackRate: number;
-};
+}
 
 export type SequencerMessage = {
     [K in keyof SequencerMessageData]: {
@@ -22,18 +22,18 @@ export type SequencerMessage = {
     };
 }[keyof SequencerMessageData];
 
-export type SequencerMessageData = {
-    // loadNewSongList
+export interface SequencerMessageData {
+    // LoadNewSongList
     loadNewSongList: SuppliedMIDIData[];
     pause: null;
     play: null;
-    // time
+    // Time
     setTime: number;
-    // sendMIDIMessages
+    // SendMIDIMessages
     changeMIDIMessageSending: boolean;
-    // playbackRate
+    // PlaybackRate
     setPlaybackRate: number;
-    // count
+    // Count
     setLoopCount: number;
     // [changeType, data]
     changeSong: {
@@ -41,9 +41,9 @@ export type SequencerMessageData = {
         data?: number;
     };
     getMIDI: null;
-    // skipToFirstNoteOn
+    // SkipToFirstNoteOn
     setSkipToFirstNote: boolean;
-};
+}
 
 export type SequencerReturnMessage =
     | SequencerEvent
@@ -51,7 +51,7 @@ export type SequencerReturnMessage =
     | { type: "midiError"; data: Error };
 
 /**
- * sequencer.js
+ * Sequencer.js
  * purpose: plays back the midi file decoded by midi_loader.js, including support for multichannel midis
  * (adding channels when more than one midi port is detected)
  * note: this is the sequencer class that runs on the main thread
@@ -67,7 +67,7 @@ export type SuppliedMIDIData =
           altName?: string;
       };
 
-export type WorkletSequencerEventType = {
+export interface WorkletSequencerEventType {
     // New song.
     songChange: MIDIData;
     // New time.
@@ -88,4 +88,4 @@ export type WorkletSequencerEventType = {
     };
 
     midiError: Error;
-};
+}

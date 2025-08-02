@@ -1,7 +1,7 @@
 # Sequencer Class
 This is the module
 that plays MIDI sequences
-using the [`Synthetizer` class](../synthesizer/index.md).
+using the [`WorkletSynthesizer` class](../synthesizer/index.md).
 
 !!! Tip
 
@@ -15,7 +15,7 @@ const sequencer = new Sequencer(midiBuffers, synth, options);
 - `midiBuffers` - an array of the MIDI files to play. Either `MIDI` or objects with two properties: 
   - `binary`: the `ArrayBuffer` representation of the file. It can be mixed up.
   - `altName` - alternative name of the sequence if it doesn't have one. It cn be undefined.
-- `synth` - the synthetizer to use. An instance of the [`Synthetizer` class](../synthesizer/index.md).
+- `synth` - the synthetizer to use. An instance of the [`WorkletSynthesizer` class](../synthesizer/index.md).
 - `options` - an optional `Object` with options for the sequencer (all of them are optional as well as the object itself)
   - `skipToFirstNoteOn` - a `boolean` indicating if the sequencer should skip to the first note on. Defaults to `true`.
   - `autoPlay` - a `boolean` indicating if the first sequence supplied should start playing. Defaults to `true`.
@@ -31,7 +31,7 @@ const sequencer = new Sequencer(midiBuffers, synth, options);
 !!! Warning
 
     Due to the way the sequencer has been coded, 
-    only one sequencer can be used with a `Synthetizer` instance at once!
+    only one sequencer can be used with a `WorkletSynthesizer` instance at once!
     If this is something that you want to be fixed, feel free to open an issue.
 
 ## Methods

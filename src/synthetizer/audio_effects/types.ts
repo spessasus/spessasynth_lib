@@ -1,6 +1,6 @@
 import type { PassedProcessorParameters } from "../types";
 
-export type SynthConfig = {
+export interface SynthConfig {
     enableEffectsSystem: boolean;
 
     // Configuration for the effects.
@@ -16,9 +16,9 @@ export type SynthConfig = {
             }
         ) => unknown;
     };
-};
+}
 
-export type EffectsConfig = {
+export interface EffectsConfig {
     // Indicates if the chorus effect is enabled.
     // This can only be set once.
     readonly chorusEnabled: boolean;
@@ -29,9 +29,9 @@ export type EffectsConfig = {
     readonly reverbEnabled: boolean;
     // The impulse response for the reverb. Pass undefined to use defaults
     reverbImpulseResponse?: AudioBuffer;
-};
+}
 
-export type ChorusConfig = {
+export interface ChorusConfig {
     // The amount of delay nodes (for each channel) and the corresponding oscillators.
     nodesAmount: number;
     // The initial delay, in seconds.
@@ -46,4 +46,4 @@ export type ChorusConfig = {
     oscillatorFrequencyVariation: number;
     // How much will oscillator alter the delay in delay nodes, in seconds.
     oscillatorGain: number;
-};
+}

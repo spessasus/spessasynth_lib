@@ -32,7 +32,7 @@ A simple audio loop that achieves this is as follows:
 ### [See this demo live](https://spessasus.github.io/spessasynth_lib/examples/main_thread_rendering.html)
 
 Below is an example that shows the list of active voices currently playing,
-which is something that cannot be achieved with just the `Synthetizer` class.
+which is something that cannot be achieved with just the `WorkletSynthesizer` class.
 
 
 ```html title='main_thread_rendering.html'

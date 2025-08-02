@@ -6,7 +6,7 @@ export default tseslint.config(
     {
         extends: [
             eslint.configs.recommended,
-            ...tseslint.configs.recommendedTypeChecked
+            ...tseslint.configs.stylisticTypeChecked
         ],
         files: ["**/*.{ts,tsx}"],
         languageOptions: {
@@ -20,7 +20,14 @@ export default tseslint.config(
         rules: {
             "@typescript-eslint/no-unused-vars": "error",
             "@typescript-eslint/explicit-member-accessibility": "error",
-            "@typescript-eslint/no-deprecated": "error"
+            "@typescript-eslint/no-deprecated": "error",
+            "capitalized-comments": [
+                "error",
+                "always",
+                {
+                    ignorePattern: "noinspection"
+                }
+            ]
         }
     }
 );

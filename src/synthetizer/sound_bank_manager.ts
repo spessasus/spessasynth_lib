@@ -54,7 +54,7 @@ export class SoundBankManager {
     public async addSoundBank(
         soundBankBuffer: ArrayBuffer,
         id: string,
-        bankOffset: number = 0
+        bankOffset = 0
     ) {
         this.sendToWorklet(
             "addSoundBank",

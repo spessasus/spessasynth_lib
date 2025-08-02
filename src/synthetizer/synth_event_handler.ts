@@ -23,47 +23,47 @@ export class SynthEventHandler {
      * @private
      */
     private readonly events: EventsMap = {
-        noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // called on a note off message
-        noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // called on a note on message
-        pitchWheel: new Map<string, ProcessorEventCallback<"pitchWheel">>(), // called on a pitch-wheel change
+        noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // Called on a note off message
+        noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // Called on a note on message
+        pitchWheel: new Map<string, ProcessorEventCallback<"pitchWheel">>(), // Called on a pitch-wheel change
         controllerChange: new Map<
             string,
             ProcessorEventCallback<"controllerChange">
-        >(), // called on a controller change
+        >(), // Called on a controller change
         programChange: new Map<
             string,
             ProcessorEventCallback<"programChange">
-        >(), // called on a program change
+        >(), // Called on a program change
         channelPressure: new Map<
             string,
             ProcessorEventCallback<"channelPressure">
-        >(), // called on a channel pressure message
-        polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // called on a poly pressure message
-        drumChange: new Map<string, ProcessorEventCallback<"drumChange">>(), // called when a channel type changes
-        stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // called when the synth receives stop all command
-        newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // called when a new channel is created
-        muteChannel: new Map<string, ProcessorEventCallback<"muteChannel">>(), // called when a channel is muted/unmuted
+        >(), // Called on a channel pressure message
+        polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // Called on a poly pressure message
+        drumChange: new Map<string, ProcessorEventCallback<"drumChange">>(), // Called when a channel type changes
+        stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // Called when the synth receives stop all command
+        newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // Called when a new channel is created
+        muteChannel: new Map<string, ProcessorEventCallback<"muteChannel">>(), // Called when a channel is muted/unmuted
         presetListChange: new Map<
             string,
             ProcessorEventCallback<"presetListChange">
-        >(), // called when the preset list changes (soundfont gets reloaded)
+        >(), // Called when the preset list changes (soundfont gets reloaded)
         allControllerReset: new Map<
             string,
             ProcessorEventCallback<"allControllerReset">
-        >(), // called when all controllers are reset
+        >(), // Called when all controllers are reset
         soundBankError: new Map<
             string,
             ProcessorEventCallback<"soundBankError">
-        >(), // called when a sound bank parsing error occurs
-        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // called when there's a SysEx message to display some text
+        >(), // Called when a sound bank parsing error occurs
+        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // Called when there's a SysEx message to display some text
         masterParameterChange: new Map<
             string,
             ProcessorEventCallback<"masterParameterChange">
-        >(), // called when a master parameter changes
+        >(), // Called when a master parameter changes
         channelPropertyChange: new Map<
             string,
             ProcessorEventCallback<"channelPropertyChange">
-        >() // called when a channel property changes
+        >() // Called when a channel property changes
     };
 
     /**

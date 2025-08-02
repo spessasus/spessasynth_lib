@@ -49,14 +49,14 @@ MIDIHandler.connectMIDIOutputToSeq(seq);
 - seq - a `Sequencer` instance to disconnect.
 
 ### connectDeviceToSynth
-Connects a MIDI Input to a `Synthetizer` instance, responding to all received messages.
+Connects a MIDI Input to a `WorkletSynthesizer` instance, responding to all received messages.
 ```js
 MIDIHandler.connectDeviceToSynth(input, synth);
 ```
 - input - a `MIDIInput` to connect.
-- synth - a `Synthetizer` instance to connect to.
+- synth - a `WorkletSynthesizer` instance to connect to.
 ### disconnectAllDevicesFromSynth
-Disconnects all MIDI Inputs from the `Synthetizer` instance.
+Disconnects all MIDI Inputs from the `WorkletSynthesizer` instance.
 ```js
 MIDIHandler.disconnectAllDevicesFromSynth();
 ```

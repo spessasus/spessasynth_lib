@@ -14,8 +14,8 @@ import type { WaveMetadata } from "./types";
  */
 export function audioBufferToWav(
     audioBuffer: AudioBuffer,
-    normalizeAudio: boolean = true,
-    channelOffset: number = 0,
+    normalizeAudio = true,
+    channelOffset = 0,
     metadata: Partial<WaveMetadata> = {},
     loop:
         | {
