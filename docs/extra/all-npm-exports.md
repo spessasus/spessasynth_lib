@@ -21,4 +21,3 @@ See [direct synth access](../getting-started/main-thread-rendering.md) for more 
 
 ### Others
 - audioBufferToWav - a function that converts audio buffer to a WAV file.
-- WORKLET_URL_ABSOLUTE - the path from the root `spessasynth_lib` folder to the minified processor.

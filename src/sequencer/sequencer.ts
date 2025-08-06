@@ -1,4 +1,3 @@
-import { WorkletSynthesizer } from "../synthetizer/worklet_synthesizer.js";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
@@ -18,6 +17,7 @@ import type {
     WorkletSequencerEventType
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
+import type { BasicSynthesizer } from "../synthesizer/basic_synthesizer.ts";
 
 // noinspection JSUnusedGlobalSymbols
 export class Sequencer {
@@ -42,7 +42,7 @@ export class Sequencer {
      */
     public isFinished = false;
     // The synthesizer attached to this sequencer.
-    public readonly synth: WorkletSynthesizer;
+    public readonly synth: BasicSynthesizer;
     // The MIDI port to play to.
     protected midiOut?: MIDIOutput;
     /**
@@ -76,7 +76,7 @@ export class Sequencer {
      * @param options the sequencer's options.
      */
     public constructor(
-        synth: WorkletSynthesizer,
+        synth: BasicSynthesizer,
         options: Partial<SequencerOptions> = DEFAULT_SEQUENCER_OPTIONS
     ) {
         this.synth = synth;

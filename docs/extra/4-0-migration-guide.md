@@ -26,6 +26,10 @@ New location: `dist/worklet_processor.min.js`
 
 Now includes a sourcemap, much like index.js.
 
+### WORKLET_URL_ABSOLUTE
+
+Removed, as you have to include the worklet file manually.
+
 ### WorkletSynthesizer
 
 Renamed from `Sythetizer` to `WorkletSynthesizer`.

@@ -9,7 +9,7 @@ import {
     SpessaSynthSequencer,
     SynthesizerSnapshot
 } from "spessasynth_core";
-import { WORKLET_PROCESSOR_NAME } from "./synthetizer/worklet_url.js";
+import { WORKLET_PROCESSOR_NAME } from "./synthesizer/worklet_url.js";
 import { songChangeType } from "./sequencer/enums.js";
 import { fillWithDefaults } from "./utils/fill_with_defaults.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./sequencer/default_sequencer_options.js";
@@ -18,7 +18,7 @@ import type {
     StartRenderingDataConfig,
     WorkletMessage,
     WorkletReturnMessage
-} from "./synthetizer/types";
+} from "./synthesizer/types";
 import type {
     SequencerOptions,
     SequencerReturnMessage

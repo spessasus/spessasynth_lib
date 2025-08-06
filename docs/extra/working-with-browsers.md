@@ -16,7 +16,7 @@ For example, you can make a basic script for building the project:
 **build.sh**
 ```shell
 # copy the worklet
-cp node_modules/spessasynth_lib/synthetizer/worklet_processor.min.js --outfile=public/worklet_processor.min.js
+cp node_modules/spessasynth_lib/synthesizer/worklet_processor.min.js --outfile=public/worklet_processor.min.js
 
 esbuild --bundle --minify --sourcemap=linked --platform=browser index.js --outfile=index.min.js
 ```

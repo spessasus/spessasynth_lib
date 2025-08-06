@@ -1,8 +1,6 @@
-# WorkletSynthesizer Class
+# Synthesizer
 
 This is the main module that generates the sound.
-
-*Yes, it's spelled **"WorkletSynthesizer"** and not **"Synthesizer"** here.*
 
 [**MIDI implementation chart**](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/)
 
@@ -111,7 +109,7 @@ await context.audioWorklet.addModule("worklet_processor.min.js");
 // load soundfont
 const file = document.getElementById("file_input").files[0];
 const soundfont = await file.arrayBuffer()
-// set up synthetizer
+// set up synthesizer
 const synth = new WorkletSynthesizer(context.destination, soundfont);
 ```
 

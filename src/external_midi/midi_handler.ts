@@ -1,7 +1,7 @@
-import { WorkletSynthesizer } from "../synthetizer/worklet_synthesizer.js";
 import { SpessaSynthCoreUtils as util } from "spessasynth_core";
 import { consoleColors } from "../utils/other.js";
 import type { Sequencer } from "../sequencer/sequencer";
+import type { BasicSynthesizer } from "../synthesizer/basic_synthesizer.ts";
 
 /**
  * Midi_handler.js
@@ -92,7 +92,7 @@ export class MIDIDeviceHandler {
      * @param input The input to connect to.
      * @param synth The synthesizer instance.
      */
-    public connectDeviceToSynth(input: MIDIInput, synth: WorkletSynthesizer) {
+    public connectDeviceToSynth(input: MIDIInput, synth: BasicSynthesizer) {
         this.selectedInput = input;
         input.onmidimessage = (event) => {
             synth.sendMessage(event.data as Iterable<number>);

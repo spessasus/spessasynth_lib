@@ -1,14 +1,14 @@
 import { KeyModifier } from "spessasynth_core";
-import type { WorkletSynthesizer } from "./worklet_synthesizer.ts";
 import type { WorkletKMManagerData } from "./types";
+import type { BasicSynthesizer } from "./basic_synthesizer.ts";
 
 export class WorkletKeyModifierManagerWrapper {
     // The velocity override mappings for MIDI keys
     private keyModifiers: (KeyModifier | undefined)[][] = [];
 
-    private synth: WorkletSynthesizer;
+    private synth: BasicSynthesizer;
 
-    public constructor(synth: WorkletSynthesizer) {
+    public constructor(synth: BasicSynthesizer) {
         this.synth = synth;
     }
 

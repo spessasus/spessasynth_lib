@@ -1,7 +1,8 @@
-import { consoleColors } from "../utils/other.js";
+import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.ts";
+import { SoundBankManager } from "./sound_bank_manager.ts";
+import { SynthEventHandler } from "./synth_event_handler.ts";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    channelConfiguration,
     type ChannelProperty,
     DEFAULT_MASTER_PARAMETERS,
     DEFAULT_PERCUSSION,
@@ -14,31 +15,25 @@ import {
     SynthesizerSnapshot,
     type SynthMethodOptions
 } from "spessasynth_core";
-import { SynthEventHandler } from "./synth_event_handler.js";
-import { DEFAULT_CHORUS_CONFIG, FancyChorus } from "./audio_effects/fancy_chorus.js";
-import { getReverbProcessor } from "./audio_effects/reverb.js";
-import { DEFAULT_SYNTH_CONFIG } from "./audio_effects/effects_config.js";
-import { SoundBankManager } from "./sound_bank_manager.js";
-import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.js";
-import { fillWithDefaults } from "../utils/fill_with_defaults.js";
-import { WORKLET_PROCESSOR_NAME } from "./worklet_url.js";
-import type { StartRenderingDataConfig, WorkletMessage, WorkletReturnMessage } from "./types";
-import type { SequencerReturnMessage } from "../sequencer/types";
-import type { ChorusConfig, SynthConfig } from "./audio_effects/types";
-import { LibSynthesizerSnapshot } from "./snapshot";
-
-/**
- * Synthesizer.js
- * purpose: responds to midi messages and called functions, managing the channels and passing the messages to them
- */
+import type { SequencerReturnMessage } from "../sequencer/types.ts";
+import type { ChorusConfig, SynthConfig } from "./audio_effects/types.ts";
+import {
+    DEFAULT_CHORUS_CONFIG,
+    FancyChorus
+} from "./audio_effects/fancy_chorus.ts";
+import { DEFAULT_SYNTH_CONFIG } from "./audio_effects/effects_config.ts";
+import type { WorkletMessage, WorkletReturnMessage } from "./types.ts";
+import { consoleColors } from "../utils/other.ts";
+import { fillWithDefaults } from "../utils/fill_with_defaults.ts";
+import { getReverbProcessor } from "./audio_effects/reverb.ts";
+import { LibSynthesizerSnapshot } from "./snapshot.ts";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
 };
 
-// The "remote controller" of the worklet processor in the audio thread from the main thread
-// noinspection JSUnusedGlobalSymbols
-export class WorkletSynthesizer {
+// The "remote controller" of a given processor and abstraction for both synth engines.
+export abstract class BasicSynthesizer {
     /**
      * Allows managing the sound bank list.
      */
@@ -83,36 +78,50 @@ export class WorkletSynthesizer {
      * Undefined if chorus is disabled.
      */
     public chorusProcessor?: FancyChorus;
-    public readonly worklet: AudioWorkletNode;
+
     // Initialize internal promise resolution
     public resolveWhenReady?: (...args: unknown[]) => unknown = undefined;
+    public readonly worklet: AudioWorkletNode;
+    // INTERNAL USE ONLY!
+    public readonly post: (
+        data: WorkletMessage,
+        transfer?: Transferable[]
+    ) => unknown;
     /**
      * Synthesizer's output node.
      */
-    private readonly targetNode: AudioNode;
-    private _destroyed = false;
+    protected readonly targetNode: AudioNode;
+    protected _destroyed = false;
     /**
      * The new channels will have their audio sent to the modulated output by this constant.
      * what does that mean?
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
      */
-    private readonly _outputsAmount = 16;
+    protected readonly _outputsAmount = 16;
     /**
      * The current number of MIDI channels the synthesizer has
      */
     public channelsAmount = this._outputsAmount;
-    private snapshotCallback?: (s: SynthesizerSnapshot) => unknown;
-    private readonly masterParameters: MasterParameterType =
-        DEFAULT_MASTER_PARAMETERS;
-
-    private isProcessorReady?: (value: unknown) => void;
+    protected snapshotCallback?: (s: SynthesizerSnapshot) => unknown;
+    protected readonly masterParameters: MasterParameterType = {
+        ...DEFAULT_MASTER_PARAMETERS
+    };
+    // Internal resolve for "isReady"
+    protected isProcessorReady?: (value: unknown) => void;
 
     /**
-     * Creates a new instance of the SpessaSynth synthesizer.
+     * Creates a new instance of a synthesizer.
+     * @param worklet The AudioWorkletNode to use.
+     * @param postFunction The internal post function.
      * @param targetNode The target node to connect to.
      * @param config Optional configuration for the synthesizer.
      */
-    public constructor(
+    protected constructor(
+        worklet: AudioWorkletNode,
+        postFunction: (
+            data: WorkletMessage,
+            transfer?: Transferable[]
+        ) => unknown,
         targetNode: AudioNode,
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
@@ -122,6 +131,8 @@ export class WorkletSynthesizer {
         );
         this.context = targetNode.context;
         this.targetNode = targetNode;
+        this.worklet = worklet;
+        this.post = postFunction;
 
         // Ensure default values for options
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
@@ -130,51 +141,14 @@ export class WorkletSynthesizer {
             (resolve) => (this.isProcessorReady = resolve)
         );
 
-        // Create initial channels
-        for (let i = 0; i < this.channelsAmount; i++) {
-            this.addNewChannelInternal(false);
-        }
-        this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
-
-        // Determine output mode and channel configuration
-        const processorChannelCount = Array(this._outputsAmount + 2).fill(2);
-        const processorOutputsCount = this._outputsAmount + 2;
-
         // Initialize effects configuration
         this.synthConfig = fillWithDefaults(synthConfig, DEFAULT_SYNTH_CONFIG);
-
-        // Create the audio worklet node
-        try {
-            const workletConstructor =
-                synthConfig?.audioNodeCreators?.worklet ??
-                ((context, name, options) => {
-                    return new AudioWorkletNode(context, name, options);
-                });
-            this.worklet = workletConstructor(
-                this.context,
-                WORKLET_PROCESSOR_NAME,
-                {
-                    outputChannelCount: processorChannelCount,
-                    numberOfOutputs: processorOutputsCount,
-                    processorOptions: {
-                        midiChannels: this._outputsAmount,
-                        enableEventSystem: synthConfig.enableEffectsSystem
-                    }
-                }
-            ) as AudioWorkletNode;
-        } catch (e) {
-            console.error(e);
-            throw new Error(
-                "Could not create the audioWorklet. Did you forget to addModule()?"
-            );
-        }
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (e: MessageEvent<WorkletReturnMessage>) =>
             this.handleMessage(e.data);
 
         // Connect worklet outputs
-
         const reverbOn = this.synthConfig?.effectsConfig?.reverbEnabled ?? true;
         const chorusOn = this.synthConfig?.effectsConfig?.chorusEnabled ?? true;
         if (reverbOn) {
@@ -198,6 +172,12 @@ export class WorkletSynthesizer {
         for (let i = 2; i < this.channelsAmount + 2; i++) {
             this.worklet.connect(targetNode, i);
         }
+
+        // Create initial channels
+        for (let i = 0; i < this.channelsAmount; i++) {
+            this.addNewChannelInternal(false);
+        }
+        this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
 
         // Attach event handlers
         this.eventHandler.addEvent(
@@ -241,7 +221,7 @@ export class WorkletSynthesizer {
     /**
      * Current voice amount
      */
-    private _voicesAmount = 0;
+    protected _voicesAmount = 0;
 
     /**
      * The current number of voices playing.
@@ -257,6 +237,7 @@ export class WorkletSynthesizer {
         return this.context.currentTime;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Sets the SpessaSynth's log level in the worklet processor.
      * @param enableInfo Enable info (verbose)
@@ -279,12 +260,24 @@ export class WorkletSynthesizer {
         });
     }
 
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Gets a master parameter from the synthesizer.
+     * @param type The parameter to get.
+     * @returns The parameter value.
+     */
     public getMasterParameter<K extends keyof MasterParameterType>(
         type: K
     ): MasterParameterType[K] {
         return this.masterParameters[type];
     }
 
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Sets a master parameter to a given value.
+     * @param type The parameter to set.
+     * @param value The value to set.
+     */
     public setMasterParameter<K extends keyof MasterParameterType>(
         type: K,
         value: MasterParameterType[K]
@@ -389,7 +382,8 @@ export class WorkletSynthesizer {
         }
     }
 
-    /*
+    // noinspection JSUnusedGlobalSymbols
+    /**
      * Disables the GS NRPN parameters like vibrato or drum key tuning.
      */
     public disableGSNPRNParams() {
@@ -590,6 +584,7 @@ export class WorkletSynthesizer {
         );
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Transposes the channel by given number of semitones.
      * @param channel The channel number.
@@ -641,28 +636,6 @@ export class WorkletSynthesizer {
         this.sendMessage(
             [midiMessageTypes.programChange | ch, programNumber],
             offset
-        );
-    }
-
-    /**
-     * Overrides velocity on a given channel.
-     * @param channel Usually 0-15: the channel to change.
-     * @param velocity 1-127, the velocity to use.
-     * @remarks
-     * 0 Disables this functionality.
-     */
-    public velocityOverride(channel: number, velocity: number) {
-        const ch = channel % 16;
-        const offset = channel - ch;
-        this._sendInternal(
-            [
-                midiMessageTypes.controllerChange | ch,
-                channelConfiguration.velocityOverride,
-                velocity
-            ],
-            offset,
-            true,
-            DEFAULT_SYNTH_METHOD_OPTIONS
         );
     }
 
@@ -764,17 +737,7 @@ export class WorkletSynthesizer {
         this.systemExclusive(systemExclusive);
     }
 
-    public startOfflineRender(config: StartRenderingDataConfig) {
-        this.post(
-            {
-                type: "startOfflineRender",
-                data: config,
-                channelNumber: -1
-            },
-            config.soundBankList
-        );
-    }
-
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Toggles drums on a given channel.
      * @param channel The channel number.
@@ -856,14 +819,6 @@ export class WorkletSynthesizer {
         return "That's the spirit!";
     }
 
-    // INTERNAL USE ONLY!
-    public post(data: WorkletMessage, transfer: Transferable[] = []) {
-        if (this._destroyed) {
-            throw new Error("This synthesizer instance has been destroyed!");
-        }
-        this.worklet.port.postMessage(data, transfer);
-    }
-
     protected _sendInternal(
         message: Iterable<number>,
         channelOffset: number,
@@ -916,7 +871,7 @@ export class WorkletSynthesizer {
         }
     }
 
-    private addNewChannelInternal(post: boolean) {
+    protected addNewChannelInternal(post: boolean) {
         this.channelProperties.push({
             voicesAmount: 0,
             pitchBend: 0,

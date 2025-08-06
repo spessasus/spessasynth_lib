@@ -2,8 +2,8 @@ import {
     type SoundBankManagerListEntry,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
-import type { WorkletSynthesizer } from "./worklet_synthesizer.ts";
 import type { WorkletMessage, WorkletSBKManagerData } from "./types";
+import type { BasicSynthesizer } from "./basic_synthesizer.ts";
 
 type LibSBKManagerEntry = Omit<SoundBankManagerListEntry, "soundBank">;
 
@@ -13,12 +13,12 @@ export class SoundBankManager {
      */
     public soundBankList: LibSBKManagerEntry[];
 
-    private synth: WorkletSynthesizer;
+    private synth: BasicSynthesizer;
 
     /**
      * Creates a new instance of the sound bank manager.
      */
-    public constructor(synth: WorkletSynthesizer) {
+    public constructor(synth: BasicSynthesizer) {
         this.soundBankList = [];
         this.synth = synth;
     }
