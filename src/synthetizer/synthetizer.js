@@ -1006,8 +1006,14 @@ export class Synthetizer
      */
     destroy()
     {
-        this.reverbProcessor.disconnect();
-        this.chorusProcessor.delete();
+        if (this.reverbProcessor)
+        {
+            this.reverbProcessor.disconnect();
+        }
+        if (this.chorusProcessor)
+        {
+            this.chorusProcessor.delete();
+        }
         // noinspection JSCheckFunctionSignatures
         this.post({
             messageType: workletMessageType.destroyWorklet,
@@ -1015,10 +1021,17 @@ export class Synthetizer
         });
         this.worklet.disconnect();
         delete this.worklet;
-        delete this.reverbProcessor;
-        delete this.chorusProcessor;
+        if (this.reverbProcessor)
+        {
+            delete this.reverbProcessor;
+        }
+        if (this.chorusProcessor)
+        {
+            delete this.chorusProcessor;
+        }
         this._destroyed = true;
     }
+    
     
     // noinspection JSUnusedGlobalSymbols
     reverbateEverythingBecauseWhyNot()
