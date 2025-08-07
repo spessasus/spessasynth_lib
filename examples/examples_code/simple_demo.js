@@ -15,7 +15,6 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
     // create an audioContext and add the worklet
     const context = new AudioContext();
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
-    console.log("ADD TWICE???");
     // create the synthesizer
     const synth = new WorkletSynthesizer(context);
     synth.connect(context.destination);
