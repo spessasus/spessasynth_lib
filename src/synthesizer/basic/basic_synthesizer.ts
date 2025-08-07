@@ -23,9 +23,9 @@ import {
 } from "../audio_effects/chorus.ts";
 import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import type {
-    WorkletInitializedType,
-    WorkletMessage,
-    WorkletReturnMessage
+    BasicSynthesizerMessage,
+    BasicSynthesizerReturnMessage,
+    SynthesizerReturnInitializedType
 } from "../types.ts";
 import { consoleColors } from "../../utils/other.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
@@ -82,14 +82,12 @@ export abstract class BasicSynthesizer {
      * Undefined if chorus is disabled.
      */
     public chorusProcessor?: ChorusProcessor;
-
-    // Initialize internal promise resolution
-    public readonly worklet: AudioWorkletNode;
     // INTERNAL USE ONLY!
     public readonly post: (
-        data: WorkletMessage,
+        data: BasicSynthesizerMessage,
         transfer?: Transferable[]
     ) => unknown;
+    protected readonly worklet: AudioWorkletNode;
     /**
      * The new channels will have their audio sent to the modulated output by this constant.
      * what does that mean?
@@ -106,7 +104,7 @@ export abstract class BasicSynthesizer {
     };
     // Resolve map, waiting for the worklet to confirm the operation
     protected resolveMap = new Map<
-        WorkletInitializedType,
+        SynthesizerReturnInitializedType,
         (...args: unknown[]) => void
     >();
 
@@ -119,7 +117,7 @@ export abstract class BasicSynthesizer {
     protected constructor(
         worklet: AudioWorkletNode,
         postFunction: (
-            data: WorkletMessage,
+            data: BasicSynthesizerMessage,
             transfer?: Transferable[]
         ) => unknown,
         synthConfig: SynthConfig
@@ -140,8 +138,9 @@ export abstract class BasicSynthesizer {
         this.synthConfig = fillWithDefaults(synthConfig, DEFAULT_SYNTH_CONFIG);
 
         // Set up message handling and managers
-        this.worklet.port.onmessage = (e: MessageEvent<WorkletReturnMessage>) =>
-            this.handleMessage(e.data);
+        this.worklet.port.onmessage = (
+            e: MessageEvent<BasicSynthesizerReturnMessage>
+        ) => this.handleMessage(e.data);
 
         // Connect worklet outputs
         const effectsOn = this.synthConfig.effects.enabled;
@@ -801,7 +800,7 @@ export abstract class BasicSynthesizer {
      * @param resolve INTERNAL USE ONLY!
      */
     public awaitWorkletResponse(
-        type: WorkletInitializedType,
+        type: SynthesizerReturnInitializedType,
         resolve: (...args: unknown[]) => void
     ) {
         this.resolveMap.set(type, resolve);
@@ -833,7 +832,7 @@ export abstract class BasicSynthesizer {
     /**
      * Handles the messages received from the worklet.
      */
-    protected handleMessage(m: WorkletReturnMessage) {
+    protected handleMessage(m: BasicSynthesizerReturnMessage) {
         switch (m.type) {
             case "eventCall":
                 this.eventHandler.callEventInternal(m.data.type, m.data.data);
@@ -879,7 +878,7 @@ export abstract class BasicSynthesizer {
         });
     }
 
-    protected workletResponds(type: WorkletInitializedType) {
+    protected workletResponds(type: SynthesizerReturnInitializedType) {
         this.resolveMap.get(type)?.();
         this.resolveMap.delete(type);
     }

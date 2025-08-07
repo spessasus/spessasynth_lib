@@ -42,7 +42,6 @@ export class WorkletSynthesizer extends BasicSynthesizer {
                 outputChannelCount,
                 numberOfOutputs,
                 processorOptions: {
-                    midiChannels: 16,
                     oneOutput: synthConfig.oneOutput,
                     enableEventSystem: synthConfig.effects.enabled
                 }
@@ -50,7 +49,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         } catch (e) {
             console.error(e);
             throw new Error(
-                "Could not create the audioWorklet. Did you forget to addModule()?"
+                "Could not create the AudioWorkletNode. Did you forget to addModule()?"
             );
         }
         super(

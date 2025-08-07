@@ -1,4 +1,4 @@
-# WorkletSynthesizer
+# Worklet Synthesizer
 
 This synthesizer uses a single AudioWorklet with the Processor and Sequencer in it, along with the effects.
 

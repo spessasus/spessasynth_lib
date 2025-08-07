@@ -1,4 +1,4 @@
-// A worklet processor for the WorkletSynthesizer
+// The core audio engine for the worker synthesizer.
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
@@ -12,225 +12,87 @@ import {
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
-    OfflineRenderWorkletData,
-    PassedProcessorParameters,
     SynthesizerReturnInitializedType
 } from "../types.ts";
-import type {
-    SequencerOptions,
-    SequencerReturnMessage
-} from "../../sequencer/types.ts";
-import { MIDIData } from "../../sequencer/midi_data.ts";
-import { consoleColors } from "../../utils/other.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
 import { songChangeType } from "../../sequencer/enums.ts";
+import type { SequencerReturnMessage } from "../../sequencer/types.ts";
+import { MIDIData } from "../../sequencer/midi_data.ts";
 
-export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
+const BLOCK_SIZE = 128;
+
+type AudioChunk = [Float32Array, Float32Array];
+type AudioChunks = AudioChunk[];
+
+export class WorkerSynthesizerCore {
+    public readonly synthesizer: SpessaSynthProcessor;
+    public readonly sequencer: SpessaSynthSequencer;
+    protected postMessageToMainThread: (
+        data: BasicSynthesizerReturnMessage
+    ) => unknown;
     /**
-     * If the worklet is alive.
+     * The message port to the playback audio worklet.
      */
-    private alive = true;
+    protected workletMessagePort: MessagePort;
+    protected isRendering = true;
 
-    /**
-     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
-     */
-    private readonly oneOutputMode: boolean;
+    public constructor(
+        synthesizerConfiguration: {
+            sampleRate: number;
+            initialTime: number;
+        },
+        workletMessagePort: MessagePort,
+        mainThreadCallback: (m: BasicSynthesizerReturnMessage) => unknown
+    ) {
+        this.postMessageToMainThread = mainThreadCallback;
+        this.workletMessagePort = workletMessagePort;
+        this.workletMessagePort.onmessage = this.renderAndSendChunk.bind(this);
 
-    private readonly synthesizer: SpessaSynthProcessor;
-    private sequencer?: SpessaSynthSequencer;
-
-    /**
-     * Creates a new worklet synthesis system. contains all channels.
-     */
-    public constructor(options: {
-        processorOptions: PassedProcessorParameters;
-    }) {
-        super();
-        const opts = options.processorOptions;
-
-        this.oneOutputMode = opts.oneOutput;
-
-        // Prepare synthesizer connections
-        const postSyn = (m: BasicSynthesizerReturnMessage) => {
-            this.postMessageToMainThread(m);
-        };
-
-        /**
-         * Initialize the synthesis engine.
-         */
         this.synthesizer = new SpessaSynthProcessor(
-            sampleRate, // AudioWorkletGlobalScope
+            synthesizerConfiguration.sampleRate,
             {
-                effectsEnabled: !this.oneOutputMode, // One output mode disables effects
-                enableEventSystem: opts?.enableEventSystem, // Enable message port?
-                initialTime: currentTime // AudioWorkletGlobalScope, sync with audioContext time
+                initialTime: synthesizerConfiguration.initialTime
             }
         );
+        this.sequencer = new SpessaSynthSequencer(this.synthesizer);
+
         this.synthesizer.onEventCall = (event) => {
-            postSyn({
+            this.postMessageToMainThread({
                 type: "eventCall",
                 data: event
             });
         };
-
-        void this.synthesizer.processorInitialized.then(() => {
-            // Initialize the sequencer engine
-            this.sequencer = new SpessaSynthSequencer(this.synthesizer);
-
-            const postSeq = (m: SequencerReturnMessage) => {
-                this.postMessageToMainThread({
-                    type: "sequencerReturn",
-                    data: m
-                });
-            };
-
-            this.sequencer.onEventCall = (e) => {
-                if (e.type === "songListChange") {
-                    const songs = e.data.newSongList;
-                    const midiDatas = songs.map((s) => {
-                        return new MIDIData(s);
-                    });
-                    postSeq({
-                        type: e.type,
-                        data: { newSongList: midiDatas }
-                    });
-                    return;
-                }
-                postSeq(e);
-            };
-
-            // Receive messages from the main thread
-            this.port.onmessage = (e: MessageEvent<BasicSynthesizerMessage>) =>
-                this.handleMessage(e.data);
-            this.postReady("sf3decoder");
-        });
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * The audio worklet processing logic
-     * @param _inputs required by WebAudioAPI
-     * @param outputs the outputs to write to, only the first two channels of each are populated
-     * @returns true unless it's not alive
-     */
-    public process(
-        _inputs: Float32Array[][],
-        outputs: Float32Array[][]
-    ): boolean {
-        if (!this.alive || !this.sequencer) {
-            return false;
-        }
-        // Process sequencer
-        this.sequencer.processTick();
-
-        if (this.oneOutputMode) {
-            const out = outputs[0];
-            // 1 output with 32 channels.
-            // Channels are ordered as follows:
-            // MidiChannel1L, midiChannel1R,
-            // MidiChannel2L, midiChannel2R
-            // And so on
-            const channelMap: Float32Array[][] = [];
-            for (let i = 0; i < 32; i += 2) {
-                channelMap.push([out[i], out[i + 1]]);
-            }
-            this.synthesizer.renderAudioSplit(
-                [],
-                [], // Effects are disabled
-                channelMap
-            );
-        } else {
-            // 18 outputs, each a stereo one
-            // 0: reverb
-            // 1: chorus
-            // 2: channel 1
-            // 3: channel 2
-            // And so on
-            this.synthesizer.renderAudioSplit(
-                outputs[0], // Reverb
-                outputs[1], // Chorus
-                outputs.slice(2)
-            );
-        }
-        return true;
-    }
-
-    private startOfflineRender(config: OfflineRenderWorkletData) {
-        if (!this.sequencer) {
-            return;
-        }
-
-        // Load the bank list
-        config.soundBankList.forEach((b, i) => {
-            try {
-                this.synthesizer.soundBankManager.addSoundBank(
-                    SoundBankLoader.fromArrayBuffer(b.soundBankBuffer),
-                    `bank-${i}`,
-                    b.bankOffset
-                );
-            } catch (e) {
-                this.postMessageToMainThread({
-                    type: "soundBankError",
-                    data: e as Error
-                });
-            }
-        });
-
-        if (config.snapshot !== undefined) {
-            this.synthesizer.applySynthesizerSnapshot(config.snapshot);
-        }
-
-        // If sent, start rendering
-        util.SpessaSynthInfo(
-            "%cRendering enabled! Starting render.",
-            consoleColors.info
-        );
-        this.sequencer.loopCount = config.loopCount;
-        // Set voice cap to unlimited
-        this.synthesizer.setMasterParameter("voiceCap", Infinity);
-
-        /**
-         * Set options
-         */
-        const seqOptions: SequencerOptions = fillWithDefaults(
-            config.sequencerOptions,
-            DEFAULT_SEQUENCER_OPTIONS
-        );
-        this.sequencer.skipToFirstNoteOn = seqOptions.skipToFirstNoteOn;
-        this.sequencer.playbackRate = seqOptions.initialPlaybackRate;
-        // Autoplay is ignored
-        try {
-            // Cloned objects don't have methods
-            this.sequencer.loadNewSongList([
-                BasicMIDI.copyFrom(config.midiSequence)
-            ]);
-            this.sequencer.play();
-        } catch (e) {
-            console.error(e);
+        const postSeq = (m: SequencerReturnMessage) => {
             this.postMessageToMainThread({
                 type: "sequencerReturn",
-                data: {
-                    type: "midiError",
-                    data: e as Error
-                }
+                data: m
             });
-        }
-        this.postReady("startOfflineRender");
-    }
+        };
 
-    private postReady(data: SynthesizerReturnInitializedType) {
-        this.postMessageToMainThread({
-            type: "isFullyInitialized",
-            data
+        this.sequencer.onEventCall = (e) => {
+            if (e.type === "songListChange") {
+                const songs = e.data.newSongList;
+                const midiDatas = songs.map((s) => {
+                    return new MIDIData(s);
+                });
+                postSeq({
+                    type: e.type,
+                    data: { newSongList: midiDatas }
+                });
+                return;
+            }
+            postSeq(e);
+        };
+        this.synthesizer.processorInitialized.then(() => {
+            this.postReady("sf3decoder");
+            this.renderAndSendChunk();
         });
     }
 
-    private postMessageToMainThread(data: BasicSynthesizerReturnMessage) {
-        this.port.postMessage(data);
-    }
-
-    private handleMessage(m: BasicSynthesizerMessage) {
+    /**
+     * Handles a message received from the main thread.
+     * @param m The message received.
+     */
+    public async handleMessage(m: BasicSynthesizerMessage) {
         const channel = m.channelNumber;
 
         let channelObject:
@@ -342,13 +204,12 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
                 break;
 
             case "startOfflineRender":
-                this.startOfflineRender(m.data);
-                break;
+                this.killWorklet();
+                throw new Error(
+                    "StartOfflineRender is not supported in the WorkerSynthesizer."
+                );
 
             case "sequencerSpecific": {
-                if (!this.sequencer) {
-                    return;
-                }
                 const seq = this.sequencer;
                 const seqMsg = m.data;
                 switch (seqMsg.type) {
@@ -520,14 +381,62 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
                 break;
 
             case "destroyWorklet":
-                this.alive = false;
                 this.synthesizer.destroySynthProcessor();
-                delete this.sequencer;
+                this.killWorklet();
                 break;
 
             default:
                 util.SpessaSynthWarn("Unrecognized event!", m);
                 break;
         }
+    }
+
+    protected killWorklet() {
+        // Null indicates end of life
+        this.workletMessagePort.postMessage(null);
+        this.isRendering = false;
+    }
+
+    protected renderAndSendChunk() {
+        if (!this.isRendering) {
+            return;
+        }
+        // Data is encoded into a single f32 array as follows
+        // RevL, revR
+        // ChrL, chrR,
+        // Dry1L, dry1R
+        // DryNL, dryNR
+        // Dry16L, dry16R
+        // To improve performance
+        const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
+        const data = new Float32Array(BLOCK_SIZE * 36);
+        let byteOffset = 0;
+        const revR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        byteOffset += byteStep;
+        const revL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const rev = [revL, revR];
+        byteOffset += byteStep;
+        const chrL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        byteOffset += byteStep;
+        const chrR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const chr = [chrL, chrR];
+        const dry: AudioChunks = [];
+        for (let i = 0; i < 16; i++) {
+            byteOffset += byteStep;
+            const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+            byteOffset += byteStep;
+            const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+            dry.push([dryL, dryR]);
+        }
+        this.sequencer.processTick();
+        this.synthesizer.renderAudioSplit(rev, chr, dry);
+        this.workletMessagePort.postMessage(data, [data.buffer]);
+    }
+
+    protected postReady(data: SynthesizerReturnInitializedType) {
+        this.postMessageToMainThread({
+            type: "isFullyInitialized",
+            data
+        });
     }
 }

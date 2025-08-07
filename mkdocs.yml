@@ -84,6 +84,7 @@ nav:
           - Examples:
               - getting-started/simple-example.md
               - getting-started/advanced-example.md
+              - getting-started/worker-synth-example.md
               - getting-started/piano-example.md
               - getting-started/visualizer-example.md
               - getting-started/render-audio-example.md
@@ -92,6 +93,7 @@ nav:
           - synthesizer/index.md
           - synthesizer/basic-synthesizer.md
           - synthesizer/worklet-synthesizer.md
+          - synthesizer/worker-synthesizer.md
           - Managers:
               - synthesizer/sound-bank-manager.md
               - synthesizer/key-modifier-manager.md

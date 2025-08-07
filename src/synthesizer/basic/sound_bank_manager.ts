@@ -2,7 +2,10 @@ import {
     type SoundBankManagerListEntry,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
-import type { WorkletMessage, WorkletSBKManagerData } from "../types.ts";
+import type {
+    BasicSynthesizerMessage,
+    WorkletSBKManagerData
+} from "../types.ts";
 import type { BasicSynthesizer } from "./basic_synthesizer.ts";
 
 type LibSBKManagerEntry = Omit<SoundBankManagerListEntry, "soundBank">;
@@ -110,7 +113,7 @@ export class SoundBankManager {
         data: WorkletSBKManagerData[T],
         transferable: Transferable[] = []
     ) {
-        const msg: WorkletMessage = {
+        const msg: BasicSynthesizerMessage = {
             type: "soundBankManager",
             channelNumber: -1,
             data: {
@@ -123,6 +126,6 @@ export class SoundBankManager {
                 };
             }[keyof WorkletSBKManagerData]
         };
-        this.synth.worklet.port.postMessage(msg, transferable);
+        this.synth.post(msg, transferable);
     }
 }

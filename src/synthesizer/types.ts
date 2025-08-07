@@ -15,7 +15,9 @@ import type {
 } from "../sequencer/types";
 
 export interface PassedProcessorParameters {
-    midiChannels: number;
+    /**
+     * If the synthesizer should send events.
+     */
     enableEventSystem: boolean;
     /**
      * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
@@ -76,15 +78,20 @@ export interface WorkletKMManagerData {
     clearMappings: null;
 }
 
-export type WorkletMessage = {
-    [K in keyof WorkletMessageData]: {
+export type BasicSynthesizerMessage = {
+    [K in keyof BasicSynthesizerMessageData]: {
         channelNumber: number;
         type: K;
-        data: WorkletMessageData[K];
+        data: BasicSynthesizerMessageData[K];
     };
-}[keyof WorkletMessageData];
+}[keyof BasicSynthesizerMessageData];
 
-interface WorkletMessageData {
+interface BasicSynthesizerMessageData {
+    // Note: only applies for worker
+    workerInitialization: {
+        sampleRate: number;
+        currentTime: number;
+    };
     midiMessage: {
         messageData: Uint8Array;
         channelOffset: number;
@@ -153,23 +160,23 @@ interface WorkletMessageData {
     destroyWorklet: null;
 }
 
-interface WorkletReturnMessageData {
+interface BasicSynthesizerReturnMessageData {
     eventCall: SynthProcessorEvent;
     sequencerReturn: SequencerReturnMessage;
     synthesizerSnapshot: SynthesizerSnapshot;
-    isFullyInitialized: WorkletInitializedType;
+    isFullyInitialized: SynthesizerReturnInitializedType;
     // An error message related to the sound bank. It contains a string description of the error.
     soundBankError: Error;
 }
 
-export type WorkletReturnMessage = {
-    [K in keyof WorkletReturnMessageData]: {
+export type BasicSynthesizerReturnMessage = {
+    [K in keyof BasicSynthesizerReturnMessageData]: {
         type: K;
-        data: WorkletReturnMessageData[K];
+        data: BasicSynthesizerReturnMessageData[K];
     };
-}[keyof WorkletReturnMessageData];
+}[keyof BasicSynthesizerReturnMessageData];
 
-export type WorkletInitializedType =
+export type SynthesizerReturnInitializedType =
     | "sf3decoder"
     | "soundBankManager"
     | "startOfflineRender";
