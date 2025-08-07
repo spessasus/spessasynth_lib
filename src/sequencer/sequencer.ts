@@ -17,7 +17,7 @@ import type {
     WorkletSequencerEventType
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
-import type { BasicSynthesizer } from "../synthesizer/basic_synthesizer.ts";
+import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
 
 // noinspection JSUnusedGlobalSymbols
 export class Sequencer {

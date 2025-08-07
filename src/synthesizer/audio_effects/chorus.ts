@@ -3,6 +3,8 @@
  * purpose: creates a simple chorus effect node
  */
 import type { ChorusConfig } from "./types";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { BasicEffectsProcessor } from "./basic_effects_processor.ts";
 
 interface ChorusNode {
     oscillator: OscillatorNode;
@@ -26,33 +28,35 @@ export const DEFAULT_CHORUS_CONFIG: ChorusConfig = {
     stereoDifference: STEREO_DIFF,
     oscillatorFrequency: OSC_FREQ,
     oscillatorFrequencyVariation: OSC_FREQ_VARIATION,
-    oscillatorGain: OSC_GAIN
+    oscillatorGain: OSC_GAIN,
+    enabled: true
 };
 
-export class FancyChorus {
-    // The input of the processor.
-    public input: AudioNode;
-
-    private merger: ChannelMergerNode;
-    private chorusLeft: ChorusNode[];
-    private chorusRight: ChorusNode[];
+export class ChorusProcessor extends BasicEffectsProcessor {
+    private readonly chorusLeft: ChorusNode[] = [];
+    private readonly chorusRight: ChorusNode[] = [];
 
     /**
      * Creates a fancy chorus effect.
-     * @param output The target output node.
+     * @param context The audio context.
      * @param config The configuration for the chorus.
      */
     public constructor(
-        output: AudioNode,
-        config: ChorusConfig = DEFAULT_CHORUS_CONFIG
+        context: BaseAudioContext,
+        config: Partial<ChorusConfig> = DEFAULT_CHORUS_CONFIG
     ) {
-        const context = output.context;
+        super(context.createChannelSplitter(2), context.createChannelMerger(2));
 
-        this.input = context.createChannelSplitter(2);
+        this.update(config);
+    }
 
-        const merger = context.createChannelMerger(2);
-        const chorusNodesLeft: ChorusNode[] = [];
-        const chorusNodesRight: ChorusNode[] = [];
+    /**
+     * Updates the chorus with a given config.
+     * @param chorusConfig The config to use.
+     */
+    public update(chorusConfig: Partial<ChorusConfig>) {
+        this.deleteNodes();
+        const config = fillWithDefaults(chorusConfig, DEFAULT_CHORUS_CONFIG);
         let freq = config.oscillatorFrequency;
         let delay = config.defaultDelay;
         for (let i = 0; i < config.nodesAmount; i++) {
@@ -60,32 +64,25 @@ export class FancyChorus {
             this.createChorusNode(
                 freq,
                 delay,
-                chorusNodesLeft,
+                this.chorusLeft,
                 0,
-                merger,
+                this.output,
                 0,
-                context,
                 config
             );
             // Right node
             this.createChorusNode(
                 freq,
                 delay + config.stereoDifference,
-                chorusNodesRight,
+                this.chorusRight,
                 1,
-                merger,
+                this.output,
                 1,
-                context,
                 config
             );
             freq += config.oscillatorFrequencyVariation;
             delay += config.delayVariation;
         }
-
-        merger.connect(output);
-        this.merger = merger;
-        this.chorusLeft = chorusNodesLeft;
-        this.chorusRight = chorusNodesRight;
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -93,20 +90,25 @@ export class FancyChorus {
      * Disconnects and deletes the chorus effect.
      */
     public delete() {
-        this.input.disconnect();
-        this.merger.disconnect();
-        for (const chorusLeftElement of this.chorusLeft) {
-            chorusLeftElement.delay.disconnect();
-            chorusLeftElement.oscillator.disconnect();
-            chorusLeftElement.oscillatorGain.disconnect();
+        super.delete();
+        this.deleteNodes();
+    }
+
+    private deleteNodes() {
+        for (const node of this.chorusLeft) {
+            node.delay.disconnect();
+            node.oscillator.disconnect();
+            node.oscillator.stop();
+            node.oscillatorGain.disconnect();
         }
-        for (const chorusRightElement of this.chorusRight) {
-            chorusRightElement.delay.disconnect();
-            chorusRightElement.oscillator.disconnect();
-            chorusRightElement.oscillatorGain.disconnect();
+        for (const node of this.chorusRight) {
+            node.delay.disconnect();
+            node.oscillator.disconnect();
+            node.oscillator.stop();
+            node.oscillatorGain.disconnect();
         }
-        this.chorusLeft = [];
-        this.chorusRight = [];
+        this.chorusLeft.length = 0;
+        this.chorusRight.length = 0;
     }
 
     private createChorusNode(
@@ -116,9 +118,9 @@ export class FancyChorus {
         input: number,
         output: AudioNode,
         outputNum: number,
-        context: BaseAudioContext,
         config: ChorusConfig
     ) {
+        const context = output.context;
         const oscillator = context.createOscillator();
         oscillator.type = "sine";
         oscillator.frequency.value = freq;

@@ -13,7 +13,8 @@ document.getElementById("sound_bank_input").onchange = async (e) => {
     const context = new AudioContext();
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
     // create the synthesizer
-    const synth = new WorkletSynthesizer(context.destination);
+    const synth = new WorkletSynthesizer(context);
+    synth.connect(context.destination);
     await synth.isReady;
     await synth.soundBankManager.addSoundBank(sfFile, "main");
     // create a 36-key piano

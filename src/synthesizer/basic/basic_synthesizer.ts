@@ -15,17 +15,21 @@ import {
     SynthesizerSnapshot,
     type SynthMethodOptions
 } from "spessasynth_core";
-import type { SequencerReturnMessage } from "../sequencer/types.ts";
-import type { ChorusConfig, SynthConfig } from "./audio_effects/types.ts";
+import type { SequencerReturnMessage } from "../../sequencer/types.ts";
+import type { SynthConfig } from "../audio_effects/types.ts";
 import {
-    DEFAULT_CHORUS_CONFIG,
-    FancyChorus
-} from "./audio_effects/fancy_chorus.ts";
-import { DEFAULT_SYNTH_CONFIG } from "./audio_effects/effects_config.ts";
-import type { WorkletMessage, WorkletReturnMessage } from "./types.ts";
-import { consoleColors } from "../utils/other.ts";
-import { fillWithDefaults } from "../utils/fill_with_defaults.ts";
-import { getReverbProcessor } from "./audio_effects/reverb.ts";
+    ChorusProcessor,
+    DEFAULT_CHORUS_CONFIG
+} from "../audio_effects/chorus.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
+import type {
+    WorkletInitializedType,
+    WorkletMessage,
+    WorkletReturnMessage
+} from "../types.ts";
+import { consoleColors } from "../../utils/other.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { ReverbProcessor } from "../audio_effects/reverb.ts";
 import { LibSynthesizerSnapshot } from "./snapshot.ts";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
@@ -67,31 +71,25 @@ export abstract class BasicSynthesizer {
      */
     public readonly isReady: Promise<unknown>;
     // Effects configuration for the synthesizer.
-    public synthConfig: SynthConfig;
+    public readonly synthConfig: SynthConfig;
     /**
      * Synthesizer's reverb processor.
      * Undefined if reverb is disabled.
      */
-    public readonly reverbProcessor?: ConvolverNode;
+    public readonly reverbProcessor?: ReverbProcessor;
     /**
      * Synthesizer's chorus processor.
      * Undefined if chorus is disabled.
      */
-    public chorusProcessor?: FancyChorus;
+    public chorusProcessor?: ChorusProcessor;
 
     // Initialize internal promise resolution
-    public resolveWhenReady?: (...args: unknown[]) => unknown = undefined;
     public readonly worklet: AudioWorkletNode;
     // INTERNAL USE ONLY!
     public readonly post: (
         data: WorkletMessage,
         transfer?: Transferable[]
     ) => unknown;
-    /**
-     * Synthesizer's output node.
-     */
-    protected readonly targetNode: AudioNode;
-    protected _destroyed = false;
     /**
      * The new channels will have their audio sent to the modulated output by this constant.
      * what does that mean?
@@ -106,15 +104,17 @@ export abstract class BasicSynthesizer {
     protected readonly masterParameters: MasterParameterType = {
         ...DEFAULT_MASTER_PARAMETERS
     };
-    // Internal resolve for "isReady"
-    protected isProcessorReady?: (value: unknown) => void;
+    // Resolve map, waiting for the worklet to confirm the operation
+    protected resolveMap = new Map<
+        WorkletInitializedType,
+        (...args: unknown[]) => void
+    >();
 
     /**
      * Creates a new instance of a synthesizer.
      * @param worklet The AudioWorkletNode to use.
      * @param postFunction The internal post function.
-     * @param targetNode The target node to connect to.
-     * @param config Optional configuration for the synthesizer.
+     * @param synthConfig Optional configuration for the synthesizer.
      */
     protected constructor(
         worklet: AudioWorkletNode,
@@ -122,23 +122,18 @@ export abstract class BasicSynthesizer {
             data: WorkletMessage,
             transfer?: Transferable[]
         ) => unknown,
-        targetNode: AudioNode,
-        config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
+        synthConfig: SynthConfig
     ) {
         util.SpessaSynthInfo(
             "%cInitializing SpessaSynth synthesizer...",
             consoleColors.info
         );
-        this.context = targetNode.context;
-        this.targetNode = targetNode;
+        this.context = worklet.context;
         this.worklet = worklet;
         this.post = postFunction;
 
-        // Ensure default values for options
-        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
-
-        this.isReady = new Promise(
-            (resolve) => (this.isProcessorReady = resolve)
+        this.isReady = new Promise((resolve) =>
+            this.awaitWorkletResponse("sf3decoder", resolve)
         );
 
         // Initialize effects configuration
@@ -149,28 +144,30 @@ export abstract class BasicSynthesizer {
             this.handleMessage(e.data);
 
         // Connect worklet outputs
-        const reverbOn = this.synthConfig?.effectsConfig?.reverbEnabled ?? true;
-        const chorusOn = this.synthConfig?.effectsConfig?.chorusEnabled ?? true;
+        const effectsOn = this.synthConfig.effects.enabled;
+        const reverbOn = this.synthConfig.effects.reverb.enabled && effectsOn;
+        const chorusOn = this.synthConfig.effects.chorus.enabled && effectsOn;
         if (reverbOn) {
-            const proc = getReverbProcessor(
+            this.reverbProcessor = new ReverbProcessor(
                 this.context,
-                this.synthConfig.effectsConfig.reverbImpulseResponse
+                this.synthConfig.effects.reverb
             );
-            this.reverbProcessor = proc.conv;
-            this.isReady = Promise.all([this.isReady, proc.promise]);
-            this.reverbProcessor.connect(targetNode);
-            this.worklet.connect(this.reverbProcessor, 0);
+            this.isReady = Promise.all([
+                this.isReady,
+                this.reverbProcessor.isReady
+            ]);
+            this.worklet.connect(this.reverbProcessor.input, 0);
         }
         if (chorusOn) {
             const chorusConfig = fillWithDefaults(
-                this.synthConfig.effectsConfig.chorusConfig,
+                this.synthConfig.effects.chorus,
                 DEFAULT_CHORUS_CONFIG
             );
-            this.chorusProcessor = new FancyChorus(targetNode, chorusConfig);
+            this.chorusProcessor = new ChorusProcessor(
+                this.context,
+                chorusConfig
+            );
             this.worklet.connect(this.chorusProcessor.input, 1);
-        }
-        for (let i = 2; i < this.channelsAmount + 2; i++) {
-            this.worklet.connect(targetNode, i);
         }
 
         // Create initial channels
@@ -235,6 +232,40 @@ export abstract class BasicSynthesizer {
      */
     public get currentTime() {
         return this.context.currentTime;
+    }
+
+    /**
+     * Connects from a given node.
+     * @param destinationNode The node to connect to.
+     */
+    public connect(destinationNode: AudioNode) {
+        this.reverbProcessor?.connect(destinationNode);
+        this.chorusProcessor?.connect(destinationNode);
+        //Connect all other worklet outputs
+        for (let i = 2; i < this.channelsAmount + 2; i++) {
+            this.worklet.connect(destinationNode, i);
+        }
+        return destinationNode;
+    }
+
+    /**
+     * Disconnects from a given node.
+     * @param destinationNode The node to disconnect from.
+     */
+    public disconnect(destinationNode?: AudioNode) {
+        if (!destinationNode) {
+            this.reverbProcessor?.disconnect();
+            this.chorusProcessor?.disconnect();
+            this.worklet.disconnect();
+            return undefined;
+        }
+        this.reverbProcessor?.disconnect(destinationNode);
+        this.chorusProcessor?.disconnect(destinationNode);
+        // Disconnect all other worklet outputs
+        for (let i = 2; i < this.channelsAmount + 2; i++) {
+            this.worklet.disconnect(destinationNode, i);
+        }
+        return destinationNode;
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -309,7 +340,7 @@ export abstract class BasicSynthesizer {
                     s.channelSnapshots,
                     s.masterParameters,
                     s.keyMappings,
-                    this.synthConfig.effectsConfig
+                    this.synthConfig.effects
                 );
                 resolve(snapshot);
             };
@@ -751,62 +782,6 @@ export abstract class BasicSynthesizer {
         });
     }
 
-    /**
-     * Updates the reverb processor with a new impulse response.
-     * @param buffer the new reverb impulse response.
-     */
-    public setReverbResponse(buffer: AudioBuffer) {
-        if (!this.reverbProcessor) {
-            throw new Error(
-                "Attempted to change reverb response without reverb being enabled."
-            );
-        }
-        this.reverbProcessor.buffer = buffer;
-        this.synthConfig.effectsConfig.reverbImpulseResponse = buffer;
-    }
-
-    /**
-     * Updates the chorus processor parameters.
-     * @param config the new chorus.
-     */
-    public setChorusConfig(config: Partial<ChorusConfig>) {
-        if (!this.chorusProcessor) {
-            throw new Error(
-                "Attempted to change chorus config without chorus being enabled."
-            );
-        }
-        const fullConfig = fillWithDefaults(config, DEFAULT_CHORUS_CONFIG);
-        this.worklet.disconnect(this.chorusProcessor.input);
-        this.chorusProcessor.delete();
-        delete this.chorusProcessor;
-        this.chorusProcessor = new FancyChorus(this.targetNode, fullConfig);
-        this.worklet.connect(this.chorusProcessor.input, 1);
-        this.synthConfig.effectsConfig.chorusConfig = fullConfig;
-    }
-
-    /**
-     * Destroys the synthesizer instance.
-     */
-    public destroy() {
-        this.reverbProcessor?.disconnect();
-        this.chorusProcessor?.delete();
-        // noinspection JSCheckFunctionSignatures
-        this.post({
-            channelNumber: 0,
-            type: "destroyWorklet",
-            data: null
-        });
-        this.worklet.disconnect();
-        // @ts-expect-error destruction!
-        // noinspection JSConstantReassignment
-        delete this.worklet;
-        // @ts-expect-error destruction!
-        // noinspection JSConstantReassignment
-        delete this.reverbProcessor;
-        delete this.chorusProcessor;
-        this._destroyed = true;
-    }
-
     // noinspection JSUnusedGlobalSymbols
     /**
      * Yes please!
@@ -817,6 +792,18 @@ export abstract class BasicSynthesizer {
             this.lockController(i, midiControllers.reverbDepth, true);
         }
         return "That's the spirit!";
+    }
+
+    /**
+     * INTERNAL USE ONLY!
+     * @param type INTERNAL USE ONLY!
+     * @param resolve INTERNAL USE ONLY!
+     */
+    public awaitWorkletResponse(
+        type: WorkletInitializedType,
+        resolve: (...args: unknown[]) => void
+    ) {
+        this.resolveMap.set(type, resolve);
     }
 
     protected _sendInternal(
@@ -860,8 +847,7 @@ export abstract class BasicSynthesizer {
                 break;
 
             case "isFullyInitialized":
-                this.isProcessorReady?.(undefined);
-                this.resolveWhenReady?.();
+                this.workletResponds(m.data);
                 break;
 
             case "soundBankError":
@@ -890,5 +876,10 @@ export abstract class BasicSynthesizer {
             type: "addNewChannel",
             data: null
         });
+    }
+
+    protected workletResponds(type: WorkletInitializedType) {
+        this.resolveMap.get(type)?.();
+        this.resolveMap.delete(type);
     }
 }

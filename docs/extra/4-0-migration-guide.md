@@ -20,6 +20,16 @@ This page documents all the breaking changes in spessasynth_lib.
 All variables with `soundfont` in them have been renamed to use `soundBank` instead.
 This is done because spessasynth can load sound bank formats other than SoundFonts as well.
 
+## FancyChorus
+
+Renamed to `ChorusConfig`.
+
+Now includes `connect`, `disconnect` and `update` methods.
+
+## getReverbProcessor
+
+Removed, replaced with `ReverbProcessor`. The unified interface allows for implementing other types of reverb in the future.
+
 ## worklet_processor.min.js
 
 New location: `dist/worklet_processor.min.js`
@@ -37,8 +47,10 @@ This is done as another (`WorkerSynthesizer`) synthesizer is available.
 
 The constructor has been reworked. It now takes two parameters:
 
-- `targetNode`
+- `context`
 - `config`
+
+The synthesizer now has to be `connect`-ed or `disconnect`-ed instead of taking a target node at creation time.
 
 A few methods and properties have been renamed for consistency.
 They behave in exactly the same way.
@@ -50,7 +62,6 @@ They behave in exactly the same way.
 Reworked to take the new spessasynth_core master parameter strings.
 For more information, please visit [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
 
-
 #### transpose
 
 Removed, replaced with a `transpose` master parameter.
@@ -58,6 +69,18 @@ Removed, replaced with a `transpose` master parameter.
 #### soundBankManager
 
 The methods now match [spessasynth_core](https://spessasus.github.io/spessasynth_core/extra/4-0-migration-guide.html#sound-bank-manager).
+
+#### setEffectsGain
+
+Removed, replaced with master parameters.
+
+#### setChorusConfig
+
+Removed, replaced with `ChorusProcessor.update`
+
+#### setReverbImpulseResponse
+
+Removed, replaced with `ReverbProcessor.update`
 
 ### Sequencer
 

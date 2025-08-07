@@ -15,7 +15,8 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
     // create the context and add audio worklet
     const context = new AudioContext();
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
-    const synth = new WorkletSynthesizer(context.destination); // create the synthesizer
+    const synth = new WorkletSynthesizer(context); // create the synthesizer
+    synth.connect(context.destination);
     await synth.soundBankManager.addSoundBank(sfBuffer, "main");
     let seq = new Sequencer(synth);
 
@@ -24,10 +25,8 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
         .getElementById("midi_input")
         .addEventListener("change", async (event) => {
             // check if any files are added
-            /**
-             * @type {HTMLInputElement}
-             */
-            const target = event.target;
+
+            const target = /**  @type {HTMLInputElement}*/ event.target;
             if (target.files.length < 1) {
                 return;
             }
@@ -44,7 +43,6 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
             }
             seq.loadNewSongList(parsedSongs); // load the song list
             seq.play(); // play the midi
-            window.seq = seq;
 
             // make the slider move with the song
             let slider = document.getElementById("progress");

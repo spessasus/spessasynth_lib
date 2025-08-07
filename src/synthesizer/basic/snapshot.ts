@@ -4,7 +4,7 @@ import {
     type MasterParameterType,
     SynthesizerSnapshot
 } from "spessasynth_core";
-import type { EffectsConfig } from "./audio_effects/types";
+import type { EffectsConfig } from "../audio_effects/types.ts";
 
 // Extended synthesizer snapshot to contain effects
 export class LibSynthesizerSnapshot extends SynthesizerSnapshot {
@@ -19,5 +19,13 @@ export class LibSynthesizerSnapshot extends SynthesizerSnapshot {
     ) {
         super(channelSnapshots, masterParameters, keyMappings);
         this.effectsConfig = { ...effectsConfig };
+    }
+
+    public getRegularSnapshot(): SynthesizerSnapshot {
+        return new SynthesizerSnapshot(
+            [...this.channelSnapshots],
+            { ...this.masterParameters },
+            [...this.keyMappings]
+        );
     }
 }

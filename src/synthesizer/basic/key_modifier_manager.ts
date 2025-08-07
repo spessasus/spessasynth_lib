@@ -1,5 +1,5 @@
 import { KeyModifier } from "spessasynth_core";
-import type { WorkletKMManagerData } from "./types";
+import type { WorkletKMManagerData } from "../types.ts";
 import type { BasicSynthesizer } from "./basic_synthesizer.ts";
 
 export class WorkletKeyModifierManagerWrapper {

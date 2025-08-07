@@ -17,20 +17,21 @@ import type {
 export interface PassedProcessorParameters {
     midiChannels: number;
     enableEventSystem: boolean;
+    /**
+     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
+     */
+    oneOutput: boolean;
 }
-export interface StartRenderingDataConfig {
+
+export interface OfflineRenderWorkletData {
     /**
      * The MIDI to render.
      */
     midiSequence: BasicMIDI;
     /**
-     * The snapshot to apply.*
+     * The snapshot to apply.
      */
     snapshot?: SynthesizerSnapshot;
-    /**
-     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
-     */
-    oneOutput: boolean;
     /**
      * The amount times to loop the song.
      */
@@ -39,7 +40,10 @@ export interface StartRenderingDataConfig {
     /**
      * The list of sound banks to render this file with.
      */
-    soundBankList: ArrayBuffer[];
+    soundBankList: {
+        bankOffset: number;
+        soundBankBuffer: ArrayBuffer;
+    }[];
 
     /**
      * The options to pass to the sequencer.
@@ -53,11 +57,12 @@ export interface WorkletSBKManagerData {
         id: string;
         bankOffset: number;
     };
-    // Id<string>
+    // ID<string>
     deleteSoundBank: string;
     // NewOrder<string[]> // where string is the id
     rearrangeSoundBanks: string[];
 }
+
 export interface WorkletKMManagerData {
     addMapping: {
         channel: number;
@@ -125,7 +130,7 @@ interface WorkletMessageData {
         enableGroup: boolean;
     };
 
-    startOfflineRender: StartRenderingDataConfig;
+    startOfflineRender: OfflineRenderWorkletData;
 
     setMasterParameter: {
         [K in keyof MasterParameterType]: {
@@ -152,7 +157,7 @@ interface WorkletReturnMessageData {
     eventCall: SynthProcessorEvent;
     sequencerReturn: SequencerReturnMessage;
     synthesizerSnapshot: SynthesizerSnapshot;
-    isFullyInitialized: null;
+    isFullyInitialized: WorkletInitializedType;
     // An error message related to the sound bank. It contains a string description of the error.
     soundBankError: Error;
 }
@@ -163,3 +168,8 @@ export type WorkletReturnMessage = {
         data: WorkletReturnMessageData[K];
     };
 }[keyof WorkletReturnMessageData];
+
+export type WorkletInitializedType =
+    | "sf3decoder"
+    | "soundBankManager"
+    | "startOfflineRender";

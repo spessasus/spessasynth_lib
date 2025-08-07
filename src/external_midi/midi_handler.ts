@@ -1,7 +1,7 @@
 import { SpessaSynthCoreUtils as util } from "spessasynth_core";
 import { consoleColors } from "../utils/other.js";
 import type { Sequencer } from "../sequencer/sequencer";
-import type { BasicSynthesizer } from "../synthesizer/basic_synthesizer.ts";
+import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
 
 /**
  * Midi_handler.js

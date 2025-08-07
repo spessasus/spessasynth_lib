@@ -4,7 +4,7 @@ import {
     SpessaSynthProcessor,
     SpessaSynthSequencer
 } from "spessasynth_core";
-import { FancyChorus, getReverbProcessor } from "../../src/index.ts"; // this demo shows how to render in the main thread in real time
+import { ChorusProcessor, ReverbProcessor } from "../../src/index.ts"; // this demo shows how to render in the main thread in real time
 
 // this demo shows how to render in the main thread in real time
 // use firefox for this, chromium poorly handles audio buffers being used like this
@@ -17,7 +17,10 @@ const context = new AudioContext({
 
 // wait for the user to upload the sound bank
 document.getElementById("sound_bank_input").onchange = async (e) => {
-    // if no file is selected, exit early
+    /**
+     * if no file is selected, exit early
+     * @type {FileList}
+     */
     const files = e.target?.files;
     if (!files[0]) {
         return;
@@ -40,9 +43,10 @@ document.getElementById("sound_bank_input").onchange = async (e) => {
     const seq = new SpessaSynthSequencer(synth);
 
     // initialize the audio effects and connect them to the destination
-    const chorusProcessor = new FancyChorus(context.destination);
-    const reverbProcessor = getReverbProcessor(context).conv;
+    const chorusProcessor = new ChorusProcessor(context);
+    const reverbProcessor = new ReverbProcessor(context);
     reverbProcessor.connect(context.destination);
+    chorusProcessor.connect(context.destination);
 
     // THE MAIN AUDIO RENDERING LOOP IS HERE
     setInterval(() => {
@@ -103,7 +107,7 @@ document.getElementById("sound_bank_input").onchange = async (e) => {
         playAudio(output, context.destination);
 
         // play the reverb signal through the reverb effect chain
-        playAudio(reverb, reverbProcessor);
+        playAudio(reverb, reverbProcessor.input);
 
         // play the chorus signal through the chorus processor’s input
         playAudio(chorus, chorusProcessor.input);

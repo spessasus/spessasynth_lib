@@ -2,7 +2,7 @@ import {
     type SoundBankManagerListEntry,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
-import type { WorkletMessage, WorkletSBKManagerData } from "./types";
+import type { WorkletMessage, WorkletSBKManagerData } from "../types.ts";
 import type { BasicSynthesizer } from "./basic_synthesizer.ts";
 
 type LibSBKManagerEntry = Omit<SoundBankManagerListEntry, "soundBank">;
@@ -100,7 +100,9 @@ export class SoundBankManager {
     }
 
     private async awaitResponse() {
-        return new Promise((r) => (this.synth.resolveWhenReady = r));
+        return new Promise((r) =>
+            this.synth.awaitWorkletResponse("soundBankManager", r)
+        );
     }
 
     private sendToWorklet<T extends keyof WorkletSBKManagerData>(

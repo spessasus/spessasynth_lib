@@ -1,14 +1,18 @@
-import { DEFAULT_CHORUS_CONFIG } from "./fancy_chorus.js";
-import type { SynthConfig } from "./types";
+import { DEFAULT_CHORUS_CONFIG } from "./chorus.js";
+import type { ReverbConfig, SynthConfig } from "./types";
+
+export const DEFAULT_REVERB_CONFIG: ReverbConfig = {
+    enabled: true,
+    impulseResponse: undefined // Will load the integrated one
+};
 
 export const DEFAULT_SYNTH_CONFIG: SynthConfig = {
-    effectsConfig: {
-        chorusEnabled: true,
-        chorusConfig: DEFAULT_CHORUS_CONFIG,
+    effects: {
+        enabled: true,
+        chorus: DEFAULT_CHORUS_CONFIG,
 
-        reverbEnabled: true,
-        reverbImpulseResponse: undefined // Will load the integrated one
+        reverb: DEFAULT_REVERB_CONFIG
     },
-    audioNodeCreators: undefined,
-    enableEffectsSystem: true
+    oneOutput: false,
+    audioNodeCreators: undefined
 };

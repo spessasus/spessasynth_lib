@@ -1,28 +1,48 @@
-import { reverbBufferBinary } from "./reverb_as_binary.js";
+import { reverbBufferBinary } from "./compressed_reverb_decoder.js";
+import { BasicEffectsProcessor } from "./basic_effects_processor.ts";
+import type { ReverbConfig } from "./types.ts";
+import { DEFAULT_REVERB_CONFIG } from "./effects_config.ts";
 
-/**
- * Creates a reverb processor.
- * @returns The convolver node and a promise for when the audio buffer gets set.
- */
-export function getReverbProcessor(
-    context: BaseAudioContext,
-    reverbBuffer: AudioBuffer | undefined = undefined
-): { conv: ConvolverNode; promise: Promise<AudioBuffer> } {
-    let solve: (() => void) | undefined;
-    let promise = new Promise<AudioBuffer>((r) => (solve = r as () => unknown));
-    const convolver = context.createConvolver();
-    if (reverbBuffer && typeof solve !== "undefined") {
-        convolver.buffer = reverbBuffer;
-        solve();
-    } else {
-        // Decode
-        promise = context.decodeAudioData(reverbBufferBinary.slice(0));
-        void promise.then((b) => {
-            convolver.buffer = b;
-        });
+export class ReverbProcessor extends BasicEffectsProcessor {
+    /**
+     * Indicates that the reverb is ready.
+     */
+    public readonly isReady: Promise<AudioBuffer>;
+    private conv: ConvolverNode;
+
+    /**
+     * Creates a new reverb processor.
+     * @param context The context to use.
+     * @param config The reverb configuration.
+     */
+    public constructor(
+        context: BaseAudioContext,
+        config: Partial<ReverbConfig> = DEFAULT_REVERB_CONFIG
+    ) {
+        const convolver = context.createConvolver();
+        super(convolver, convolver);
+        this.conv = convolver;
+        const reverbBuffer = config.impulseResponse;
+        if (reverbBuffer) {
+            convolver.buffer = reverbBuffer;
+            this.isReady = new Promise<AudioBuffer>((r) => r(reverbBuffer));
+        } else {
+            // Decode
+            this.isReady = context.decodeAudioData(reverbBufferBinary.slice(0));
+            void this.isReady.then((b) => {
+                convolver.buffer = b;
+            });
+        }
     }
-    return {
-        conv: convolver,
-        promise: promise
-    };
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Updates the reverb with a given config.
+     * @param config The config to use.
+     */
+    public update(config: Partial<ReverbConfig>) {
+        if (config.impulseResponse) {
+            this.conv.buffer = config.impulseResponse;
+        }
+    }
 }

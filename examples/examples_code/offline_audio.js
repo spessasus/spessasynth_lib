@@ -3,7 +3,13 @@ import { audioBufferToWav, WorkletSynthesizer } from "../../src/index.ts";
 import { EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 import { BasicMIDI } from "spessasynth_core";
 
+/**
+ * @type {ArrayBuffer}
+ */
 let sfFile = undefined;
+/**
+ * @type {BasicMIDI}
+ */
 let parsedMIDI = undefined;
 
 document.getElementById("midi_input").onchange = async (event) => {
@@ -60,13 +66,14 @@ document.getElementById("render").onclick = async () => {
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
 
     // here we disable the event system to as it's unnecessary
-    const synth = new WorkletSynthesizer(context.destination, {
+    const synth = new WorkletSynthesizer(context, {
         enableEffectsSystem: false
     });
+    synth.connect(context.destination);
 
     // start the offline render
-    synth.startOfflineRender({
-        soundBankList: [sfFile],
+    await synth.startOfflineRender({
+        soundBankList: [{ bankOffset: 0, soundBankBuffer: sfFile }],
         midiSequence: parsedMIDI,
         loopCount: 0
     });

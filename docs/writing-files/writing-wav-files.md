@@ -10,7 +10,7 @@ const file = audioBufferToWav(audioBuffer, normalizeAudio = true, channelOffset 
 - `normalizeAudio` - optional `boolean` - if true, the gain of the entire song will be adjusted, so the max sample is always 32,767 or min is always -32,768 (whichever is greater). Recommended.
 - `channelOffset` - optional `number` - if the buffer has more than two channels,
 you can specify the channel offset to use.
-This is especially useful in [one output mode](../synthesizer/index.md#one-output-mode)
+This is especially useful in [one output mode](../synthesizer/basic-synthesizer.md#one-output-mode)
 - `metadata` - optional `Object` described below. All options are string and are optional:
   - `title` - the song's title
   - `artist` - the song's artist

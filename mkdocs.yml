@@ -90,10 +90,13 @@ nav:
               - getting-started/main-thread-rendering.md
       - Synthesizer:
           - synthesizer/index.md
-          - synthesizer/sound-bank-manager.md
-          - synthesizer/key-modifier-manager.md
+          - synthesizer/basic-synthesizer.md
+          - synthesizer/worklet-synthesizer.md
+          - Managers:
+              - synthesizer/sound-bank-manager.md
+              - synthesizer/key-modifier-manager.md
+              - synthesizer/synth-event-handler.md
           - synthesizer/importing-the-worklet.md
-          - synthesizer/synth-event-handler.md
           - Callback Event Types: https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/
       - Sequencer: sequencer/index.md
       - Web MIDI Support:

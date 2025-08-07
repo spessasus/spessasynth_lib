@@ -16,7 +16,7 @@ hide:
 ## spessasynth_lib documentation
 
 - [Getting started with spessasynth_lib](getting-started/index.md)
-- [WorkletSynthesizer](synthesizer/index.md) - Responsible for generating sound.
+- [WorkletSynthesizer](synthesizer/basic-synthesizer.md) - Responsible for generating sound.
 - [Sequencer](sequencer/index.md) - Responsible for playing the parsed MIDI sequence.
 - [Writing Wave files](writing-files/writing-wav-files.md) - How to write WAV files from `AudioBuffer`.
 - [NPM Exports](extra/all-npm-exports.md) - a listing of all the NPN exports in the `spessasynth_lib` NPM package.

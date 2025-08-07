@@ -52,7 +52,8 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
     const context = new AudioContext();
     await context.audioWorklet.addModule(EXAMPLE_WORKLET_PATH);
     // create the synthesizer
-    const synth = new WorkletSynthesizer(context.destination);
+    const synth = new WorkletSynthesizer(context);
+    synth.connect(context.destination);
     await synth.soundBankManager.addSoundBank(sfFile, "main");
     let seq = new Sequencer(synth);
 

@@ -14,8 +14,9 @@ import { songChangeType } from "./sequencer/enums.js";
 import { fillWithDefaults } from "./utils/fill_with_defaults.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./sequencer/default_sequencer_options.js";
 import type {
+    OfflineRenderWorkletData,
     PassedProcessorParameters,
-    StartRenderingDataConfig,
+    WorkletInitializedType,
     WorkletMessage,
     WorkletReturnMessage
 } from "./synthesizer/types";
@@ -50,7 +51,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
         const opts = options.processorOptions;
 
         // One output is indicated by setting midiChannels to 1
-        this.oneOutputMode = opts.midiChannels === 1;
+        this.oneOutputMode = opts.oneOutput;
 
         // Prepare synthesizer connections
         const postSyn = (m: WorkletReturnMessage) => {
@@ -105,11 +106,11 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
             // Receive messages from the main thread
             this.port.onmessage = (e: MessageEvent<WorkletMessage>) =>
                 this.handleMessage(e.data);
-            this.postReady();
+            this.postReady("sf3decoder");
         });
     }
 
-    public startRendering(config: StartRenderingDataConfig) {
+    public startOfflineRender(config: OfflineRenderWorkletData) {
         if (!this.sequencer) {
             return;
         }
@@ -118,8 +119,9 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
         config.soundBankList.forEach((b, i) => {
             try {
                 this.synthesizer.soundBankManager.addSoundBank(
-                    SoundBankLoader.fromArrayBuffer(b),
-                    `bank-${i}`
+                    SoundBankLoader.fromArrayBuffer(b.soundBankBuffer),
+                    `bank-${i}`,
+                    b.bankOffset
                 );
             } catch (e) {
                 this.postMessageToMainThread({
@@ -168,12 +170,13 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 }
             });
         }
+        this.postReady("startOfflineRender");
     }
 
-    public postReady() {
+    public postReady(data: WorkletInitializedType) {
         this.postMessageToMainThread({
             type: "isFullyInitialized",
-            data: null
+            data
         });
     }
 
@@ -293,7 +296,7 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                 break;
 
             case "startOfflineRender":
-                this.startRendering(m.data);
+                this.startOfflineRender(m.data);
                 break;
 
             case "sequencerSpecific": {
@@ -405,17 +408,17 @@ class WorkletSpessaProcessor extends AudioWorkletProcessor {
                                 sfManMsg.data.id,
                                 sfManMsg.data.bankOffset
                             );
-                            this.postReady();
+                            this.postReady("soundBankManager");
                             break;
 
                         case "deleteSoundBank":
                             sfManager.deleteSoundBank(sfManMsg.data);
-                            this.postReady();
+                            this.postReady("soundBankManager");
                             break;
 
                         case "rearrangeSoundBanks":
                             sfManager.priorityOrder = sfManMsg.data;
-                            this.postReady();
+                            this.postReady("soundBankManager");
                     }
                 } catch (e) {
                     this.postMessageToMainThread({

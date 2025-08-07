@@ -37,7 +37,7 @@ npm install --save spessasynth_lib
     If that happens, **please open an issue.**
 
 ## Minimal setup
-The minimal working setup requires [`WorkletSynthesizer` class](../synthesizer/index.md) and [adding the worklet module](../synthesizer/importing-the-worklet.md).
+The minimal working setup requires [`WorkletSynthesizer` class](../synthesizer/basic-synthesizer.md) and [adding the worklet module](../synthesizer/importing-the-worklet.md).
 
 The setup is initialized as follows:
 ```js

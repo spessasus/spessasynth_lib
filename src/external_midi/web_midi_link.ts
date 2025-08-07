@@ -1,6 +1,6 @@
 import { consoleColors } from "../utils/other.js";
 import { SpessaSynthCoreUtils } from "spessasynth_core";
-import type { BasicSynthesizer } from "../synthesizer/basic_synthesizer.ts";
+import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
 
 /**
  * Web_midi_link.js

@@ -7,11 +7,13 @@ import {
 import type { MIDIData } from "./midi_data";
 
 export interface SequencerOptions {
-    // If true, the sequencer will skip to the first note.
+    /**
+     * If true, the sequencer will skip to the first note.
+     */
     skipToFirstNoteOn: boolean;
-    // If true, the sequencer will stay paused when seeking or changing the playback rate.
-    preservePlaybackState: boolean;
-    // The initial playback rate, defaults to 1.0 (normal speed).
+    /**
+     * The initial playback rate, defaults to 1.0 (normal speed).
+     */
     initialPlaybackRate: number;
 }
 

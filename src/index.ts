@@ -2,8 +2,8 @@
 
 import { WorkletSynthesizer } from "./synthesizer/worklet_synthesizer.js";
 import { Sequencer } from "./sequencer/sequencer.js";
-import { getReverbProcessor } from "./synthesizer/audio_effects/reverb.js";
-import { FancyChorus } from "./synthesizer/audio_effects/fancy_chorus.js";
+import { ChorusProcessor } from "./synthesizer/audio_effects/chorus.js";
+import { ReverbProcessor } from "./synthesizer/audio_effects/reverb.ts";
 import { audioBufferToWav } from "./utils/buffer_to_wav.js";
 import { MIDIDeviceHandler } from "./external_midi/midi_handler.js";
 import { WebMIDILinkHandler } from "./external_midi/web_midi_link.js";
@@ -17,8 +17,8 @@ export {
     DEFAULT_SYNTH_CONFIG,
 
     // Effects
-    getReverbProcessor,
-    FancyChorus,
+    ChorusProcessor,
+    ReverbProcessor,
 
     // Utilities
     audioBufferToWav,
