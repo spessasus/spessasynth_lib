@@ -1,9 +1,9 @@
-import { DEFAULT_SYNTH_CONFIG } from "./audio_effects/effects_config.js";
-import { WORKLET_PROCESSOR_NAME } from "./worklet_url.js";
-import type { SynthConfig } from "./audio_effects/types";
-import { BasicSynthesizer } from "./basic/basic_synthesizer.ts";
-import type { OfflineRenderWorkletData } from "./types.ts";
-import { fillWithDefaults } from "../utils/fill_with_defaults.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.js";
+import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
+import type { SynthConfig } from "../audio_effects/types.ts";
+import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
+import type { OfflineRenderWorkletData } from "../types.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 
 /**
  * This synthesizer uses an audio worklet node containing the processor.

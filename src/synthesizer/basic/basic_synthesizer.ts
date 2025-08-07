@@ -188,7 +188,7 @@ export abstract class BasicSynthesizer {
             "presetListChange",
             `synth-preset-list-change-${Math.random()}`,
             (e) => {
-                this.presetList = e;
+                this.presetList = [...e];
             }
         );
         this.eventHandler.addEvent(
@@ -248,6 +248,7 @@ export abstract class BasicSynthesizer {
         return destinationNode;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Disconnects from a given node.
      * @param destinationNode The node to disconnect from.
