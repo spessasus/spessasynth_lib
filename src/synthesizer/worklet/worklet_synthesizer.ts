@@ -43,7 +43,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
                 numberOfOutputs,
                 processorOptions: {
                     oneOutput: synthConfig.oneOutput,
-                    enableEventSystem: synthConfig.effects.enabled
+                    enableEventSystem: synthConfig.enableEventSystem
                 }
             });
         } catch (e) {

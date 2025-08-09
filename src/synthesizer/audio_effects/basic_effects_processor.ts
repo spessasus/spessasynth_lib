@@ -1,3 +1,5 @@
+import type { BasicEffectConfig } from "./types.ts";
+
 export abstract class BasicEffectsProcessor {
     // The input of the processor.
     public readonly input: AudioNode;
@@ -7,6 +9,10 @@ export abstract class BasicEffectsProcessor {
         this.input = input;
         this.output = output;
     }
+
+    public abstract get config(): BasicEffectConfig;
+
+    public abstract update(config: BasicEffectConfig): void;
 
     /**
      * Connects the processor to a given node.

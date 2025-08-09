@@ -24,11 +24,15 @@ This is done because spessasynth can load sound bank formats other than SoundFon
 
 Renamed to `ChorusConfig`.
 
-Now includes `connect`, `disconnect` and `update` methods.
+Now includes `connect`, `disconnect` and `update` methods and `config` property.
+
+Connect nodes to its `input` property.
 
 ## getReverbProcessor
 
 Removed, replaced with `ReverbProcessor`. The unified interface allows for implementing other types of reverb in the future.
+
+Connect nodes to its `input` property.
 
 ## worklet_processor.min.js
 
@@ -56,6 +60,10 @@ A few methods and properties have been renamed for consistency.
 They behave in exactly the same way.
 
 - `soundFontManager` - `soundBankManager`
+
+#### synthConfig
+
+No longer specifies effects themselves, only if they are initialized. The effects can be updated in their respective methods.
 
 #### setMasterParameter
 
@@ -91,9 +99,15 @@ The behavior has been overhauled:
 The `preservePlaybackState` has been removed and is always on.
 Loading a new song list no longer automatically starts the playback.
 
+This is the behavior of `SpessaSynthProcessor`.
+
 ### loop
 
 Removed, `loopCount` of zero disables the loop.
+
+Now defaults to false.
+
+This is the behavior of `SpessaSynthProcessor`.
 
 
 ### previousSong, nextSong

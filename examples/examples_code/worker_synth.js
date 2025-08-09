@@ -1,5 +1,9 @@
 // import the modules
-import { Sequencer, WorkerSynthesizer } from "../../src/index.ts";
+import {
+    audioBufferToWav,
+    Sequencer,
+    WorkerSynthesizer
+} from "../../src/index.ts";
 import { EXAMPLE_SOUND_BANK_PATH } from "../examples_common.js";
 
 // load the sound bank
@@ -23,6 +27,29 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
         worker.postMessage.bind(worker)
     );
     worker.onmessage = (ev) => synth.handleWorkerMessage(ev.data);
+
+    // add a button for rendering the audio
+    document.getElementById("render").onclick = async () => {
+        // Render audio with a simple progress tracking function.
+        const outputBuffer = await synth.renderAudio(44100, {
+            progressCallback: (progress, stage) => {
+                document.getElementById("message").innerText =
+                    `Rendering ${Math.floor(progress * 100)}% Stage: ${stage}`;
+            }
+        });
+        document.getElementById("message").innerText = "Complete!";
+        // convert the buffer to a wave file and create URL for it
+        const wavFile = audioBufferToWav(outputBuffer[0]);
+        const fileURL = URL.createObjectURL(wavFile);
+        // create an audio element and add it
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = fileURL;
+        document
+            .getElementsByClassName("example_content")[0]
+            .appendChild(audio);
+    };
+
     // the rest of the code works the same
     synth.connect(context.destination);
     await synth.isReady;

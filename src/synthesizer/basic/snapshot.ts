@@ -4,24 +4,32 @@ import {
     type MasterParameterType,
     SynthesizerSnapshot
 } from "spessasynth_core";
-import type { EffectsConfig } from "../audio_effects/types.ts";
+import type { ChorusConfig, ReverbConfig } from "../audio_effects/types.ts";
+import { DEFAULT_CHORUS_CONFIG } from "../audio_effects/chorus.ts";
+import { DEFAULT_REVERB_CONFIG } from "../audio_effects/reverb.ts";
 
 // Extended synthesizer snapshot to contain effects
 export class LibSynthesizerSnapshot extends SynthesizerSnapshot {
     // Effects configuration of this synthesizer.
-    public effectsConfig: EffectsConfig;
+    public chorusConfig: ChorusConfig;
+    public reverbConfig: ReverbConfig;
 
     public constructor(
         channelSnapshots: ChannelSnapshot[],
         masterParameters: MasterParameterType,
         keyMappings: (KeyModifier | undefined)[][],
-        effectsConfig: EffectsConfig
+        chorusConfig: ChorusConfig = DEFAULT_CHORUS_CONFIG,
+        reverbConfig: ReverbConfig = DEFAULT_REVERB_CONFIG
     ) {
         super(channelSnapshots, masterParameters, keyMappings);
-        this.effectsConfig = { ...effectsConfig };
+        this.reverbConfig = { ...reverbConfig };
+        this.chorusConfig = { ...chorusConfig };
     }
 
-    public getRegularSnapshot(): SynthesizerSnapshot {
+    /**
+     * Retrieves the spessasynth_core snapshot from the lib snapshot.
+     */
+    public getCoreSnapshot(): SynthesizerSnapshot {
         return new SynthesizerSnapshot(
             [...this.channelSnapshots],
             { ...this.masterParameters },

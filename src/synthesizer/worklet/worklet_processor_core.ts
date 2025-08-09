@@ -14,7 +14,7 @@ import type {
     BasicSynthesizerReturnMessage,
     OfflineRenderWorkletData,
     PassedProcessorParameters,
-    SynthesizerReturnInitializedType
+    SynthesizerReturn
 } from "../types.ts";
 import type {
     SequencerOptions,
@@ -103,7 +103,7 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
             // Receive messages from the main thread
             this.port.onmessage = (e: MessageEvent<BasicSynthesizerMessage>) =>
                 this.handleMessage(e.data);
-            this.postReady("sf3decoder");
+            this.postReady("sf3Decoder", null);
         });
     }
 
@@ -154,6 +154,24 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
             );
         }
         return true;
+    }
+
+    protected postReady<K extends keyof SynthesizerReturn>(
+        type: K,
+        data: SynthesizerReturn[K]
+    ) {
+        this.postMessageToMainThread({
+            type: "isFullyInitialized",
+            data: {
+                type,
+                data
+            } as {
+                [K in keyof SynthesizerReturn]: {
+                    type: K;
+                    data: SynthesizerReturn[K];
+                };
+            }[keyof SynthesizerReturn]
+        });
     }
 
     private startOfflineRender(config: OfflineRenderWorkletData) {
@@ -216,14 +234,7 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
                 }
             });
         }
-        this.postReady("startOfflineRender");
-    }
-
-    private postReady(data: SynthesizerReturnInitializedType) {
-        this.postMessageToMainThread({
-            type: "isFullyInitialized",
-            data
-        });
+        this.postReady("startOfflineRender", null);
     }
 
     private postMessageToMainThread(data: BasicSynthesizerReturnMessage) {
@@ -246,6 +257,10 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
             }
         }
         switch (m.type) {
+            case "startOfflineRender":
+                this.startOfflineRender(m.data);
+                break;
+
             case "midiMessage":
                 this.synthesizer.processMessage(
                     m.data.messageData,
@@ -339,10 +354,6 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
                     channelObject.lockedControllers[m.data.controllerNumber] =
                         m.data.isLocked;
                 }
-                break;
-
-            case "startOfflineRender":
-                this.startOfflineRender(m.data);
                 break;
 
             case "sequencerSpecific": {
@@ -454,17 +465,17 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
                                 sfManMsg.data.id,
                                 sfManMsg.data.bankOffset
                             );
-                            this.postReady("soundBankManager");
+                            this.postReady("soundBankManager", null);
                             break;
 
                         case "deleteSoundBank":
                             sfManager.deleteSoundBank(sfManMsg.data);
-                            this.postReady("soundBankManager");
+                            this.postReady("soundBankManager", null);
                             break;
 
                         case "rearrangeSoundBanks":
                             sfManager.priorityOrder = sfManMsg.data;
-                            this.postReady("soundBankManager");
+                            this.postReady("soundBankManager", null);
                     }
                 } catch (e) {
                     this.postMessageToMainThread({
@@ -504,10 +515,7 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
 
             case "requestSynthesizerSnapshot": {
                 const snapshot = SynthesizerSnapshot.create(this.synthesizer);
-                this.postMessageToMainThread({
-                    type: "synthesizerSnapshot",
-                    data: snapshot
-                });
+                this.postReady("synthesizerSnapshot", snapshot);
                 break;
             }
 

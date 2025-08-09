@@ -18,7 +18,8 @@ Nothing new here.
 ```
 
 Note how we have to create our own worker and pass its `postMessage` bound to the Worker to the WorkerSynthesizer.
-Other than that, the code is pretty much identical.
+We can also make use of the convenient `renderAudio` method which renders the current sequence.
+Other than that, the code is identical.
 
 Now let's take a look at the worker itself:
 

@@ -12,11 +12,12 @@ import {
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
-    SynthesizerReturnInitializedType
+    SynthesizerReturn
 } from "../types.ts";
 import { songChangeType } from "../../sequencer/enums.ts";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
 import { MIDIData } from "../../sequencer/midi_data.ts";
+import { renderAudioWorker } from "./render_audio_worker.ts";
 
 const BLOCK_SIZE = 128;
 
@@ -27,13 +28,14 @@ export class WorkerSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
     public readonly sequencer: SpessaSynthSequencer;
     protected postMessageToMainThread: (
-        data: BasicSynthesizerReturnMessage
+        data: BasicSynthesizerReturnMessage,
+        transfer?: Transferable[]
     ) => unknown;
     /**
      * The message port to the playback audio worklet.
      */
     protected workletMessagePort: MessagePort;
-    protected isRendering = true;
+    protected isRendering = false;
 
     public constructor(
         synthesizerConfiguration: {
@@ -41,7 +43,10 @@ export class WorkerSynthesizerCore {
             initialTime: number;
         },
         workletMessagePort: MessagePort,
-        mainThreadCallback: (m: BasicSynthesizerReturnMessage) => unknown
+        mainThreadCallback: (
+            m: BasicSynthesizerReturnMessage,
+            transfer?: Transferable[]
+        ) => unknown
     ) {
         this.postMessageToMainThread = mainThreadCallback;
         this.workletMessagePort = workletMessagePort;
@@ -83,8 +88,8 @@ export class WorkerSynthesizerCore {
             postSeq(e);
         };
         this.synthesizer.processorInitialized.then(() => {
-            this.postReady("sf3decoder");
-            this.renderAndSendChunk();
+            this.postReady("sf3Decoder", null);
+            this.startAudioLoop();
         });
     }
 
@@ -108,6 +113,21 @@ export class WorkerSynthesizerCore {
             }
         }
         switch (m.type) {
+            case "renderAudio":
+                const rendered = renderAudioWorker.call(
+                    this,
+                    m.data.sampleRate,
+                    m.data.options
+                );
+                const transferable: Transferable[] = [];
+                rendered.reverb.forEach((r) => transferable.push(r.buffer));
+                rendered.chorus.forEach((c) => transferable.push(c.buffer));
+                rendered.dry.forEach((d) =>
+                    transferable.push(...d.map((c) => c.buffer))
+                );
+                this.postReady("renderAudio", rendered, transferable);
+                break;
+
             case "midiMessage":
                 this.synthesizer.processMessage(
                     m.data.messageData,
@@ -315,17 +335,17 @@ export class WorkerSynthesizerCore {
                                 sfManMsg.data.id,
                                 sfManMsg.data.bankOffset
                             );
-                            this.postReady("soundBankManager");
+                            this.postReady("soundBankManager", null);
                             break;
 
                         case "deleteSoundBank":
                             sfManager.deleteSoundBank(sfManMsg.data);
-                            this.postReady("soundBankManager");
+                            this.postReady("soundBankManager", null);
                             break;
 
                         case "rearrangeSoundBanks":
                             sfManager.priorityOrder = sfManMsg.data;
-                            this.postReady("soundBankManager");
+                            this.postReady("soundBankManager", null);
                     }
                 } catch (e) {
                     this.postMessageToMainThread({
@@ -365,10 +385,7 @@ export class WorkerSynthesizerCore {
 
             case "requestSynthesizerSnapshot": {
                 const snapshot = SynthesizerSnapshot.create(this.synthesizer);
-                this.postMessageToMainThread({
-                    type: "synthesizerSnapshot",
-                    data: snapshot
-                });
+                this.postReady("synthesizerSnapshot", snapshot);
                 break;
             }
 
@@ -391,10 +408,21 @@ export class WorkerSynthesizerCore {
         }
     }
 
+    protected stopAudioLoop() {
+        this.synthesizer.stopAllChannels(true);
+        this.sequencer.pause();
+        this.isRendering = false;
+    }
+
+    protected startAudioLoop() {
+        this.isRendering = true;
+        this.renderAndSendChunk();
+    }
+
     protected killWorklet() {
         // Null indicates end of life
         this.workletMessagePort.postMessage(null);
-        this.isRendering = false;
+        this.stopAudioLoop();
     }
 
     protected renderAndSendChunk() {
@@ -433,10 +461,25 @@ export class WorkerSynthesizerCore {
         this.workletMessagePort.postMessage(data, [data.buffer]);
     }
 
-    protected postReady(data: SynthesizerReturnInitializedType) {
-        this.postMessageToMainThread({
-            type: "isFullyInitialized",
-            data
-        });
+    protected postReady<K extends keyof SynthesizerReturn>(
+        type: K,
+        data: SynthesizerReturn[K],
+        transferable: Transferable[] = []
+    ) {
+        this.postMessageToMainThread(
+            {
+                type: "isFullyInitialized",
+                data: {
+                    type,
+                    data
+                } as {
+                    [K in keyof SynthesizerReturn]: {
+                        type: K;
+                        data: SynthesizerReturn[K];
+                    };
+                }[keyof SynthesizerReturn]
+            },
+            transferable
+        );
     }
 }

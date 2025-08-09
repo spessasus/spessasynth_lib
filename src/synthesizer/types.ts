@@ -13,6 +13,7 @@ import type {
     SequencerOptions,
     SequencerReturnMessage
 } from "../sequencer/types";
+import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
 
 export interface PassedProcessorParameters {
     /**
@@ -87,11 +88,20 @@ export type BasicSynthesizerMessage = {
 }[keyof BasicSynthesizerMessageData];
 
 interface BasicSynthesizerMessageData {
-    // Note: only applies for worker
+    // WORKER SPECIFIC
     workerInitialization: {
         sampleRate: number;
         currentTime: number;
     };
+    renderAudio: {
+        sampleRate: number;
+        options: WorkerRenderAudioOptions;
+    };
+
+    // WORKLET SPECIFIC
+    startOfflineRender: OfflineRenderWorkletData;
+
+    // SHARED
     midiMessage: {
         messageData: Uint8Array;
         channelOffset: number;
@@ -137,8 +147,6 @@ interface BasicSynthesizerMessageData {
         enableGroup: boolean;
     };
 
-    startOfflineRender: OfflineRenderWorkletData;
-
     setMasterParameter: {
         [K in keyof MasterParameterType]: {
             type: K;
@@ -163,10 +171,15 @@ interface BasicSynthesizerMessageData {
 interface BasicSynthesizerReturnMessageData {
     eventCall: SynthProcessorEvent;
     sequencerReturn: SequencerReturnMessage;
-    synthesizerSnapshot: SynthesizerSnapshot;
-    isFullyInitialized: SynthesizerReturnInitializedType;
+    isFullyInitialized: {
+        [K in keyof SynthesizerReturn]: {
+            type: K;
+            data: SynthesizerReturn[K];
+        };
+    }[keyof SynthesizerReturn];
     // An error message related to the sound bank. It contains a string description of the error.
     soundBankError: Error;
+    renderingProgress: number;
 }
 
 export type BasicSynthesizerReturnMessage = {
@@ -176,7 +189,14 @@ export type BasicSynthesizerReturnMessage = {
     };
 }[keyof BasicSynthesizerReturnMessageData];
 
-export type SynthesizerReturnInitializedType =
-    | "sf3decoder"
-    | "soundBankManager"
-    | "startOfflineRender";
+export interface SynthesizerReturn {
+    sf3Decoder: null;
+    soundBankManager: null;
+    startOfflineRender: null;
+    synthesizerSnapshot: SynthesizerSnapshot;
+    renderAudio: {
+        reverb: [Float32Array, Float32Array];
+        chorus: [Float32Array, Float32Array];
+        dry: [Float32Array, Float32Array][];
+    };
+}

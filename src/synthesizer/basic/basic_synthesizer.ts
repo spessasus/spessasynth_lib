@@ -12,20 +12,16 @@ import {
     midiMessageTypes,
     type PresetListChangeCallback,
     SpessaSynthCoreUtils as util,
-    SynthesizerSnapshot,
     type SynthMethodOptions
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
 import type { SynthConfig } from "../audio_effects/types.ts";
-import {
-    ChorusProcessor,
-    DEFAULT_CHORUS_CONFIG
-} from "../audio_effects/chorus.ts";
+import { ChorusProcessor } from "../audio_effects/chorus.ts";
 import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
-    SynthesizerReturnInitializedType
+    SynthesizerReturn
 } from "../types.ts";
 import { consoleColors } from "../../utils/other.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
@@ -70,8 +66,6 @@ export abstract class BasicSynthesizer {
      * Resolves when the synthesizer is ready.
      */
     public readonly isReady: Promise<unknown>;
-    // Effects configuration for the synthesizer.
-    public readonly synthConfig: SynthConfig;
     /**
      * Synthesizer's reverb processor.
      * Undefined if reverb is disabled.
@@ -98,21 +92,22 @@ export abstract class BasicSynthesizer {
      * The current number of MIDI channels the synthesizer has
      */
     public channelsAmount = this._outputsAmount;
-    protected snapshotCallback?: (s: SynthesizerSnapshot) => unknown;
     protected readonly masterParameters: MasterParameterType = {
         ...DEFAULT_MASTER_PARAMETERS
     };
+
     // Resolve map, waiting for the worklet to confirm the operation
     protected resolveMap = new Map<
-        SynthesizerReturnInitializedType,
-        (...args: unknown[]) => void
+        keyof SynthesizerReturn,
+        (data: SynthesizerReturn[keyof SynthesizerReturn]) => unknown
     >();
+    protected renderingProgressTracker?: (progress: number) => unknown;
 
     /**
      * Creates a new instance of a synthesizer.
      * @param worklet The AudioWorkletNode to use.
      * @param postFunction The internal post function.
-     * @param synthConfig Optional configuration for the synthesizer.
+     * @param config Optional configuration for the synthesizer.
      */
     protected constructor(
         worklet: AudioWorkletNode,
@@ -120,7 +115,7 @@ export abstract class BasicSynthesizer {
             data: BasicSynthesizerMessage,
             transfer?: Transferable[]
         ) => unknown,
-        synthConfig: SynthConfig
+        config: SynthConfig
     ) {
         util.SpessaSynthInfo(
             "%cInitializing SpessaSynth synthesizer...",
@@ -131,11 +126,11 @@ export abstract class BasicSynthesizer {
         this.post = postFunction;
 
         this.isReady = new Promise((resolve) =>
-            this.awaitWorkletResponse("sf3decoder", resolve)
+            this.awaitWorkletResponse("sf3Decoder", resolve)
         );
 
         // Initialize effects configuration
-        this.synthConfig = fillWithDefaults(synthConfig, DEFAULT_SYNTH_CONFIG);
+        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (
@@ -143,29 +138,16 @@ export abstract class BasicSynthesizer {
         ) => this.handleMessage(e.data);
 
         // Connect worklet outputs
-        const effectsOn = this.synthConfig.effects.enabled;
-        const reverbOn = this.synthConfig.effects.reverb.enabled && effectsOn;
-        const chorusOn = this.synthConfig.effects.chorus.enabled && effectsOn;
-        if (reverbOn) {
-            this.reverbProcessor = new ReverbProcessor(
-                this.context,
-                this.synthConfig.effects.reverb
-            );
+        if (synthConfig.initializeReverbProcessor) {
+            this.reverbProcessor = new ReverbProcessor(this.context);
             this.isReady = Promise.all([
                 this.isReady,
                 this.reverbProcessor.isReady
             ]);
             this.worklet.connect(this.reverbProcessor.input, 0);
         }
-        if (chorusOn) {
-            const chorusConfig = fillWithDefaults(
-                this.synthConfig.effects.chorus,
-                DEFAULT_CHORUS_CONFIG
-            );
-            this.chorusProcessor = new ChorusProcessor(
-                this.context,
-                chorusConfig
-            );
+        if (synthConfig.initializeChorusProcessor) {
+            this.chorusProcessor = new ChorusProcessor(this.context);
             this.worklet.connect(this.chorusProcessor.input, 1);
         }
 
@@ -334,20 +316,20 @@ export abstract class BasicSynthesizer {
      */
     public async getSynthesizerSnapshot(): Promise<LibSynthesizerSnapshot> {
         return new Promise((resolve) => {
-            this.snapshotCallback = (s: SynthesizerSnapshot) => {
-                this.snapshotCallback = undefined;
+            this.awaitWorkletResponse("synthesizerSnapshot", (s) => {
                 const snapshot = new LibSynthesizerSnapshot(
                     s.channelSnapshots,
                     s.masterParameters,
                     s.keyMappings,
-                    this.synthConfig.effects
+                    this.chorusProcessor?.config,
+                    this.reverbProcessor?.config
                 );
                 resolve(snapshot);
-            };
+            });
             this.post({
                 type: "requestSynthesizerSnapshot",
                 data: null,
-                channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
+                channelNumber: -1
             });
         });
     }
@@ -799,11 +781,25 @@ export abstract class BasicSynthesizer {
      * @param type INTERNAL USE ONLY!
      * @param resolve INTERNAL USE ONLY!
      */
-    public awaitWorkletResponse(
-        type: SynthesizerReturnInitializedType,
-        resolve: (...args: unknown[]) => void
+    public awaitWorkletResponse<K extends keyof SynthesizerReturn>(
+        type: K,
+        resolve: (data: SynthesizerReturn[K]) => unknown
     ) {
+        // @ts-expect-error I can't use generics with map
         this.resolveMap.set(type, resolve);
+    }
+
+    protected assignProgressTracker(
+        progressFunction: (progress: number) => unknown
+    ) {
+        if (this.renderingProgressTracker !== undefined) {
+            throw new Error("Something is already being rendered!");
+        }
+        this.renderingProgressTracker = progressFunction;
+    }
+
+    protected revokeProgressTracker() {
+        this.renderingProgressTracker = undefined;
     }
 
     protected _sendInternal(
@@ -842,18 +838,22 @@ export abstract class BasicSynthesizer {
                 this.sequencerCallbackFunction?.(m.data);
                 break;
 
-            case "synthesizerSnapshot":
-                this.snapshotCallback?.(SynthesizerSnapshot.copyFrom(m.data));
-                break;
-
             case "isFullyInitialized":
-                this.workletResponds(m.data);
+                this.workletResponds(m.data.type, m.data.data);
                 break;
 
             case "soundBankError":
                 util.SpessaSynthWarn(m.data as unknown as string);
                 this.eventHandler.callEventInternal("soundBankError", m.data);
                 break;
+
+            case "renderingProgress":
+                if (!this.renderingProgressTracker) {
+                    throw new Error(
+                        "No rendering progress handler has been set up!"
+                    );
+                }
+                this.renderingProgressTracker(m.data);
         }
     }
 
@@ -878,8 +878,11 @@ export abstract class BasicSynthesizer {
         });
     }
 
-    protected workletResponds(type: SynthesizerReturnInitializedType) {
-        this.resolveMap.get(type)?.();
+    protected workletResponds<K extends keyof SynthesizerReturn>(
+        type: K,
+        data: SynthesizerReturn[K]
+    ) {
+        this.resolveMap.get(type)?.(data);
         this.resolveMap.delete(type);
     }
 }

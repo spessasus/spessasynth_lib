@@ -28,8 +28,7 @@ export const DEFAULT_CHORUS_CONFIG: ChorusConfig = {
     stereoDifference: STEREO_DIFF,
     oscillatorFrequency: OSC_FREQ,
     oscillatorFrequencyVariation: OSC_FREQ_VARIATION,
-    oscillatorGain: OSC_GAIN,
-    enabled: true
+    oscillatorGain: OSC_GAIN
 };
 
 export class ChorusProcessor extends BasicEffectsProcessor {
@@ -46,8 +45,13 @@ export class ChorusProcessor extends BasicEffectsProcessor {
         config: Partial<ChorusConfig> = DEFAULT_CHORUS_CONFIG
     ) {
         super(context.createChannelSplitter(2), context.createChannelMerger(2));
-
         this.update(config);
+    }
+
+    private _config: ChorusConfig = DEFAULT_CHORUS_CONFIG;
+
+    public get config() {
+        return this._config;
     }
 
     /**
@@ -57,6 +61,7 @@ export class ChorusProcessor extends BasicEffectsProcessor {
     public update(chorusConfig: Partial<ChorusConfig>) {
         this.deleteNodes();
         const config = fillWithDefaults(chorusConfig, DEFAULT_CHORUS_CONFIG);
+        this._config = config;
         let freq = config.oscillatorFrequency;
         let delay = config.defaultDelay;
         for (let i = 0; i < config.nodesAmount; i++) {

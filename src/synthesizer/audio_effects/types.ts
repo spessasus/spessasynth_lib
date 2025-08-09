@@ -7,15 +7,30 @@ export interface SynthConfig {
     oneOutput: boolean;
 
     /**
-     * Configuration for the effects.
+     * If the chorus processor should be initialized during creation. This cannot be changed after creating the synthesizer.
      */
-    effects: EffectsConfig;
+    initializeChorusProcessor: boolean;
+
+    /**
+     * If the reverb processor should be initialized during creation. This cannot be changed after creating the synthesizer.
+     */
+    initializeReverbProcessor: boolean;
 
     /**
      * Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.
      * Pass undefined to use the Web Audio API.
      */
     audioNodeCreators?: AudioNodeCreators;
+
+    /**
+     * If the event system should be enabled. This can only be set once.
+     */
+    enableEventSystem: boolean;
+}
+
+export interface BasicEffectConfig {
+    // I need an interface to share the effect configuration but there are no properties to share :-)
+    null?: null;
 }
 
 export interface AudioNodeCreators {
@@ -34,34 +49,14 @@ export interface AudioNodeCreators {
     ) => AudioWorkletNode;
 }
 
-export interface EffectsConfig {
-    /**
-     * If the effects system should be enabled.
-     */
-    enabled: boolean;
-    /**
-     * The configuration for chorus. Pass undefined to use defaults.
-     */
-    chorus: Partial<ChorusConfig>;
-    /**
-     * The impulse response for the reverb. Pass undefined to use defaults
-     */
-    reverb: ReverbConfig;
-}
-
-export interface ReverbConfig {
-    /**
-     * Indicates if the reverb effect is enabled.
-     * This can only be set once.
-     */
-    readonly enabled: boolean;
+export interface ReverbConfig extends BasicEffectConfig {
     /**
      * The impulse response for the reverb. Pass undefined to use default one.
      */
     impulseResponse?: AudioBuffer;
 }
 
-export interface ChorusConfig {
+export interface ChorusConfig extends BasicEffectConfig {
     /**
      * The amount of delay nodes (for each channel) and the corresponding oscillators.
      */
@@ -90,9 +85,4 @@ export interface ChorusConfig {
      * How much will oscillator alter the delay in delay nodes, in seconds.
      */
     oscillatorGain: number;
-    /**
-     * Indicates if the chorus effect is enabled.
-     * This can only be set once.
-     */
-    enabled: boolean;
 }

@@ -1,7 +1,11 @@
 import { reverbBufferBinary } from "./compressed_reverb_decoder.js";
 import { BasicEffectsProcessor } from "./basic_effects_processor.ts";
 import type { ReverbConfig } from "./types.ts";
-import { DEFAULT_REVERB_CONFIG } from "./effects_config.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+
+export const DEFAULT_REVERB_CONFIG: ReverbConfig = {
+    impulseResponse: undefined // Will load the integrated one
+};
 
 export class ReverbProcessor extends BasicEffectsProcessor {
     /**
@@ -19,10 +23,11 @@ export class ReverbProcessor extends BasicEffectsProcessor {
         context: BaseAudioContext,
         config: Partial<ReverbConfig> = DEFAULT_REVERB_CONFIG
     ) {
+        const fullConfig = fillWithDefaults(config, DEFAULT_REVERB_CONFIG);
         const convolver = context.createConvolver();
         super(convolver, convolver);
         this.conv = convolver;
-        const reverbBuffer = config.impulseResponse;
+        const reverbBuffer = fullConfig.impulseResponse;
         if (reverbBuffer) {
             convolver.buffer = reverbBuffer;
             this.isReady = new Promise<AudioBuffer>((r) => r(reverbBuffer));
@@ -33,6 +38,13 @@ export class ReverbProcessor extends BasicEffectsProcessor {
                 convolver.buffer = b;
             });
         }
+        this._config = fullConfig;
+    }
+
+    private _config: ReverbConfig;
+
+    public get config() {
+        return this._config;
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -41,8 +53,10 @@ export class ReverbProcessor extends BasicEffectsProcessor {
      * @param config The config to use.
      */
     public update(config: Partial<ReverbConfig>) {
-        if (config.impulseResponse) {
-            this.conv.buffer = config.impulseResponse;
+        const fullConfig = fillWithDefaults(config, DEFAULT_REVERB_CONFIG);
+        if (fullConfig.impulseResponse) {
+            this.conv.buffer = fullConfig.impulseResponse;
         }
+        this._config = fullConfig;
     }
 }
