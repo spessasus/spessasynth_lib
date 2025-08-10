@@ -22,7 +22,6 @@ export class SeqEventHandler {
         songChange: new Map<string, SequencerEventCallback<"songChange">>(),
         songEnded: new Map<string, SequencerEventCallback<"songEnded">>(),
         metaEvent: new Map<string, SequencerEventCallback<"metaEvent">>(),
-        tempoChange: new Map<string, SequencerEventCallback<"tempoChange">>(),
         timeChange: new Map<string, SequencerEventCallback<"timeChange">>(),
         midiError: new Map<string, SequencerEventCallback<"midiError">>(),
         textEvent: new Map<string, SequencerEventCallback<"textEvent">>()

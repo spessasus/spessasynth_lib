@@ -117,3 +117,7 @@ Removed, replaced with setting the `songIndex` property.
 ### onEvent...
 
 All `onSomething` have been replaced with an `eventHandler` to bring the API in-line with `WorkletSynthesizer`.
+
+### onTempoChange
+
+Removed as `metaEvent` event includes tempo change events.

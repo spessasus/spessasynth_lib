@@ -76,8 +76,6 @@ export interface WorkletSequencerEventType {
     timeChange: number;
     // No data.
     songEnded: null;
-    // New tempo in BPM.
-    tempoChange: number;
     metaEvent: {
         event: MIDIMessage;
         trackNumber: number;

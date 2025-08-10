@@ -2,8 +2,7 @@ import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
     MIDIMessage,
-    midiMessageTypes,
-    SpessaSynthCoreUtils as util
+    midiMessageTypes
 } from "spessasynth_core";
 import { songChangeType } from "./enums.js";
 import { DUMMY_MIDI_DATA, MIDIData } from "./midi_data.js";
@@ -394,19 +393,6 @@ export class Sequencer {
             case "metaEvent":
                 const event = m.data.event;
                 switch (event.statusByte) {
-                    case midiMessageTypes.setTempo:
-                        event.data.currentIndex = 0;
-                        const bpm =
-                            60000000 /
-                            util.readBytesAsUintBigEndian(event.data, 3);
-                        event.data.currentIndex = 0;
-                        this._currentTempo = Math.round(bpm * 100) / 100;
-                        this.callEventInternal(
-                            "tempoChange",
-                            this._currentTempo
-                        );
-                        break;
-
                     case midiMessageTypes.text:
                     case midiMessageTypes.lyric:
                     case midiMessageTypes.copyright:
