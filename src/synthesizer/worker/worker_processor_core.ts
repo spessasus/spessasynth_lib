@@ -87,7 +87,7 @@ export class WorkerSynthesizerCore {
             }
             postSeq(e);
         };
-        this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.processorInitialized.then(() => {
             this.postReady("sf3Decoder", null);
             this.startAudioLoop();
         });
@@ -97,7 +97,7 @@ export class WorkerSynthesizerCore {
      * Handles a message received from the main thread.
      * @param m The message received.
      */
-    public async handleMessage(m: BasicSynthesizerMessage) {
+    public handleMessage(m: BasicSynthesizerMessage) {
         const channel = m.channelNumber;
 
         let channelObject:

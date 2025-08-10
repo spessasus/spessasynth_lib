@@ -1,12 +1,12 @@
 import globals from "globals";
-import tseslint, * as eslint from "typescript-eslint";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
     { ignores: ["dist"] },
     {
         extends: [
-            eslint.configs.recommended,
-            ...tseslint.configs.stylisticTypeChecked
+            tseslint.configs.recommendedTypeChecked,
+            tseslint.configs.stylisticTypeChecked
         ],
         files: ["**/*.{ts,tsx}"],
         languageOptions: {

@@ -10,19 +10,16 @@ import type { WaveMetadata } from "./types";
  * @param loop The loop start and end points in seconds. Undefined if no loop should be written.
  * @param channelCount The amount of channels from the AudioBuffer to write. Defaults to all.
  * @returns The binary file.
- * @returns The WAV audio file.
  */
 export function audioBufferToWav(
     audioBuffer: AudioBuffer,
     normalizeAudio = true,
     channelOffset = 0,
     metadata: Partial<WaveMetadata> = {},
-    loop:
-        | {
-              start: number;
-              end: number;
-          }
-        | undefined,
+    loop?: {
+        start: number;
+        end: number;
+    },
     channelCount: number = audioBuffer.numberOfChannels
 ): Blob {
     const channels: Float32Array[] = [];

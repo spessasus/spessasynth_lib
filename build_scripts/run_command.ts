@@ -2,7 +2,7 @@ import * as child_process from "node:child_process";
 import url from "node:url";
 import path from "node:path";
 
-// resolve to root
+// Resolve to root
 const dirname = path.join(
     path.dirname(url.fileURLToPath(import.meta.url)),
     ".."
