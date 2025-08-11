@@ -314,7 +314,7 @@ export abstract class BasicSynthesizer {
     /**
      * Gets a complete snapshot of the synthesizer, effects.
      */
-    public async getSynthesizerSnapshot(): Promise<LibSynthesizerSnapshot> {
+    public async getSnapshot(): Promise<LibSynthesizerSnapshot> {
         return new Promise((resolve) => {
             this.awaitWorkletResponse("synthesizerSnapshot", (s) => {
                 const snapshot = new LibSynthesizerSnapshot(

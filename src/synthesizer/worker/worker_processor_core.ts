@@ -43,12 +43,11 @@ export class WorkerSynthesizerCore {
             initialTime: number;
         },
         workletMessagePort: MessagePort,
-        mainThreadCallback: (
-            m: BasicSynthesizerReturnMessage,
-            transfer?: Transferable[]
-        ) => unknown
+        mainThreadCallback: typeof Worker.prototype.postMessage
     ) {
-        this.postMessageToMainThread = mainThreadCallback;
+        mainThreadCallback("hai", []);
+        this.postMessageToMainThread =
+            mainThreadCallback as typeof this.postMessageToMainThread;
         this.workletMessagePort = workletMessagePort;
         this.workletMessagePort.onmessage = this.renderAndSendChunk.bind(this);
 

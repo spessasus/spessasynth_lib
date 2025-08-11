@@ -495,7 +495,7 @@ Add a new channel. Invokes a `newchannel` event.
 synth.addNewChannel();
 ```
 
-### getSynthesizerSnapshot
+### getSnapshot
 
 Get a current snapshot of the Worklet synthesizer.
 !!! Info
@@ -503,7 +503,7 @@ Get a current snapshot of the Worklet synthesizer.
     This function is asynchronous.
 
 ```js
-const snapshot = await synth.getSynthesizerSnapshot();
+const snapshot = await synth.getSnapshot();
 ```
 
 The returned value is

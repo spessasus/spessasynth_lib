@@ -20,10 +20,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      */
     public constructor(
         context: BaseAudioContext,
-        workerPostMessage: (
-            m: BasicSynthesizerMessage,
-            t?: Transferable[]
-        ) => unknown,
+        workerPostMessage: typeof Worker.prototype.postMessage,
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
         // Ensure default values for options
@@ -60,7 +57,14 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 "Could not create the AudioWorkletNode. Did you forget to registerPlaybackWorklet()?"
             );
         }
-        super(worklet, workerPostMessage, synthConfig);
+        super(
+            worklet,
+            workerPostMessage as (
+                data: BasicSynthesizerMessage,
+                transfer?: Transferable[]
+            ) => unknown,
+            synthConfig
+        );
 
         // Create a message channel for communication between the worker and the worklet
         const messageChannel = new MessageChannel();

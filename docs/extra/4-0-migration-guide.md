@@ -60,6 +60,7 @@ A few methods and properties have been renamed for consistency.
 They behave in exactly the same way.
 
 - `soundFontManager` - `soundBankManager`
+- `getSynthesizerSnapshot` - `getSnapshot`
 
 #### synthConfig
 

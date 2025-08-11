@@ -90,7 +90,7 @@ export function renderAudioWorker(
     rendererSeq.loopCount = options.loopCount;
     if (options.preserveSynthParams) {
         rendererSeq.playbackRate = this.sequencer.playbackRate;
-        const snapshot = this.synthesizer.getSynthesizerSnapshot();
+        const snapshot = this.synthesizer.getSnapshot();
         rendererSynth.applySynthesizerSnapshot(snapshot);
     }
     rendererSeq.loadNewSongList([parsedMid]);

@@ -8,7 +8,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "npm run validate && npm run local-build",
-    "local-build": "npm run build:fast && npm pack",
+    "local-build": "npm run build:npm && npm pack",
     "build:fast": "node build_scripts/build.ts",
     "build:npm": "node build_scripts/build_npm.ts",
     "build:pages": "node build_scripts/build_pages.ts",
