@@ -7,16 +7,11 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "npm run validate && npm run local-build",
+    "build": "npm run test:types && npm run local-build && npm run build:pages",
     "local-build": "npm run build:npm && npm pack",
-    "build:fast": "node build_scripts/build.ts",
     "build:npm": "node build_scripts/build_npm.ts",
     "build:pages": "node build_scripts/build_pages.ts",
-    "build:examples": "node examples/build_examples.ts",
-    "build:docs": "node build_scripts/build_docs.ts",
-    "test:types": "tsc -b",
-    "lint": "eslint src/",
-    "validate": "npm run lint && npm run test:types",
+    "test:types": "eslint src/ && tsc -b",
     "debug": "node build_scripts/debug_enable.ts",
     "release": "node build_scripts/debug_disable.ts"
   },

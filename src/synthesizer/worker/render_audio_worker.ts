@@ -1,4 +1,4 @@
-import type { WorkerSynthesizerCore } from "./worker_processor_core.ts";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
 import { SpessaSynthProcessor, SpessaSynthSequencer } from "spessasynth_core";
 
 export interface WorkerRenderAudioOptions {

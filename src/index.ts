@@ -2,7 +2,7 @@
 
 import { WorkletSynthesizer } from "./synthesizer/worklet/worklet_synthesizer.js";
 import { WorkerSynthesizer } from "./synthesizer/worker/worker_synthesizer.ts";
-import { WorkerSynthesizerCore } from "./synthesizer/worker/worker_processor_core.ts";
+import { WorkerSynthesizerCore } from "./synthesizer/worker/worker_synthesizer_core.ts";
 import { Sequencer } from "./sequencer/sequencer.js";
 import { ChorusProcessor } from "./synthesizer/audio_effects/chorus.js";
 import { ReverbProcessor } from "./synthesizer/audio_effects/reverb.ts";

@@ -1,4 +1,3 @@
-// A worklet processor for the WorkletSynthesizer
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
@@ -7,241 +6,108 @@ import {
     SpessaSynthLogging,
     SpessaSynthProcessor,
     SpessaSynthSequencer,
-    SynthesizerSnapshot
+    SynthesizerSnapshot,
+    type SynthProcessorOptions
 } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
-    OfflineRenderWorkletData,
-    PassedProcessorParameters,
     SynthesizerReturn
 } from "../types.ts";
-import type {
-    SequencerOptions,
-    SequencerReturnMessage
-} from "../../sequencer/types.ts";
 import { MIDIData } from "../../sequencer/midi_data.ts";
-import { consoleColors } from "../../utils/other.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
 import { songChangeType } from "../../sequencer/enums.ts";
 
-export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
+export type PostMessageSynthCore = (
+    data: BasicSynthesizerReturnMessage,
+    transfer?: Transferable[]
+) => unknown;
+
+/**
+ * The interface for the audio processing code that uses spessasynth_core and runs on a separate thread.
+ */
+export abstract class BasicSynthesizerCore {
+    public readonly synthesizer: SpessaSynthProcessor;
+    public readonly sequencer: SpessaSynthSequencer;
+    protected readonly postMessageToMainThread: PostMessageSynthCore;
     /**
-     * If the worklet is alive.
+     * Indicates if the processor is alive.
+     * @protected
      */
-    private alive = true;
+    protected alive = false;
 
-    /**
-     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
-     */
-    private readonly oneOutputMode: boolean;
-
-    private readonly synthesizer: SpessaSynthProcessor;
-    private sequencer?: SpessaSynthSequencer;
-
-    /**
-     * Creates a new worklet synthesis system. contains all channels.
-     */
-    public constructor(options: {
-        processorOptions: PassedProcessorParameters;
-    }) {
-        super();
-        const opts = options.processorOptions;
-
-        this.oneOutputMode = opts.oneOutput;
+    protected constructor(
+        sampleRate: number,
+        options: SynthProcessorOptions,
+        postMessage: PostMessageSynthCore
+    ) {
+        this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
+        this.sequencer = new SpessaSynthSequencer(this.synthesizer);
+        this.postMessageToMainThread = postMessage;
 
         // Prepare synthesizer connections
-        const postSyn = (m: BasicSynthesizerReturnMessage) => {
-            this.postMessageToMainThread(m);
-        };
-
-        /**
-         * Initialize the synthesis engine.
-         */
-        this.synthesizer = new SpessaSynthProcessor(
-            sampleRate, // AudioWorkletGlobalScope
-            {
-                effectsEnabled: !this.oneOutputMode, // One output mode disables effects
-                enableEventSystem: opts?.enableEventSystem, // Enable message port?
-                initialTime: currentTime // AudioWorkletGlobalScope, sync with audioContext time
-            }
-        );
         this.synthesizer.onEventCall = (event) => {
-            postSyn({
+            this.postMessageToMainThread({
                 type: "eventCall",
                 data: event
             });
         };
 
-        void this.synthesizer.processorInitialized.then(() => {
-            // Initialize the sequencer engine
-            this.sequencer = new SpessaSynthSequencer(this.synthesizer);
-
-            const postSeq = (m: SequencerReturnMessage) => {
+        // Prepare sequencer connections
+        this.sequencer.onEventCall = (e) => {
+            if (e.type === "songListChange") {
+                const songs = e.data.newSongList;
+                const midiDatas = songs.map((s) => {
+                    return new MIDIData(s);
+                });
                 this.postMessageToMainThread({
                     type: "sequencerReturn",
-                    data: m
-                });
-            };
-
-            this.sequencer.onEventCall = (e) => {
-                if (e.type === "songListChange") {
-                    const songs = e.data.newSongList;
-                    const midiDatas = songs.map((s) => {
-                        return new MIDIData(s);
-                    });
-                    postSeq({
+                    data: {
                         type: e.type,
                         data: { newSongList: midiDatas }
-                    });
-                    return;
-                }
-                postSeq(e);
-            };
-
-            // Receive messages from the main thread
-            this.port.onmessage = (e: MessageEvent<BasicSynthesizerMessage>) =>
-                this.handleMessage(e.data);
-            this.postReady("sf3Decoder", null);
-        });
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * The audio worklet processing logic
-     * @param _inputs required by WebAudioAPI
-     * @param outputs the outputs to write to, only the first two channels of each are populated
-     * @returns true unless it's not alive
-     */
-    public process(
-        _inputs: Float32Array[][],
-        outputs: Float32Array[][]
-    ): boolean {
-        if (!this.alive || !this.sequencer) {
-            return false;
-        }
-        // Process sequencer
-        this.sequencer.processTick();
-
-        if (this.oneOutputMode) {
-            const out = outputs[0];
-            // 1 output with 32 channels.
-            // Channels are ordered as follows:
-            // MidiChannel1L, midiChannel1R,
-            // MidiChannel2L, midiChannel2R
-            // And so on
-            const channelMap: Float32Array[][] = [];
-            for (let i = 0; i < 32; i += 2) {
-                channelMap.push([out[i], out[i + 1]]);
+                    }
+                });
+                return;
             }
-            this.synthesizer.renderAudioSplit(
-                [],
-                [], // Effects are disabled
-                channelMap
-            );
-        } else {
-            // 18 outputs, each a stereo one
-            // 0: reverb
-            // 1: chorus
-            // 2: channel 1
-            // 3: channel 2
-            // And so on
-            this.synthesizer.renderAudioSplit(
-                outputs[0], // Reverb
-                outputs[1], // Chorus
-                outputs.slice(2)
-            );
-        }
-        return true;
+            this.postMessageToMainThread({
+                type: "sequencerReturn",
+                data: e
+            });
+        };
     }
 
     protected postReady<K extends keyof SynthesizerReturn>(
         type: K,
-        data: SynthesizerReturn[K]
+        data: SynthesizerReturn[K],
+        transferable: Transferable[] = []
     ) {
-        this.postMessageToMainThread({
-            type: "isFullyInitialized",
-            data: {
-                type,
-                data
-            } as {
-                [K in keyof SynthesizerReturn]: {
-                    type: K;
-                    data: SynthesizerReturn[K];
-                };
-            }[keyof SynthesizerReturn]
-        });
-    }
-
-    private startOfflineRender(config: OfflineRenderWorkletData) {
-        if (!this.sequencer) {
-            return;
-        }
-
-        // Load the bank list
-        config.soundBankList.forEach((b, i) => {
-            try {
-                this.synthesizer.soundBankManager.addSoundBank(
-                    SoundBankLoader.fromArrayBuffer(b.soundBankBuffer),
-                    `bank-${i}`,
-                    b.bankOffset
-                );
-            } catch (e) {
-                this.postMessageToMainThread({
-                    type: "soundBankError",
-                    data: e as Error
-                });
-            }
-        });
-
-        if (config.snapshot !== undefined) {
-            this.synthesizer.applySynthesizerSnapshot(config.snapshot);
-        }
-
-        // If sent, start rendering
-        util.SpessaSynthInfo(
-            "%cRendering enabled! Starting render.",
-            consoleColors.info
-        );
-        this.sequencer.loopCount = config.loopCount;
-        // Set voice cap to unlimited
-        this.synthesizer.setMasterParameter("voiceCap", Infinity);
-
-        /**
-         * Set options
-         */
-        const seqOptions: SequencerOptions = fillWithDefaults(
-            config.sequencerOptions,
-            DEFAULT_SEQUENCER_OPTIONS
-        );
-        this.sequencer.skipToFirstNoteOn = seqOptions.skipToFirstNoteOn;
-        this.sequencer.playbackRate = seqOptions.initialPlaybackRate;
-        // Autoplay is ignored
-        try {
-            // Cloned objects don't have methods
-            this.sequencer.loadNewSongList([
-                BasicMIDI.copyFrom(config.midiSequence)
-            ]);
-            this.sequencer.play();
-        } catch (e) {
-            console.error(e);
-            this.postMessageToMainThread({
-                type: "sequencerReturn",
+        this.postMessageToMainThread(
+            {
+                type: "isFullyInitialized",
                 data: {
-                    type: "midiError",
-                    data: e as Error
-                }
-            });
-        }
-        this.postReady("startOfflineRender", null);
+                    type,
+                    data
+                } as {
+                    [K in keyof SynthesizerReturn]: {
+                        type: K;
+                        data: SynthesizerReturn[K];
+                    };
+                }[keyof SynthesizerReturn]
+            },
+            transferable
+        );
     }
 
-    private postMessageToMainThread(data: BasicSynthesizerReturnMessage) {
-        this.port.postMessage(data);
+    protected destroy() {
+        this.synthesizer.destroySynthProcessor();
+        // @ts-expect-error JS Deletion
+        // noinspection JSConstantReassignment
+        delete this.synthesizer;
+        // @ts-expect-error JS Deletion
+        // noinspection JSConstantReassignment
+        delete this.sequencer;
     }
 
-    private handleMessage(m: BasicSynthesizerMessage) {
+    protected handleMessage(m: BasicSynthesizerMessage) {
         const channel = m.channelNumber;
 
         let channelObject:
@@ -257,10 +123,6 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
             }
         }
         switch (m.type) {
-            case "startOfflineRender":
-                this.startOfflineRender(m.data);
-                break;
-
             case "midiMessage":
                 this.synthesizer.processMessage(
                     m.data.messageData,
@@ -530,7 +392,7 @@ export class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
             case "destroyWorklet":
                 this.alive = false;
                 this.synthesizer.destroySynthProcessor();
-                delete this.sequencer;
+                this.destroy();
                 break;
 
             default:
