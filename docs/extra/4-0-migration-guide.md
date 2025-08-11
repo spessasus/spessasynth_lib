@@ -122,3 +122,7 @@ All `onSomething` have been replaced with an `eventHandler` to bring the API in-
 ### onTempoChange
 
 Removed as `metaEvent` event includes tempo change events.
+
+## AudioBufferToWav
+
+Now takes an `options` object instead of optional arguments.
