@@ -15,7 +15,7 @@ export async function writeSF2Worker(
     let sf;
     if (
         opts.writeEmbeddedSoundBank &&
-        this.sequencer.midiData.embeddedSoundBank
+        this.sequencer.midiData?.embeddedSoundBank
     ) {
         sf = SoundBankLoader.fromArrayBuffer(
             this.sequencer.midiData.embeddedSoundBank
@@ -48,6 +48,11 @@ export async function writeSF2Worker(
 
     // Trim
     if (opts.trim) {
+        if (!this.sequencer.midiData) {
+            throw new Error(
+                "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
+            );
+        }
         sf.trimSoundBank(this.sequencer.midiData);
     }
 
@@ -78,7 +83,7 @@ export async function writeDLSWorker(
     let sf;
     if (
         opts.writeEmbeddedSoundBank &&
-        this.sequencer.midiData.embeddedSoundBank
+        this.sequencer.midiData?.embeddedSoundBank
     ) {
         sf = SoundBankLoader.fromArrayBuffer(
             this.sequencer.midiData.embeddedSoundBank
@@ -100,6 +105,11 @@ export async function writeDLSWorker(
 
     // Trim
     if (opts.trim) {
+        if (!this.sequencer.midiData) {
+            throw new Error(
+                "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
+            );
+        }
         sf.trimSoundBank(this.sequencer.midiData);
     }
 

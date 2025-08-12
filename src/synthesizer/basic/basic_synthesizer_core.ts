@@ -315,6 +315,9 @@ export abstract class BasicSynthesizerCore {
                         break;
 
                     case "getMIDI":
+                        if (!seq.midiData) {
+                            throw new Error("No MIDI is loaded!");
+                        }
                         this.post({
                             type: "sequencerReturn",
                             data: {

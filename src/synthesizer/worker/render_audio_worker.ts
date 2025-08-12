@@ -72,6 +72,9 @@ export function renderAudioWorker(
     this.stopAudioLoop();
 
     const parsedMid = this.sequencer.midiData;
+    if (!parsedMid) {
+        throw new Error("No MIDI is loaded!");
+    }
     const playbackRate = this.sequencer.playbackRate;
     // Calculate times
     const loopStartAbsolute =
