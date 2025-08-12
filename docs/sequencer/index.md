@@ -87,10 +87,10 @@ sequencer.setSongIndex(index);
 ```
 - index - number, the song index, zero-based.
 
-### connectMidiOutput
+### connectMIDIOutput
 Connect a given MIDI output port and play the sequence to it.
 ```js
-sequencer.connectMidiOutput(output);
+sequencer.connectMIDIOutput(output);
 ```
 - output - a [`MIDIOutput`](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API) object, the output port to play to.
 !!! Tip

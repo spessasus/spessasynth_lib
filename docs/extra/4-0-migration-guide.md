@@ -44,7 +44,7 @@ Now includes a sourcemap, much like index.js.
 
 Removed, as you have to include the worklet file manually.
 
-### WorkletSynthesizer
+## WorkletSynthesizer
 
 Renamed from `Sythetizer` to `WorkletSynthesizer`.
 This is done as another (`WorkerSynthesizer`) synthesizer is available.
@@ -62,36 +62,36 @@ They behave in exactly the same way.
 - `soundFontManager` - `soundBankManager`
 - `getSynthesizerSnapshot` - `getSnapshot`
 
-#### synthConfig
+### synthConfig
 
 No longer specifies effects themselves, only if they are initialized. The effects can be updated in their respective methods.
 
-#### setMasterParameter
+### setMasterParameter
 
 Reworked to take the new spessasynth_core master parameter strings.
 For more information, please visit [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
 
-#### transpose
+### transpose
 
 Removed, replaced with a `transpose` master parameter.
 
-#### soundBankManager
+### soundBankManager
 
 The methods now match [spessasynth_core](https://spessasus.github.io/spessasynth_core/extra/4-0-migration-guide.html#sound-bank-manager).
 
-#### setEffectsGain
+### setEffectsGain
 
 Removed, replaced with master parameters.
 
-#### setChorusConfig
+### setChorusConfig
 
 Removed, replaced with `ChorusProcessor.update`
 
-#### setReverbImpulseResponse
+### setReverbImpulseResponse
 
 Removed, replaced with `ReverbProcessor.update`
 
-### Sequencer
+## Sequencer
 
 The constructor no longer takes in a MIDI list, allowing the creation of a sequencer without a song list.
 
@@ -101,6 +101,11 @@ The `preservePlaybackState` has been removed and is always on.
 Loading a new song list no longer automatically starts the playback.
 
 This is the behavior of `SpessaSynthProcessor`.
+
+A few methods and properties have been renamed for consistency.
+They behave in exactly the same way.
+
+- `connectMidiOutput` -> `connectMIDIOutput`
 
 ### loop
 
@@ -126,3 +131,11 @@ Removed as `metaEvent` event includes tempo change events.
 ## AudioBufferToWav
 
 Now takes an `options` object instead of optional arguments.
+
+## MIDIDeviceHandler
+
+Initialization is now done via `MIDIDeviceHandler.createMIDIDeviceHandler()` directly.
+
+The connect methods have been removed,
+ as the `inputs` and `outputs` have been replaced with
+  `LibMIDIInput` and `LibMIDIOutput` respectively that have their methods to connecting to a given sequencer/synthesizer.

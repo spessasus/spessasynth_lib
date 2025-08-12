@@ -70,6 +70,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 break;
 
             case "writeSF2":
+                this.stopAudioLoop();
                 const opts = m.data;
                 const sf = this.synthesizer.soundBankManager.soundBankList.find(
                     (b) => b.id === opts.bankID
@@ -125,6 +126,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                             },
                             [buf]
                         );
+                        this.startAudioLoop();
                     });
                 break;
 

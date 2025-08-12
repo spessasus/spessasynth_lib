@@ -6,6 +6,7 @@ This synthesizer uses a single AudioWorklet with the Processor and Sequencer in 
 
 - Stable audio system: The processor lives in the worklet. As long as the system can keep up, there should be no dropouts.
 - Separate thread: The audio thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
+- Fast main thread communication: suitable for real-time playback from Web MIDI Inputs.
 
 ## Disadvantages
 
@@ -37,7 +38,7 @@ Useful
   when [rendering audio to file](../getting-started/render-audio-example.md)
 - startRenderingData - `object`, used for rendering to file. It's formatted as follows:
   - midiSequence: the same type as [passed in loadNewSongList](../sequencer/index.md#loadnewsonglist), but singular. The synthesizer will immediately start rendering it if specified
-  - snapshot: a [`SynthesizerSnapshot`](basic-synthesizer.md#getSnapshot) object, a copy of controllers from another synthesizer
+  - snapshot: a [`SynthesizerSnapshot`](basic-synthesizer.md#getsnapshot) object, a copy of controllers from another synthesizer
     instance.
     If specified, synth will copy this configuration.
   - oneOutput: a `boolean` - indicates the [One output mode](basic-synthesizer.md#one-output-mode)

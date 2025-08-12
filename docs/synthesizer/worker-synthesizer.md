@@ -9,7 +9,7 @@ This is the synthesizer used by the SpessaSynth web app.
 - Integrated worklet: there's no need to copy any js files as the worklet is embedded into the code.
 - Direct audio engine access: while still in a separate thread.
 - Not affected by the [Chromium SF3 audio bug](https://github.com/spessasus/spessasynth_lib/issues/8).
-- Direct SF/MIDI/audio export right in the worker, without transferring any large ArrayBuffers.
+- Direct SF/MIDI/audio export right in the worker, without transferring any large ArrayBuffers or freezing the main thread.
 
 ## Disadvantages
 

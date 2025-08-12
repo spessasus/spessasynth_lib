@@ -313,7 +313,7 @@ export class Sequencer {
      * Connects a given output to the sequencer.
      * @param output The output to connect.
      */
-    public connectMidiOutput(output?: MIDIOutput) {
+    public connectMIDIOutput(output?: MIDIOutput) {
         this.resetMIDIOutput();
         this.midiOut = output;
         this.sendMessage("changeMIDIMessageSending", output !== undefined);
