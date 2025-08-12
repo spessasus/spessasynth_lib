@@ -1,6 +1,7 @@
 import type {
     BasicMIDI,
     CustomController,
+    DLSWriteOptions,
     KeyModifier,
     MasterParameterType,
     MIDIController,
@@ -88,10 +89,7 @@ export type BasicSynthesizerMessage = {
     };
 }[keyof BasicSynthesizerMessageData];
 
-export type WorkerSoundFont2WriteOptions = Omit<
-    SoundFont2WriteOptions,
-    "compressionFunction" | "progressFunction"
-> & {
+export interface WorkerBankWriteOptions {
     /**
      * Trim the sound bank to only include samples used in the current MIDI file.
      */
@@ -101,7 +99,21 @@ export type WorkerSoundFont2WriteOptions = Omit<
      * The sound bank ID to write.
      */
     bankID: string;
-};
+
+    /**
+     * If the embedded sound bank should be written instead if it exists.
+     */
+    writeEmbeddedSoundBank: boolean;
+}
+
+export type WorkerDLSWriteOptions = Omit<DLSWriteOptions, "progressFunction"> &
+    WorkerBankWriteOptions;
+
+export type WorkerSoundFont2WriteOptions = Omit<
+    SoundFont2WriteOptions,
+    "compressionFunction" | "progressFunction"
+> &
+    WorkerBankWriteOptions;
 
 interface BasicSynthesizerMessageData {
     // WORKER SPECIFIC
@@ -114,6 +126,7 @@ interface BasicSynthesizerMessageData {
         options: WorkerRenderAudioOptions;
     };
     writeSF2: WorkerSoundFont2WriteOptions;
+    writeDLS: WorkerDLSWriteOptions;
 
     // WORKLET SPECIFIC
     startOfflineRender: OfflineRenderWorkletData;

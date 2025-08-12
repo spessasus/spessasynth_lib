@@ -1,4 +1,3 @@
-// The core audio engine for the worker synthesizer.
 import { type SampleEncodingFunction } from "spessasynth_core";
 import type { BasicSynthesizerMessage } from "../types.ts";
 import { renderAudioWorker } from "./render_audio_worker.ts";
@@ -6,17 +5,19 @@ import {
     BasicSynthesizerCore,
     type PostMessageSynthCore
 } from "../basic/basic_synthesizer_core.ts";
+import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
 
 const BLOCK_SIZE = 128;
 
 type AudioChunk = [Float32Array, Float32Array];
 type AudioChunks = AudioChunk[];
 
+// The core audio engine for the worker synthesizer.
 export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     /**
      * The message port to the playback audio worklet.
      */
-    protected workletMessagePort: MessagePort;
+    public readonly workletMessagePort: MessagePort;
 
     protected readonly compressionFunction?: SampleEncodingFunction;
 
@@ -71,63 +72,32 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
             case "writeSF2":
                 this.stopAudioLoop();
-                const opts = m.data;
-                const sf = this.synthesizer.soundBankManager.soundBankList.find(
-                    (b) => b.id === opts.bankID
-                )?.soundBank;
-                if (!sf) {
-                    const e = new Error(
-                        `${opts.bankID} does not exist in the sound bank list!`
+                void writeSF2Worker.call(this, m.data).then((data) => {
+                    this.postReady(
+                        "writeSoundBank",
+                        {
+                            binary: data.binary,
+                            bankName: data.bank.soundBankInfo?.INAM ?? ""
+                        },
+                        [data.binary]
                     );
-                    this.post({
-                        type: "soundBankError",
-                        data: e
-                    });
-                    throw e;
-                }
-                if (opts.compress && !this.compressionFunction) {
-                    const e = new Error(
-                        `Compression enabled but no compression has been provided to WorkerSynthesizerCore.`
+                    this.startAudioLoop();
+                });
+                break;
+
+            case "writeDLS":
+                this.stopAudioLoop();
+                void writeDLSWorker.call(this, m.data).then((data) => {
+                    this.postReady(
+                        "writeSoundBank",
+                        {
+                            binary: data.binary,
+                            bankName: data.bank.soundBankInfo?.INAM ?? ""
+                        },
+                        [data.binary]
                     );
-                    this.post({
-                        type: "soundBankError",
-                        data: e
-                    });
-                    throw e;
-                }
-
-                // Trim
-                if (opts.trim) {
-                    sf.trimSoundBank(this.sequencer.midiData);
-                }
-
-                void sf
-                    .writeSF2({
-                        ...opts,
-                        progressFunction: (
-                            sampleName,
-                            sampleIndex,
-                            sampleCount
-                        ) => {
-                            this.postProgress("writeSoundBank", {
-                                sampleCount,
-                                sampleIndex,
-                                sampleName
-                            });
-                            return new Promise<void>((r) => r());
-                        }
-                    })
-                    .then((buf) => {
-                        this.postReady(
-                            "writeSoundBank",
-                            {
-                                binary: buf,
-                                bankName: sf.soundBankInfo?.INAM ?? ""
-                            },
-                            [buf]
-                        );
-                        this.startAudioLoop();
-                    });
+                    this.startAudioLoop();
+                });
                 break;
 
             default:

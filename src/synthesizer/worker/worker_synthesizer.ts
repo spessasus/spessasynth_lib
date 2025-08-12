@@ -2,17 +2,31 @@ import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
 import type { SynthConfig } from "../audio_effects/types.ts";
 import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { PLAYBACK_WORKLET_PROCESSOR_NAME, PLAYBACK_WORKLET_URL } from "./playback_worklet.ts";
+import {
+    PLAYBACK_WORKLET_PROCESSOR_NAME,
+    PLAYBACK_WORKLET_URL
+} from "./playback_worklet.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
     SynthesizerProgress,
     SynthesizerReturn,
+    WorkerBankWriteOptions,
+    WorkerDLSWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types.ts";
-import { DEFAULT_WORKER_RENDER_AUDIO_OPTIONS, type WorkerRenderAudioOptions } from "./render_audio_worker.ts";
+import {
+    DEFAULT_WORKER_RENDER_AUDIO_OPTIONS,
+    type WorkerRenderAudioOptions
+} from "./render_audio_worker.ts";
 import { ChorusProcessor } from "../audio_effects/chorus.ts";
 import { ReverbProcessor } from "../audio_effects/reverb.ts";
+
+const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
+    trim: true,
+    bankID: "",
+    writeEmbeddedSoundBank: true
+};
 
 /**
  * This synthesizer uses a Worker containing the processor and an audio worklet node for playback.
@@ -112,6 +126,41 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
+     * Writes a DLS file directly in the worker.
+     * @param options Options for writing the file.
+     * @returns The file array buffer and its corresponding name.
+     */
+    public async writeDLS(
+        options: Partial<
+            WorkerDLSWriteOptions & {
+                progressFunction?: (
+                    args: SynthesizerProgress["writeSoundBank"]
+                ) => unknown;
+            }
+        >
+    ): Promise<SynthesizerReturn["writeSoundBank"]> {
+        const writeOptions = fillWithDefaults(
+            options,
+            DEFAULT_BANK_WRITE_OPTIONS
+        );
+        return new Promise((resolve) => {
+            this.assignProgressTracker("writeSoundBank", (p) => {
+                void options.progressFunction?.(p);
+            });
+            const postOptions = {
+                ...writeOptions,
+                progressFunction: null
+            };
+            this.awaitWorkerResponse("writeSoundBank", (data) => resolve(data));
+            this.post({
+                type: "writeDLS",
+                data: postOptions,
+                channelNumber: -1
+            });
+        });
+    }
+
+    /**
      * Writes an SF2/SF3 file directly in the worker.
      * @param options Options for writing the file.
      * @returns The file array buffer and its corresponding name.
@@ -126,13 +175,12 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         >
     ): Promise<SynthesizerReturn["writeSoundBank"]> {
         const writeOptions = fillWithDefaults(options, {
+            ...DEFAULT_BANK_WRITE_OPTIONS,
             writeDefaultModulators: true,
             writeExtendedLimits: true,
             compress: false,
             compressionQuality: 1.0,
-            decompress: false,
-            trim: false,
-            bankID: ""
+            decompress: false
         });
         return new Promise((resolve) => {
             this.assignProgressTracker("writeSoundBank", (p) => {

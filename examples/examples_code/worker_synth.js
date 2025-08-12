@@ -70,6 +70,30 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
         a.download = `${outputBuffer.bankName}.sf2`;
         a.textContent = "Download SF2";
         document.getElementsByClassName("example_content")[0].appendChild(a);
+        a.click();
+    };
+
+    // add a button for saving the DLS file
+    document.getElementById("save_dls").onclick = async () => {
+        const outputBuffer = await synth.writeDLS({
+            trim: true,
+            bankID: "main",
+            progressFunction: (args) => {
+                document.getElementById("message").innerText =
+                    `Saving sample "${args.sampleName}" (${args.sampleIndex} out of ${args.sampleCount})...`;
+            }
+        });
+        document.getElementById("message").innerText = "Complete!";
+        const blob = new Blob([outputBuffer.binary]);
+        const fileURL = URL.createObjectURL(blob);
+
+        // add an anchor for downloading the file
+        const a = document.createElement("a");
+        a.href = fileURL;
+        a.download = `${outputBuffer.bankName}.dls`;
+        a.textContent = "Download DLS";
+        document.getElementsByClassName("example_content")[0].appendChild(a);
+        a.click();
     };
 
     // the rest of the code works the same
