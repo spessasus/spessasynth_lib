@@ -122,7 +122,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                     b.bankOffset
                 );
             } catch (e) {
-                this.postMessageToMainThread({
+                this.post({
                     type: "soundBankError",
                     data: e as Error
                 });
@@ -160,7 +160,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             this.sequencer.play();
         } catch (e) {
             console.error(e);
-            this.postMessageToMainThread({
+            this.post({
                 type: "sequencerReturn",
                 data: {
                     type: "midiError",

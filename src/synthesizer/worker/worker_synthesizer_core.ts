@@ -69,6 +69,65 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 this.postReady("renderAudio", rendered, transferable);
                 break;
 
+            case "writeSF2":
+                const opts = m.data;
+                const sf = this.synthesizer.soundBankManager.soundBankList.find(
+                    (b) => b.id === opts.bankID
+                )?.soundBank;
+                if (!sf) {
+                    const e = new Error(
+                        `${opts.bankID} does not exist in the sound bank list!`
+                    );
+                    this.post({
+                        type: "soundBankError",
+                        data: e
+                    });
+                    throw e;
+                }
+                if (opts.compress && !this.compressionFunction) {
+                    const e = new Error(
+                        `Compression enabled but no compression has been provided to WorkerSynthesizerCore.`
+                    );
+                    this.post({
+                        type: "soundBankError",
+                        data: e
+                    });
+                    throw e;
+                }
+
+                // Trim
+                if (opts.trim) {
+                    sf.trimSoundBank(this.sequencer.midiData);
+                }
+
+                void sf
+                    .writeSF2({
+                        ...opts,
+                        progressFunction: (
+                            sampleName,
+                            sampleIndex,
+                            sampleCount
+                        ) => {
+                            this.postProgress("writeSoundBank", {
+                                sampleCount,
+                                sampleIndex,
+                                sampleName
+                            });
+                            return new Promise<void>((r) => r());
+                        }
+                    })
+                    .then((buf) => {
+                        this.postReady(
+                            "writeSoundBank",
+                            {
+                                binary: buf,
+                                bankName: sf.soundBankInfo?.INAM ?? ""
+                            },
+                            [buf]
+                        );
+                    });
+                break;
+
             default:
                 super.handleMessage(m);
         }

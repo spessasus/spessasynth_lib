@@ -104,7 +104,7 @@ export class SoundBankManager {
 
     private async awaitResponse() {
         return new Promise((r) =>
-            this.synth.awaitWorkletResponse("soundBankManager", r)
+            this.synth.awaitWorkerResponse("soundBankManager", r)
         );
     }
 

@@ -21,6 +21,7 @@ import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
+    SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
 import { consoleColors } from "../../utils/other.ts";
@@ -101,7 +102,15 @@ export abstract class BasicSynthesizer {
         keyof SynthesizerReturn,
         (data: SynthesizerReturn[keyof SynthesizerReturn]) => unknown
     >();
-    protected renderingProgressTracker?: (progress: number) => unknown;
+
+    protected renderingProgressTracker = new Map<
+        keyof SynthesizerProgress,
+        {
+            [K in keyof SynthesizerProgress]: (
+                args: SynthesizerProgress[K]
+            ) => unknown;
+        }[keyof SynthesizerProgress]
+    >();
 
     /**
      * Creates a new instance of a synthesizer.
@@ -126,7 +135,7 @@ export abstract class BasicSynthesizer {
         this.post = postFunction;
 
         this.isReady = new Promise((resolve) =>
-            this.awaitWorkletResponse("sf3Decoder", resolve)
+            this.awaitWorkerResponse("sf3Decoder", resolve)
         );
 
         // Initialize effects configuration
@@ -316,7 +325,7 @@ export abstract class BasicSynthesizer {
      */
     public async getSnapshot(): Promise<LibSynthesizerSnapshot> {
         return new Promise((resolve) => {
-            this.awaitWorkletResponse("synthesizerSnapshot", (s) => {
+            this.awaitWorkerResponse("synthesizerSnapshot", (s) => {
                 const snapshot = new LibSynthesizerSnapshot(
                     s.channelSnapshots,
                     s.masterParameters,
@@ -781,7 +790,7 @@ export abstract class BasicSynthesizer {
      * @param type INTERNAL USE ONLY!
      * @param resolve INTERNAL USE ONLY!
      */
-    public awaitWorkletResponse<K extends keyof SynthesizerReturn>(
+    public awaitWorkerResponse<K extends keyof SynthesizerReturn>(
         type: K,
         resolve: (data: SynthesizerReturn[K]) => unknown
     ) {
@@ -789,17 +798,21 @@ export abstract class BasicSynthesizer {
         this.resolveMap.set(type, resolve);
     }
 
-    protected assignProgressTracker(
-        progressFunction: (progress: number) => unknown
+    protected assignProgressTracker<K extends keyof SynthesizerProgress>(
+        type: K,
+        progressFunction: (args: SynthesizerProgress[K]) => unknown
     ) {
-        if (this.renderingProgressTracker !== undefined) {
+        if (this.renderingProgressTracker.get(type)) {
             throw new Error("Something is already being rendered!");
         }
-        this.renderingProgressTracker = progressFunction;
+        // @ts-expect-error I can't use generics with map
+        this.renderingProgressTracker.set(type, progressFunction);
     }
 
-    protected revokeProgressTracker() {
-        this.renderingProgressTracker = undefined;
+    protected revokeProgressTracker<K extends keyof SynthesizerProgress>(
+        type: K
+    ) {
+        this.renderingProgressTracker.delete(type);
     }
 
     protected _sendInternal(
@@ -848,12 +861,10 @@ export abstract class BasicSynthesizer {
                 break;
 
             case "renderingProgress":
-                if (!this.renderingProgressTracker) {
-                    throw new Error(
-                        "No rendering progress handler has been set up!"
-                    );
-                }
-                this.renderingProgressTracker(m.data);
+                this.renderingProgressTracker.get(m.data.type)?.(
+                    // @ts-expect-error I can't use generics with map
+                    m.data.data
+                );
         }
     }
 

@@ -97,10 +97,7 @@ export function renderAudioWorker(
     rendererSeq.play();
 
     const progressCallback = (progress: number) => {
-        this.postMessageToMainThread({
-            type: "renderingProgress",
-            data: progress
-        });
+        this.postProgress("renderAudio", progress);
     };
 
     // Allocate memory

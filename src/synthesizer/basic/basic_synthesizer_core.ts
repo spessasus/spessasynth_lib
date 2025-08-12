@@ -12,6 +12,7 @@ import {
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
+    SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
 import { MIDIData } from "../../sequencer/midi_data.ts";
@@ -28,7 +29,7 @@ export type PostMessageSynthCore = (
 export abstract class BasicSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
     public readonly sequencer: SpessaSynthSequencer;
-    protected readonly postMessageToMainThread: PostMessageSynthCore;
+    protected readonly post: PostMessageSynthCore;
     /**
      * Indicates if the processor is alive.
      * @protected
@@ -42,11 +43,11 @@ export abstract class BasicSynthesizerCore {
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
         this.sequencer = new SpessaSynthSequencer(this.synthesizer);
-        this.postMessageToMainThread = postMessage;
+        this.post = postMessage;
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
-            this.postMessageToMainThread({
+            this.post({
                 type: "eventCall",
                 data: event
             });
@@ -59,7 +60,7 @@ export abstract class BasicSynthesizerCore {
                 const midiDatas = songs.map((s) => {
                     return new MIDIData(s);
                 });
-                this.postMessageToMainThread({
+                this.post({
                     type: "sequencerReturn",
                     data: {
                         type: e.type,
@@ -68,7 +69,7 @@ export abstract class BasicSynthesizerCore {
                 });
                 return;
             }
-            this.postMessageToMainThread({
+            this.post({
                 type: "sequencerReturn",
                 data: e
             });
@@ -80,7 +81,7 @@ export abstract class BasicSynthesizerCore {
         data: SynthesizerReturn[K],
         transferable: Transferable[] = []
     ) {
-        this.postMessageToMainThread(
+        this.post(
             {
                 type: "isFullyInitialized",
                 data: {
@@ -95,6 +96,24 @@ export abstract class BasicSynthesizerCore {
             },
             transferable
         );
+    }
+
+    protected postProgress<K extends keyof SynthesizerProgress>(
+        type: K,
+        data: SynthesizerProgress[K]
+    ) {
+        this.post({
+            type: "renderingProgress",
+            data: {
+                type,
+                data
+            } as {
+                [K in keyof SynthesizerProgress]: {
+                    type: K;
+                    data: SynthesizerProgress[K];
+                };
+            }[keyof SynthesizerProgress]
+        });
     }
 
     protected destroy() {
@@ -244,7 +263,7 @@ export abstract class BasicSynthesizerCore {
                             seq.loadNewSongList(songMap);
                         } catch (e) {
                             console.error(e);
-                            this.postMessageToMainThread({
+                            this.post({
                                 type: "sequencerReturn",
                                 data: {
                                     type: "midiError",
@@ -296,7 +315,7 @@ export abstract class BasicSynthesizerCore {
                         break;
 
                     case "getMIDI":
-                        this.postMessageToMainThread({
+                        this.post({
                             type: "sequencerReturn",
                             data: {
                                 type: "getMIDI",
@@ -340,7 +359,7 @@ export abstract class BasicSynthesizerCore {
                             this.postReady("soundBankManager", null);
                     }
                 } catch (e) {
-                    this.postMessageToMainThread({
+                    this.post({
                         type: "soundBankError",
                         data: e as Error
                     });

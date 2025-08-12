@@ -4,6 +4,7 @@ import type {
     KeyModifier,
     MasterParameterType,
     MIDIController,
+    SoundFont2WriteOptions,
     SynthesizerSnapshot,
     SynthMethodOptions,
     SynthProcessorEvent
@@ -87,6 +88,21 @@ export type BasicSynthesizerMessage = {
     };
 }[keyof BasicSynthesizerMessageData];
 
+export type WorkerSoundFont2WriteOptions = Omit<
+    SoundFont2WriteOptions,
+    "compressionFunction" | "progressFunction"
+> & {
+    /**
+     * Trim the sound bank to only include samples used in the current MIDI file.
+     */
+    trim: boolean;
+
+    /**
+     * The sound bank ID to write.
+     */
+    bankID: string;
+};
+
 interface BasicSynthesizerMessageData {
     // WORKER SPECIFIC
     workerInitialization: {
@@ -97,6 +113,7 @@ interface BasicSynthesizerMessageData {
         sampleRate: number;
         options: WorkerRenderAudioOptions;
     };
+    writeSF2: WorkerSoundFont2WriteOptions;
 
     // WORKLET SPECIFIC
     startOfflineRender: OfflineRenderWorkletData;
@@ -179,7 +196,12 @@ interface BasicSynthesizerReturnMessageData {
     }[keyof SynthesizerReturn];
     // An error message related to the sound bank. It contains a string description of the error.
     soundBankError: Error;
-    renderingProgress: number;
+    renderingProgress: {
+        [K in keyof SynthesizerProgress]: {
+            type: K;
+            data: SynthesizerProgress[K];
+        };
+    }[keyof SynthesizerProgress];
 }
 
 export type BasicSynthesizerReturnMessage = {
@@ -188,6 +210,15 @@ export type BasicSynthesizerReturnMessage = {
         data: BasicSynthesizerReturnMessageData[K];
     };
 }[keyof BasicSynthesizerReturnMessageData];
+
+export interface SynthesizerProgress {
+    renderAudio: number;
+    writeSoundBank: {
+        sampleName: string;
+        sampleIndex: number;
+        sampleCount: number;
+    };
+}
 
 export interface SynthesizerReturn {
     sf3Decoder: null;
@@ -198,5 +229,9 @@ export interface SynthesizerReturn {
         reverb: [Float32Array, Float32Array];
         chorus: [Float32Array, Float32Array];
         dry: [Float32Array, Float32Array][];
+    };
+    writeSoundBank: {
+        binary: ArrayBuffer;
+        bankName: string;
     };
 }

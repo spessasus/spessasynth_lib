@@ -3,7 +3,13 @@ import type { SynthConfig } from "../audio_effects/types.ts";
 import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { PLAYBACK_WORKLET_PROCESSOR_NAME, PLAYBACK_WORKLET_URL } from "./playback_worklet.ts";
-import type { BasicSynthesizerMessage, BasicSynthesizerReturnMessage } from "../types.ts";
+import type {
+    BasicSynthesizerMessage,
+    BasicSynthesizerReturnMessage,
+    SynthesizerProgress,
+    SynthesizerReturn,
+    WorkerSoundFont2WriteOptions
+} from "../types.ts";
 import { DEFAULT_WORKER_RENDER_AUDIO_OPTIONS, type WorkerRenderAudioOptions } from "./render_audio_worker.ts";
 import { ChorusProcessor } from "../audio_effects/chorus.ts";
 import { ReverbProcessor } from "../audio_effects/reverb.ts";
@@ -106,6 +112,46 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
+     * Writes an SF2/SF3 file directly in the worker.
+     * @param options Options for writing the file.
+     * @returns The file array buffer and its corresponding name.
+     */
+    public async writeSF2(
+        options: Partial<
+            WorkerSoundFont2WriteOptions & {
+                progressFunction?: (
+                    args: SynthesizerProgress["writeSoundBank"]
+                ) => unknown;
+            }
+        >
+    ): Promise<SynthesizerReturn["writeSoundBank"]> {
+        const writeOptions = fillWithDefaults(options, {
+            writeDefaultModulators: true,
+            writeExtendedLimits: true,
+            compress: false,
+            compressionQuality: 1.0,
+            decompress: false,
+            trim: false,
+            bankID: ""
+        });
+        return new Promise((resolve) => {
+            this.assignProgressTracker("writeSoundBank", (p) => {
+                void options.progressFunction?.(p);
+            });
+            const postOptions = {
+                ...writeOptions,
+                progressFunction: null
+            };
+            this.awaitWorkerResponse("writeSoundBank", (data) => resolve(data));
+            this.post({
+                type: "writeSF2",
+                data: postOptions,
+                channelNumber: -1
+            });
+        });
+    }
+
+    /**
      * Renders the current song in the connected sequencer to Float32 buffers.
      * @param sampleRate The sample rate to use, in hertz.
      * @param renderOptions Extra options for the render.
@@ -126,8 +172,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         }
         return new Promise((resolve) => {
             // First pass: Worker renders the dry audio
-            this.awaitWorkletResponse("renderAudio", async (data) => {
-                this.revokeProgressTracker();
+            this.awaitWorkerResponse("renderAudio", async (data) => {
+                this.revokeProgressTracker("renderAudio");
                 const bufferLength = data.reverb[0].length;
                 // Convert to audio buffers
                 const dryChannels = data.dry.map((dryPair) => {
@@ -215,7 +261,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 return;
             });
             // Assign progress tracker and render
-            this.assignProgressTracker((p) => {
+            this.assignProgressTracker("renderAudio", (p) => {
                 options.progressCallback?.(p, 0);
             });
 

@@ -78,7 +78,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
             config.soundBankList.map((b) => b.soundBankBuffer)
         );
         await new Promise((r) =>
-            this.awaitWorkletResponse("startOfflineRender", r)
+            this.awaitWorkerResponse("startOfflineRender", r)
         );
     }
 

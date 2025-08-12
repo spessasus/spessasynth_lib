@@ -26,6 +26,7 @@ export class LibSynthesizerSnapshot extends SynthesizerSnapshot {
         this.chorusConfig = { ...chorusConfig };
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Retrieves the spessasynth_core snapshot from the lib snapshot.
      */
