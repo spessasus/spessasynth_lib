@@ -257,7 +257,7 @@ export abstract class BasicSynthesizerCore {
                                 }
                                 return BasicMIDI.fromArrayBuffer(
                                     s.binary,
-                                    s.altName
+                                    s.fileName
                                 );
                             });
                             seq.loadNewSongList(songMap);

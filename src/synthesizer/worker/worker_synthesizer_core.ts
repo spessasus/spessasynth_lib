@@ -1,11 +1,19 @@
-import { type SampleEncodingFunction } from "spessasynth_core";
-import type { BasicSynthesizerMessage } from "../types.ts";
+import {
+    type BasicSoundBank,
+    type SampleEncodingFunction,
+    SoundBankLoader
+} from "spessasynth_core";
+import type {
+    BasicSynthesizerMessage,
+    WorkerBankWriteOptions
+} from "../types.ts";
 import { renderAudioWorker } from "./render_audio_worker.ts";
 import {
     BasicSynthesizerCore,
     type PostMessageSynthCore
 } from "../basic/basic_synthesizer_core.ts";
 import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
+import { writeRMIDIWorker } from "./write_rmi_worker.ts";
 
 const BLOCK_SIZE = 128;
 
@@ -70,14 +78,29 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 this.postReady("renderAudio", rendered, transferable);
                 break;
 
+            case "writeRMIDI":
+                this.stopAudioLoop();
+                void writeRMIDIWorker.call(this, m.data).then((data) => {
+                    this.postReady(
+                        "workerSynthWriteFile",
+                        {
+                            binary: data,
+                            fileName: ""
+                        },
+                        [data]
+                    );
+                    this.startAudioLoop();
+                });
+                break;
+
             case "writeSF2":
                 this.stopAudioLoop();
                 void writeSF2Worker.call(this, m.data).then((data) => {
                     this.postReady(
-                        "writeSoundBank",
+                        "workerSynthWriteFile",
                         {
                             binary: data.binary,
-                            bankName: data.bank.soundBankInfo?.INAM ?? ""
+                            fileName: data.bank.soundBankInfo.name
                         },
                         [data.binary]
                     );
@@ -89,10 +112,10 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 this.stopAudioLoop();
                 void writeDLSWorker.call(this, m.data).then((data) => {
                     this.postReady(
-                        "writeSoundBank",
+                        "workerSynthWriteFile",
                         {
                             binary: data.binary,
-                            bankName: data.bank.soundBankInfo?.INAM ?? ""
+                            fileName: data.bank.soundBankInfo.name
                         },
                         [data.binary]
                     );
@@ -103,6 +126,32 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             default:
                 super.handleMessage(m);
         }
+    }
+
+    protected getBank(opts: WorkerBankWriteOptions): BasicSoundBank {
+        let sf;
+        if (
+            opts.writeEmbeddedSoundBank &&
+            this.sequencer.midiData?.embeddedSoundBank
+        ) {
+            sf = SoundBankLoader.fromArrayBuffer(
+                this.sequencer.midiData.embeddedSoundBank
+            );
+        } else
+            sf = this.synthesizer.soundBankManager.soundBankList.find(
+                (b) => b.id === opts.bankID
+            )?.soundBank;
+        if (!sf) {
+            const e = new Error(
+                `${opts.bankID} does not exist in the sound bank list!`
+            );
+            this.post({
+                type: "soundBankError",
+                data: e
+            });
+            throw e;
+        }
+        return sf;
     }
 
     protected stopAudioLoop() {

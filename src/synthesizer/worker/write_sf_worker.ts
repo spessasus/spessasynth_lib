@@ -3,7 +3,7 @@ import type {
     WorkerDLSWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types.ts";
-import { type BasicSoundBank, SoundBankLoader } from "spessasynth_core";
+import { BasicSoundBank } from "spessasynth_core";
 
 export async function writeSF2Worker(
     this: WorkerSynthesizerCore,
@@ -12,28 +12,7 @@ export async function writeSF2Worker(
     binary: ArrayBuffer;
     bank: BasicSoundBank;
 }> {
-    let sf;
-    if (
-        opts.writeEmbeddedSoundBank &&
-        this.sequencer.midiData?.embeddedSoundBank
-    ) {
-        sf = SoundBankLoader.fromArrayBuffer(
-            this.sequencer.midiData.embeddedSoundBank
-        );
-    } else
-        sf = this.synthesizer.soundBankManager.soundBankList.find(
-            (b) => b.id === opts.bankID
-        )?.soundBank;
-    if (!sf) {
-        const e = new Error(
-            `${opts.bankID} does not exist in the sound bank list!`
-        );
-        this.post({
-            type: "soundBankError",
-            data: e
-        });
-        throw e;
-    }
+    let sf = this.getBank(opts);
 
     if (opts.compress && !this.compressionFunction) {
         const e = new Error(
@@ -53,13 +32,16 @@ export async function writeSF2Worker(
                 "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
             );
         }
-        sf.trimSoundBank(this.sequencer.midiData);
+        // Copy
+        const sfCopy = BasicSoundBank.copyFrom(sf);
+        sfCopy.trimSoundBank(this.sequencer.midiData);
+        sf = sfCopy;
     }
 
     const b = await sf.writeSF2({
         ...opts,
         progressFunction: (sampleName, sampleIndex, sampleCount) => {
-            this.postProgress("writeSoundBank", {
+            this.postProgress("workerSynthWriteFile", {
                 sampleCount,
                 sampleIndex,
                 sampleName
@@ -80,28 +62,7 @@ export async function writeDLSWorker(
     binary: ArrayBuffer;
     bank: BasicSoundBank;
 }> {
-    let sf;
-    if (
-        opts.writeEmbeddedSoundBank &&
-        this.sequencer.midiData?.embeddedSoundBank
-    ) {
-        sf = SoundBankLoader.fromArrayBuffer(
-            this.sequencer.midiData.embeddedSoundBank
-        );
-    } else
-        sf = this.synthesizer.soundBankManager.soundBankList.find(
-            (b) => b.id === opts.bankID
-        )?.soundBank;
-    if (!sf) {
-        const e = new Error(
-            `${opts.bankID} does not exist in the sound bank list!`
-        );
-        this.post({
-            type: "soundBankError",
-            data: e
-        });
-        throw e;
-    }
+    let sf = this.getBank(opts);
 
     // Trim
     if (opts.trim) {
@@ -110,13 +71,15 @@ export async function writeDLSWorker(
                 "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
             );
         }
-        sf.trimSoundBank(this.sequencer.midiData);
+        const sfCopy = BasicSoundBank.copyFrom(sf);
+        sfCopy.trimSoundBank(this.sequencer.midiData);
+        sf = sfCopy;
     }
 
     const b = await sf.writeDLS({
         ...opts,
         progressFunction: (sampleName, sampleIndex, sampleCount) => {
-            this.postProgress("writeSoundBank", {
+            this.postProgress("workerSynthWriteFile", {
                 sampleCount,
                 sampleIndex,
                 sampleName

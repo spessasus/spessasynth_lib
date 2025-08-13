@@ -71,7 +71,7 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
             }
             await context.resume();
             const midiFile = await file.arrayBuffer(); // convert the file to array buffer
-            seq.loadNewSongList([{ binary: midiFile, altName: file.name }]);
+            seq.loadNewSongList([{ binary: midiFile, fileName: file.name }]);
             seq.play();
 
             /**

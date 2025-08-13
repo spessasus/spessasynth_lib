@@ -107,6 +107,10 @@ They behave in exactly the same way.
 
 - `connectMidiOutput` -> `connectMIDIOutput`
 
+### loadNewSongList
+
+`altName` property has been renamed to `fileName` as this is what it sets in `BasicMIDI`.
+
 ### loop
 
 Removed, `loopCount` of zero disables the loop.

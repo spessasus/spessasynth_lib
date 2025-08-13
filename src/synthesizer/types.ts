@@ -5,6 +5,7 @@ import type {
     KeyModifier,
     MasterParameterType,
     MIDIController,
+    RMIDIWriteOptions,
     SoundFont2WriteOptions,
     SynthesizerSnapshot,
     SynthMethodOptions,
@@ -115,6 +116,16 @@ export type WorkerSoundFont2WriteOptions = Omit<
 > &
     WorkerBankWriteOptions;
 
+export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> &
+    (
+        | ({
+              format: "sf2";
+          } & WorkerSoundFont2WriteOptions)
+        | ({
+              format: "dls";
+          } & WorkerDLSWriteOptions)
+    );
+
 interface BasicSynthesizerMessageData {
     // WORKER SPECIFIC
     workerInitialization: {
@@ -127,6 +138,7 @@ interface BasicSynthesizerMessageData {
     };
     writeSF2: WorkerSoundFont2WriteOptions;
     writeDLS: WorkerDLSWriteOptions;
+    writeRMIDI: WorkerRMIDIWriteOptions;
 
     // WORKLET SPECIFIC
     startOfflineRender: OfflineRenderWorkletData;
@@ -226,7 +238,7 @@ export type BasicSynthesizerReturnMessage = {
 
 export interface SynthesizerProgress {
     renderAudio: number;
-    writeSoundBank: {
+    workerSynthWriteFile: {
         sampleName: string;
         sampleIndex: number;
         sampleCount: number;
@@ -243,8 +255,14 @@ export interface SynthesizerReturn {
         chorus: [Float32Array, Float32Array];
         dry: [Float32Array, Float32Array][];
     };
-    writeSoundBank: {
+    workerSynthWriteFile: {
+        /**
+         * The binary data of the file
+         */
         binary: ArrayBuffer;
-        bankName: string;
+        /**
+         * The suggested name of the file.
+         */
+        fileName: string;
     };
 }

@@ -14,7 +14,7 @@ const sequencer = new Sequencer(midiBuffers, synth, options);
 ```
 - `midiBuffers` - an array of the MIDI files to play. Either `MIDI` or objects with two properties: 
   - `binary`: the `ArrayBuffer` representation of the file. It can be mixed up.
-  - `altName` - alternative name of the sequence if it doesn't have one. It cn be undefined.
+  - `fileName` - alternative name of the sequence if it doesn't have one. It cn be undefined.
 - `synth` - the synthetizer to use. An instance of the [`WorkletSynthesizer` class](../synthesizer/basic-synthesizer.md).
 - `options` - an optional `Object` with options for the sequencer (all of them are optional as well as the object itself)
   - `skipToFirstNoteOn` - a `boolean` indicating if the sequencer should skip to the first note on. Defaults to `true`.
@@ -42,7 +42,7 @@ sequencer.loadNewSongList(midiBuffers, autoPlay = true);
 ```
 - midiBuffers - an array of the parsed MIDI files to play,  Either `MIDI` or objects (can be mixed up) with two properties: 
   - `binary` - the `ArrayBuffer` representation of the file.
-  - `altName` - alternative name of the sequence if it doesn't have one (like file name, for example). `string`, can be undefined.
+  - `fileName` - alternative name of the sequence if it doesn't have one (like file name, for example). `string`, can be undefined.
 - `autoPlay` - a `boolean` indicating if the first sequence supplied should start playing. Defaults to `true`.
 
 !!! Info

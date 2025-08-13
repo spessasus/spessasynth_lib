@@ -38,7 +38,7 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
                 const buffer = await file.arrayBuffer();
                 parsedSongs.push({
                     binary: buffer, // binary: the binary data of the file
-                    altName: file.name // altName: the fallback name if the MIDI doesn't have one. Here we set it to the file name
+                    altName: file.name // fileName: the fallback name if the MIDI doesn't have one. Here we set it to the file name
                 });
             }
             seq.loadNewSongList(parsedSongs); // load the song list

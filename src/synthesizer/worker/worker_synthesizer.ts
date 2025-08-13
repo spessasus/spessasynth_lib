@@ -13,6 +13,7 @@ import type {
     SynthesizerReturn,
     WorkerBankWriteOptions,
     WorkerDLSWriteOptions,
+    WorkerRMIDIWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types.ts";
 import {
@@ -26,6 +27,35 @@ const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
     trim: true,
     bankID: "",
     writeEmbeddedSoundBank: true
+};
+
+const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {
+    ...DEFAULT_BANK_WRITE_OPTIONS,
+    writeDefaultModulators: true,
+    writeExtendedLimits: true,
+    compress: false,
+    compressionQuality: 1.0,
+    decompress: false
+};
+
+const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
+    ...DEFAULT_BANK_WRITE_OPTIONS,
+    bankOffset: 0,
+    correctBankOffset: true,
+    encoding: "utf-8",
+    metadata: {},
+    format: "sf2",
+    ...DEFAULT_SF2_WRITE_OPTIONS
+};
+
+const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {
+    ...DEFAULT_BANK_WRITE_OPTIONS
+};
+
+type WorkerSynthWriteOptions<K> = K & {
+    progressFunction?: (
+        args: SynthesizerProgress["workerSynthWriteFile"]
+    ) => unknown;
 };
 
 /**
@@ -131,27 +161,23 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @returns The file array buffer and its corresponding name.
      */
     public async writeDLS(
-        options: Partial<
-            WorkerDLSWriteOptions & {
-                progressFunction?: (
-                    args: SynthesizerProgress["writeSoundBank"]
-                ) => unknown;
-            }
-        >
-    ): Promise<SynthesizerReturn["writeSoundBank"]> {
+        options: Partial<WorkerSynthWriteOptions<WorkerDLSWriteOptions>>
+    ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
         const writeOptions = fillWithDefaults(
             options,
-            DEFAULT_BANK_WRITE_OPTIONS
+            DEFAULT_DLS_WRITE_OPTIONS
         );
         return new Promise((resolve) => {
-            this.assignProgressTracker("writeSoundBank", (p) => {
+            this.assignProgressTracker("workerSynthWriteFile", (p) => {
                 void options.progressFunction?.(p);
             });
             const postOptions = {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("writeSoundBank", (data) => resolve(data));
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
+                resolve(data)
+            );
             this.post({
                 type: "writeDLS",
                 data: postOptions,
@@ -166,33 +192,56 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @returns The file array buffer and its corresponding name.
      */
     public async writeSF2(
-        options: Partial<
-            WorkerSoundFont2WriteOptions & {
-                progressFunction?: (
-                    args: SynthesizerProgress["writeSoundBank"]
-                ) => unknown;
-            }
-        >
-    ): Promise<SynthesizerReturn["writeSoundBank"]> {
-        const writeOptions = fillWithDefaults(options, {
-            ...DEFAULT_BANK_WRITE_OPTIONS,
-            writeDefaultModulators: true,
-            writeExtendedLimits: true,
-            compress: false,
-            compressionQuality: 1.0,
-            decompress: false
-        });
+        options: Partial<WorkerSynthWriteOptions<WorkerSoundFont2WriteOptions>>
+    ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
+        const writeOptions = fillWithDefaults(
+            options,
+            DEFAULT_SF2_WRITE_OPTIONS
+        );
         return new Promise((resolve) => {
-            this.assignProgressTracker("writeSoundBank", (p) => {
+            this.assignProgressTracker("workerSynthWriteFile", (p) => {
                 void options.progressFunction?.(p);
             });
             const postOptions = {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("writeSoundBank", (data) => resolve(data));
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
+                resolve(data)
+            );
             this.post({
                 type: "writeSF2",
+                data: postOptions,
+                channelNumber: -1
+            });
+        });
+    }
+
+    /**
+     * Writes an embedded MIDI (RMIDI) file directly in the worker.
+     * @param options Options for writing the file.
+     * @returns The file array buffer.
+     */
+    public async writeRMIDI(
+        options: Partial<WorkerSynthWriteOptions<WorkerRMIDIWriteOptions>>
+    ): Promise<ArrayBuffer> {
+        const writeOptions = fillWithDefaults(
+            options,
+            DEFAULT_RMIDI_WRITE_OPTIONS
+        );
+        return new Promise((resolve) => {
+            this.assignProgressTracker("workerSynthWriteFile", (p) => {
+                void options.progressFunction?.(p);
+            });
+            const postOptions = {
+                ...writeOptions,
+                progressFunction: null
+            };
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
+                resolve(data.binary)
+            );
+            this.post({
+                type: "writeRMIDI",
                 data: postOptions,
                 channelNumber: -1
             });

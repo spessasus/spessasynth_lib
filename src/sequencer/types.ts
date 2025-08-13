@@ -63,27 +63,41 @@ export type SequencerReturnMessage =
 export type SuppliedMIDIData =
     | BasicMIDI
     | {
-          // The binary data of the file.
+          /**
+           * The binary data of the file.
+           */
           binary: ArrayBuffer;
-          // The alternative name for the file.
-          altName?: string;
+          /**
+           * The file name of this file as a fallback.
+           */
+          fileName?: string;
       };
 
 export interface WorkletSequencerEventType {
-    // New song.
+    /**
+     * New song.
+     */
     songChange: MIDIData;
-    // New time.
+    /**
+     * New time.
+     */
     timeChange: number;
-    // No data.
+    /**
+     * No data.
+     */
     songEnded: null;
     metaEvent: {
         event: MIDIMessage;
         trackNumber: number;
     };
     textEvent: {
-        // The raw event.
+        /**
+         * The raw event.
+         */
         event: MIDIMessage;
-        // If the text is a lyric, the index of the lyric in BasicMIDI's "lyrics" property, otherwise -1.
+        /**
+         * If the text is a lyric, the index of the lyric in BasicMIDI's "lyrics" property, otherwise -1.
+         */
         lyricsIndex: number;
     };
 
