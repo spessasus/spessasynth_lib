@@ -1,9 +1,6 @@
 // import the modules
 import { Sequencer, WorkletSynthesizer } from "../../src/index.ts";
-import {
-    EXAMPLE_SOUND_BANK_PATH,
-    EXAMPLE_WORKLET_PATH
-} from "../examples_common.js";
+import { EXAMPLE_SOUND_BANK_PATH, EXAMPLE_WORKLET_PATH } from "../examples_common.js";
 
 // load the sound bank
 fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
@@ -38,7 +35,7 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
                 const buffer = await file.arrayBuffer();
                 parsedSongs.push({
                     binary: buffer, // binary: the binary data of the file
-                    altName: file.name // fileName: the fallback name if the MIDI doesn't have one. Here we set it to the file name
+                    fileName: file.name // fileName: the fallback name if the MIDI doesn't have one. Here we set it to the file name
                 });
             }
             seq.loadNewSongList(parsedSongs); // load the song list
