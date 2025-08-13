@@ -114,7 +114,18 @@ export type WorkerSoundFont2WriteOptions = Omit<
     SoundFont2WriteOptions,
     "compressionFunction" | "progressFunction"
 > &
-    WorkerBankWriteOptions;
+    WorkerBankWriteOptions & {
+        /**
+         * The compression quality to call your provided compressionFunction with.
+         */
+        compressionQuality: number;
+    };
+
+export type WorkerSampleEncodingFunction = (
+    audioData: Float32Array,
+    sampleRate: number,
+    quality: number
+) => Promise<Uint8Array>;
 
 export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> &
     (

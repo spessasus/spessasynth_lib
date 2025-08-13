@@ -1,11 +1,8 @@
-import {
-    type BasicSoundBank,
-    type SampleEncodingFunction,
-    SoundBankLoader
-} from "spessasynth_core";
+import { type BasicSoundBank, SoundBankLoader } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
-    WorkerBankWriteOptions
+    WorkerBankWriteOptions,
+    WorkerSampleEncodingFunction
 } from "../types.ts";
 import { renderAudioWorker } from "./render_audio_worker.ts";
 import {
@@ -27,7 +24,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
      */
     public readonly workletMessagePort: MessagePort;
 
-    protected readonly compressionFunction?: SampleEncodingFunction;
+    protected readonly compressionFunction?: WorkerSampleEncodingFunction;
 
     public constructor(
         synthesizerConfiguration: {
@@ -36,7 +33,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         },
         workletMessagePort: MessagePort,
         mainThreadCallback: typeof Worker.prototype.postMessage,
-        compressionFunction?: SampleEncodingFunction
+        compressionFunction?: WorkerSampleEncodingFunction
     ) {
         super(
             synthesizerConfiguration.sampleRate,

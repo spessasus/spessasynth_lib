@@ -1,9 +1,6 @@
 import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
-import type {
-    WorkerDLSWriteOptions,
-    WorkerSoundFont2WriteOptions
-} from "../types.ts";
-import { BasicSoundBank } from "spessasynth_core";
+import type { WorkerDLSWriteOptions, WorkerSoundFont2WriteOptions } from "../types.ts";
+import { BasicSoundBank, type SampleEncodingFunction } from "spessasynth_core";
 
 export async function writeSF2Worker(
     this: WorkerSynthesizerCore,
@@ -38,6 +35,17 @@ export async function writeSF2Worker(
         sf = sfCopy;
     }
 
+    let compressionFunction: SampleEncodingFunction | undefined;
+
+    if (this.compressionFunction !== undefined) {
+        compressionFunction = (audioData, sampleRate) =>
+            this.compressionFunction!(
+                audioData,
+                sampleRate,
+                opts.compressionQuality
+            );
+    }
+
     const b = await sf.writeSF2({
         ...opts,
         progressFunction: (sampleName, sampleIndex, sampleCount) => {
@@ -47,7 +55,8 @@ export async function writeSF2Worker(
                 sampleName
             });
             return new Promise<void>((r) => r());
-        }
+        },
+        compressionFunction
     });
     return {
         binary: b,
