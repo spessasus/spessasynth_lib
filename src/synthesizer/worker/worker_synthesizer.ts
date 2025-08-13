@@ -161,7 +161,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @returns The file array buffer and its corresponding name.
      */
     public async writeDLS(
-        options: Partial<WorkerSynthWriteOptions<WorkerDLSWriteOptions>>
+        options: Partial<
+            WorkerSynthWriteOptions<WorkerDLSWriteOptions>
+        > = DEFAULT_DLS_WRITE_OPTIONS
     ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
         const writeOptions = fillWithDefaults(
             options,
@@ -192,7 +194,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @returns The file array buffer and its corresponding name.
      */
     public async writeSF2(
-        options: Partial<WorkerSynthWriteOptions<WorkerSoundFont2WriteOptions>>
+        options: Partial<
+            WorkerSynthWriteOptions<WorkerSoundFont2WriteOptions>
+        > = DEFAULT_SF2_WRITE_OPTIONS
     ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
         const writeOptions = fillWithDefaults(
             options,
@@ -223,7 +227,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @returns The file array buffer.
      */
     public async writeRMIDI(
-        options: Partial<WorkerSynthWriteOptions<WorkerRMIDIWriteOptions>>
+        options: Partial<
+            WorkerSynthWriteOptions<WorkerRMIDIWriteOptions>
+        > = DEFAULT_RMIDI_WRITE_OPTIONS
     ): Promise<ArrayBuffer> {
         const writeOptions = fillWithDefaults(
             options,
@@ -258,7 +264,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      */
     public async renderAudio(
         sampleRate: number,
-        renderOptions: Partial<WorkerRenderAudioOptions>
+        renderOptions: Partial<WorkerRenderAudioOptions> = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
     ): Promise<AudioBuffer[]> {
         const options = fillWithDefaults(
             renderOptions,

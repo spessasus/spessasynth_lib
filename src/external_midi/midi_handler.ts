@@ -8,18 +8,58 @@ import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts
  * purpose: handles the connection between MIDI devices and synthesizer/sequencer via Web MIDI API
  */
 
-class LibMIDIInput {
-    public readonly input: MIDIInput;
+class LibMIDIPort {
+    public readonly port: MIDIPort;
+
+    protected constructor(port: MIDIPort) {
+        this.port = port;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     *
+     */
+    public get id() {
+        return this.port.id;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     *
+     */
+    public get name() {
+        return this.port.name;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     *
+     */
+    public get manufacturer() {
+        return this.port.manufacturer;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     *
+     */
+    public get version() {
+        return this.port.version;
+    }
+}
+
+class LibMIDIInput extends LibMIDIPort {
     private readonly connectedSynths = new Set<BasicSynthesizer>();
 
     public constructor(input: MIDIInput) {
-        this.input = input;
-        this.input.onmidimessage = (e) =>
+        super(input);
+        input.onmidimessage = (e) =>
             this.connectedSynths.forEach((s) => {
                 if (e.data) s.sendMessage(e.data);
             });
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Connects the input to a given synth.
      * @param synth The synth to connect to.
@@ -28,6 +68,7 @@ class LibMIDIInput {
         this.connectedSynths.add(synth);
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Disconnects the input from a given synth.
      * @param synth The synth to disconnect from.
@@ -37,11 +78,12 @@ class LibMIDIInput {
     }
 }
 
-class LibMIDIOutput {
-    public readonly output: MIDIOutput;
+class LibMIDIOutput extends LibMIDIPort {
+    public readonly port: MIDIOutput;
 
     public constructor(output: MIDIOutput) {
-        this.output = output;
+        super(output);
+        this.port = output;
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -50,7 +92,7 @@ class LibMIDIOutput {
      * @param seq The sequencer to connect.
      */
     public connect(seq: Sequencer) {
-        seq.connectMIDIOutput(this.output);
+        seq.connectMIDIOutput(this.port);
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -69,21 +111,21 @@ class LibMIDIOutput {
  */
 export class MIDIDeviceHandler {
     /**
-     * The available MIDI inputs.
+     * The available MIDI inputs. ID maps to the input.
      */
-    public readonly inputs: Set<LibMIDIInput>;
+    public readonly inputs = new Map<string, LibMIDIInput>();
     /**
-     * The available MIDI outputs.
+     * The available MIDI outputs. ID maps to the output.
      */
-    public readonly outputs: Set<LibMIDIOutput>;
+    public readonly outputs = new Map<string, LibMIDIOutput>();
 
     private constructor(access: MIDIAccess) {
-        this.inputs = new Set(
-            Array.from(access.inputs.values()).map((i) => new LibMIDIInput(i))
-        );
-        this.outputs = new Set(
-            Array.from(access.outputs.values()).map((o) => new LibMIDIOutput(o))
-        );
+        access.inputs.forEach((value, key) => {
+            this.inputs.set(key, new LibMIDIInput(value));
+        });
+        access.outputs.forEach((value, key) => {
+            this.outputs.set(key, new LibMIDIOutput(value));
+        });
     }
 
     /**

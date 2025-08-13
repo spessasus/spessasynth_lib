@@ -16,12 +16,15 @@ export class MIDIData extends BasicMIDI {
      */
     public override embeddedSoundBank = undefined;
 
-    public readonly isEmbedded: boolean;
+    /**
+     * The byte length of the sound bank if it exists.
+     */
+    public readonly embeddedSoundBankSize?: number;
 
     public constructor(mid: BasicMIDI) {
         super();
         super.copyMetadataFrom(mid);
-        this.isEmbedded = mid.embeddedSoundBank !== undefined;
+        this.embeddedSoundBankSize = mid?.embeddedSoundBank?.byteLength;
     }
 }
 

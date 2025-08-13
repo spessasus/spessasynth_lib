@@ -107,6 +107,12 @@ They behave in exactly the same way.
 
 - `connectMidiOutput` -> `connectMIDIOutput`
 
+#### MIDIData
+
+#### isEmbedded
+
+Removed in favor of `embeddedSoundBankSize` which will be undefined if it does not have one.
+
 ### loadNewSongList
 
 `altName` property has been renamed to `fileName` as this is what it sets in `BasicMIDI`.
