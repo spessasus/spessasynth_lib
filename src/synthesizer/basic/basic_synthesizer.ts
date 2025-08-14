@@ -10,7 +10,7 @@ import {
     type MIDIController,
     midiControllers,
     midiMessageTypes,
-    type PresetListChangeCallback,
+    type PresetList,
     SpessaSynthCoreUtils as util,
     type SynthMethodOptions
 } from "spessasynth_core";
@@ -60,7 +60,7 @@ export abstract class BasicSynthesizer {
     /**
      * The current preset list.
      */
-    public presetList: PresetListChangeCallback = [];
+    public presetList: PresetList = [];
     // INTERNAL USE ONLY!
     public sequencerCallbackFunction?: (m: SequencerReturnMessage) => unknown;
     /**
