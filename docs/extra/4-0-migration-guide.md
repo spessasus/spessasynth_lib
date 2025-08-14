@@ -49,6 +49,8 @@ Removed, as you have to include the worklet file manually.
 Renamed from `Sythetizer` to `WorkletSynthesizer`.
 This is done as another (`WorkerSynthesizer`) synthesizer is available.
 
+Note that information below applies to both Synthesizer types.
+
 The constructor has been reworked. It now takes two parameters:
 
 - `context`
@@ -59,8 +61,13 @@ The synthesizer now has to be `connect`-ed or `disconnect`-ed instead of taking 
 A few methods and properties have been renamed for consistency.
 They behave in exactly the same way.
 
-- `soundFontManager` - `soundBankManager`
-- `getSynthesizerSnapshot` - `getSnapshot`
+- `soundFontManager` -> `soundBankManager`
+- `getSynthesizerSnapshot` -> `getSnapshot`
+- `setPitchBendRange` -> `setPitchWheelRange`
+
+### pitchWheel
+
+Now takes a single bend value, like in `spessasynth_core`
 
 ### synthConfig
 

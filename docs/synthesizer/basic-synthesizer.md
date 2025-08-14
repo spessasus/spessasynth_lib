@@ -201,12 +201,12 @@ synth.pitchWheel(channel, MSB, LSB, eventOptions);
 synth.pitchWheel(3, 64, 0);
 ```
 
-### setPitchBendRange
+### setPitchWheelRange
 
 Change the channel's pitch bend range in semitones. It uses Registered Parameter Number internally.
 
 ```js
-synth.setPitchBendRange(channel, pitchBendRangeSemitones);
+synth.setPitchWheelRange(channel, pitchBendRangeSemitones);
 ```
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
@@ -219,7 +219,7 @@ synth.setPitchBendRange(channel, pitchBendRangeSemitones);
 **Example:**
 ```js
 // set the pitch bend range on channel 0 to +-12 semitones (one octave)
-synth.setPitchBendRange(0, 12);
+synth.setPitchWheelRange(0, 12);
 ```
 
 ### systemExclusive

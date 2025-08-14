@@ -587,20 +587,18 @@ export abstract class BasicSynthesizer {
     /**
      * Sets the pitch of the given channel.
      * @param channel Usually 0-15: the channel to change pitch.
-     * @param MSB SECOND byte of the MIDI pitchWheel message.
-     * @param LSB FIRST byte of the MIDI pitchWheel message.
+     * @param value The bend of the MIDI pitchWheel message. 0 - 16384
      * @param eventOptions Additional options for this command.
      */
     public pitchWheel(
         channel: number,
-        MSB: number,
-        LSB: number,
+        value: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         const ch = channel % 16;
         const offset = channel - ch;
         this.sendMessage(
-            [midiMessageTypes.pitchBend | ch, LSB, MSB],
+            [midiMessageTypes.pitchWheel | ch, value & 0x7f, value >> 7],
             offset,
             eventOptions
         );
@@ -625,19 +623,15 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Sets the channel's pitch bend range, in semitones.
+     * Sets the channel's pitch wheel range, in semitones.
      * @param channel Usually 0-15: the channel to change.
-     * @param pitchBendRangeSemitones The bend range in semitones.
+     * @param range The bend range in semitones.
      */
-    public setPitchBendRange(channel: number, pitchBendRangeSemitones: number) {
+    public setPitchWheelRange(channel: number, range: number) {
         // Set range
         this.controllerChange(channel, midiControllers.RPNMsb, 0);
         this.controllerChange(channel, midiControllers.RPNLsb, 0);
-        this.controllerChange(
-            channel,
-            midiControllers.dataEntryMsb,
-            pitchBendRangeSemitones
-        );
+        this.controllerChange(channel, midiControllers.dataEntryMsb, range);
 
         // Reset rpn
         this.controllerChange(channel, midiControllers.RPNMsb, 127);
@@ -871,8 +865,8 @@ export abstract class BasicSynthesizer {
     protected addNewChannelInternal(post: boolean) {
         this.channelProperties.push({
             voicesAmount: 0,
-            pitchBend: 0,
-            pitchBendRangeSemitones: 0,
+            pitchWheel: 0,
+            pitchWheelRange: 0,
             isMuted: false,
             isDrum: false,
             transposition: 0,
