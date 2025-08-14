@@ -123,14 +123,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         // Post the channel to worklet
         this.worklet.port.postMessage(null, [workletPort]);
         // Post the channel and init worker
-        this.post(
+        workerPostMessage(
             {
-                type: "workerInitialization",
-                channelNumber: -1,
-                data: {
-                    currentTime: this.context.currentTime,
-                    sampleRate: this.context.sampleRate
-                }
+                initialTime: this.context.currentTime,
+                sampleRate: this.context.sampleRate
             },
             [workerPort]
         );

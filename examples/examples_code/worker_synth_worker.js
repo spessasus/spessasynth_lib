@@ -9,10 +9,7 @@ let workerSynthCore;
 onmessage = (e) => {
     if (e.ports[0]) {
         workerSynthCore = new WorkerSynthesizerCore(
-            {
-                sampleRate: e.data.data.sampleRate,
-                initialTime: e.data.data.currentTime
-            },
+            e.data,
             e.ports[0],
             postMessage.bind(this)
         );
