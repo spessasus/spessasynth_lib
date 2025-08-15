@@ -16,6 +16,7 @@ import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_opt
 import { BasicSynthesizerCore } from "../basic/basic_synthesizer_core.ts";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
+    protected alive = true;
     /**
      * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
      */
@@ -62,7 +63,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         _inputs: Float32Array[][],
         outputs: Float32Array[][]
     ): boolean {
-        if (!this.alive || !this.sequencer) {
+        if (!this.alive) {
             return false;
         }
         // Process sequencer

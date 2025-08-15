@@ -1,9 +1,4 @@
-import {
-    ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    BasicMIDI,
-    MIDIMessage,
-    midiMessageTypes
-} from "spessasynth_core";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION, BasicMIDI, MIDIMessage, midiMessageTypes } from "spessasynth_core";
 import { songChangeType } from "./enums.js";
 import { DUMMY_MIDI_DATA, MIDIData } from "./midi_data.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
@@ -365,11 +360,8 @@ export class Sequencer {
             case "timeChange":
                 // Message data is absolute time
                 const time = m.data.newTime;
-                this.callEventInternal("timeChange", time);
                 this.recalculateStartTime(time);
-                if (this.paused) {
-                    this.pausedTime = time;
-                }
+                this.callEventInternal("timeChange", time);
                 break;
 
             case "pause":
@@ -489,6 +481,9 @@ export class Sequencer {
         this.highResTimeOffset =
             (this.synth.currentTime - performance.now() / 1000) *
             this._playbackRate;
+        if (this.paused) {
+            this.pausedTime = time;
+        }
     }
 
     private sendMessage<T extends keyof SequencerMessageData>(
