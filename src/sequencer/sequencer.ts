@@ -1,4 +1,9 @@
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION, BasicMIDI, MIDIMessage, midiMessageTypes } from "spessasynth_core";
+import {
+    ALL_CHANNELS_OR_DIFFERENT_ACTION,
+    BasicMIDI,
+    MIDIMessage,
+    midiMessageTypes
+} from "spessasynth_core";
 import { songChangeType } from "./enums.js";
 import { DUMMY_MIDI_DATA, MIDIData } from "./midi_data.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";

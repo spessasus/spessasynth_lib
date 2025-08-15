@@ -38,7 +38,7 @@ export class SoundBankManager {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Rearranges the sound banks in a given order.
-     * @param newList {string[]} The order of sound banks, a list of identifiers, first overwrites second.
+     * @param newList The order of sound banks, a list of identifiers, first overwrites second.
      */
     public set priorityOrder(newList: string[]) {
         this.sendToWorklet("rearrangeSoundBanks", newList);
@@ -92,7 +92,6 @@ export class SoundBankManager {
             );
             return;
         }
-        await this.awaitResponse();
         if (this.soundBankList.findIndex((s) => s.id === id) === -1) {
             SpessaSynthCoreUtils.SpessaSynthWarn(
                 `No sound banks with id of "${id}" found. Aborting!`
@@ -100,6 +99,8 @@ export class SoundBankManager {
             return;
         }
         this.sendToWorklet("deleteSoundBank", id);
+        this.soundBankList = this.soundBankList.filter((s) => s.id !== id);
+        await this.awaitResponse();
     }
 
     private async awaitResponse() {
