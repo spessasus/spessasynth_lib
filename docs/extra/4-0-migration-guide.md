@@ -17,6 +17,8 @@ This page documents all the breaking changes in spessasynth_lib.
 
 ## Breaking changes
 
+[Breaking changes in spessasynth_core](https://spessasus.github.io/spessasynth_core/extra/4-0-migration-guide/)
+
 All variables with `soundfont` in them have been renamed to use `soundBank` instead.
 This is done because spessasynth can load sound bank formats other than SoundFonts as well.
 

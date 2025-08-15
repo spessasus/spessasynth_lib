@@ -1,7 +1,14 @@
 import { type BasicSoundBank, SoundBankLoader } from "spessasynth_core";
-import type { BasicSynthesizerMessage, WorkerBankWriteOptions, WorkerSampleEncodingFunction } from "../types.ts";
+import type {
+    BasicSynthesizerMessage,
+    WorkerBankWriteOptions,
+    WorkerSampleEncodingFunction
+} from "../types.ts";
 import { renderAudioWorker } from "./render_audio_worker.ts";
-import { BasicSynthesizerCore, type PostMessageSynthCore } from "../basic/basic_synthesizer_core.ts";
+import {
+    BasicSynthesizerCore,
+    type PostMessageSynthCore
+} from "../basic/basic_synthesizer_core.ts";
 import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
 import { writeRMIDIWorker } from "./write_rmi_worker.ts";
 
