@@ -63,6 +63,12 @@ type WorkerSynthWriteOptions<K> = K & {
  */
 export class WorkerSynthesizer extends BasicSynthesizer {
     /**
+     * Time offset for syncing with the synth
+     * @private
+     */
+    private timeOffset = 0;
+
+    /**
      * Creates a new instance of a Worker-based synthesizer.
      * @param context The audio context.
      * @param workerPostMessage The postMessage for the worker containing the synthesizer core.
@@ -132,6 +138,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         );
     }
 
+    public get currentTime() {
+        return this.context.currentTime + this.timeOffset;
+    }
+
     /**
      * Registers an audio worklet. for the WorkerSynthesizer.
      * @param context The context to register the worklet for.
@@ -148,6 +158,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @param e The event received from the Worker.
      */
     public handleWorkerMessage(e: BasicSynthesizerReturnMessage) {
+        this.timeOffset = e.currentTime - this.context.currentTime;
         this.handleMessage(e);
     }
 

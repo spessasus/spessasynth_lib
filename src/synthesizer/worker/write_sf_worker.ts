@@ -1,5 +1,8 @@
 import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
-import type { WorkerDLSWriteOptions, WorkerSoundFont2WriteOptions } from "../types.ts";
+import type {
+    WorkerDLSWriteOptions,
+    WorkerSoundFont2WriteOptions
+} from "../types.ts";
 import { BasicSoundBank, type SampleEncodingFunction } from "spessasynth_core";
 
 export async function writeSF2Worker(
@@ -17,7 +20,8 @@ export async function writeSF2Worker(
         );
         this.post({
             type: "soundBankError",
-            data: e
+            data: e,
+            currentTime: this.synthesizer.currentSynthTime
         });
         throw e;
     }

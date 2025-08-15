@@ -148,7 +148,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             );
             this.post({
                 type: "soundBankError",
-                data: e
+                data: e,
+                currentTime: this.synthesizer.currentSynthTime
             });
             throw e;
         }

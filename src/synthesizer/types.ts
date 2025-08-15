@@ -244,6 +244,7 @@ export type BasicSynthesizerReturnMessage = {
     [K in keyof BasicSynthesizerReturnMessageData]: {
         type: K;
         data: BasicSynthesizerReturnMessageData[K];
+        currentTime: number;
     };
 }[keyof BasicSynthesizerReturnMessageData];
 

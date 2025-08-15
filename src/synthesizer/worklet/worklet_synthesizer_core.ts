@@ -125,7 +125,8 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             } catch (e) {
                 this.post({
                     type: "soundBankError",
-                    data: e as Error
+                    data: e as Error,
+                    currentTime: this.synthesizer.currentSynthTime
                 });
             }
         });
@@ -166,7 +167,8 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 data: {
                     type: "midiError",
                     data: e as Error
-                }
+                },
+                currentTime: this.synthesizer.currentSynthTime
             });
         }
         this.postReady("startOfflineRender", null);

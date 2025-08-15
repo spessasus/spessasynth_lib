@@ -49,7 +49,8 @@ export abstract class BasicSynthesizerCore {
         this.synthesizer.onEventCall = (event) => {
             this.post({
                 type: "eventCall",
-                data: event
+                data: event,
+                currentTime: this.synthesizer.currentSynthTime
             });
         };
 
@@ -65,13 +66,15 @@ export abstract class BasicSynthesizerCore {
                     data: {
                         type: e.type,
                         data: { newSongList: midiDatas }
-                    }
+                    },
+                    currentTime: this.synthesizer.currentSynthTime
                 });
                 return;
             }
             this.post({
                 type: "sequencerReturn",
-                data: e
+                data: e,
+                currentTime: this.synthesizer.currentSynthTime
             });
         };
     }
@@ -92,7 +95,8 @@ export abstract class BasicSynthesizerCore {
                         type: K;
                         data: SynthesizerReturn[K];
                     };
-                }[keyof SynthesizerReturn]
+                }[keyof SynthesizerReturn],
+                currentTime: this.synthesizer.currentSynthTime
             },
             transferable
         );
@@ -112,7 +116,8 @@ export abstract class BasicSynthesizerCore {
                     type: K;
                     data: SynthesizerProgress[K];
                 };
-            }[keyof SynthesizerProgress]
+            }[keyof SynthesizerProgress],
+            currentTime: this.synthesizer.currentSynthTime
         });
     }
 
@@ -268,7 +273,8 @@ export abstract class BasicSynthesizerCore {
                                 data: {
                                     type: "midiError",
                                     data: e as Error
-                                }
+                                },
+                                currentTime: this.synthesizer.currentSynthTime
                             });
                         }
                         break;
@@ -323,7 +329,8 @@ export abstract class BasicSynthesizerCore {
                             data: {
                                 type: "getMIDI",
                                 data: seq.midiData
-                            }
+                            },
+                            currentTime: this.synthesizer.currentSynthTime
                         });
                         break;
 
@@ -364,7 +371,8 @@ export abstract class BasicSynthesizerCore {
                 } catch (e) {
                     this.post({
                         type: "soundBankError",
-                        data: e as Error
+                        data: e as Error,
+                        currentTime: this.synthesizer.currentSynthTime
                     });
                 }
                 break;
