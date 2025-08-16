@@ -1,10 +1,11 @@
 export const PLAYBACK_WORKLET_PROCESSOR_NAME = `spessasynth-playback-worklet-processor`;
 
-// Thanks to the wonderful Audio Worklet API, we have this: code in strings!
-const PLAYBACK_WORKLET_CODE = `
+export function getPlaybackWorkletURL(maxQueuedChunks: number) {
+    // Thanks to the wonderful Audio Worklet API, we have this: code in strings!
+    const PLAYBACK_WORKLET_CODE = `
 const BLOCK_SIZE = 128;
 
-const MAX_QUEUED = 20;
+const MAX_QUEUED = ${maxQueuedChunks};
 
 /**
  * An AudioWorkletProcessor that plays back 18 separate streams of stereo audio: reverb, and chorus and 16 dry channels.
@@ -94,8 +95,9 @@ class PlaybackProcessor extends AudioWorkletProcessor
     }
 }
 registerProcessor("${PLAYBACK_WORKLET_PROCESSOR_NAME}", PlaybackProcessor);
-`;
-const blob = new Blob([PLAYBACK_WORKLET_CODE], {
-    type: "application/javascript"
-});
-export const PLAYBACK_WORKLET_URL = URL.createObjectURL(blob);
+    `;
+    const blob = new Blob([PLAYBACK_WORKLET_CODE], {
+        type: "application/javascript"
+    });
+    return URL.createObjectURL(blob);
+}

@@ -3,8 +3,8 @@ import type { SynthConfig } from "../audio_effects/types.ts";
 import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import {
-    PLAYBACK_WORKLET_PROCESSOR_NAME,
-    PLAYBACK_WORKLET_URL
+    getPlaybackWorkletURL,
+    PLAYBACK_WORKLET_PROCESSOR_NAME
 } from "./playback_worklet.ts";
 import type {
     BasicSynthesizerMessage,
@@ -145,12 +145,18 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     /**
      * Registers an audio worklet. for the WorkerSynthesizer.
      * @param context The context to register the worklet for.
+     * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency. Defaults to 20.
      */
-    public static async registerPlaybackWorklet(context: BaseAudioContext) {
+    public static async registerPlaybackWorklet(
+        context: BaseAudioContext,
+        maxQueueSize = 20
+    ) {
         if (!context?.audioWorklet.addModule) {
             throw new Error("Audio worklet is not supported.");
         }
-        return context.audioWorklet.addModule(PLAYBACK_WORKLET_URL);
+        return context.audioWorklet.addModule(
+            getPlaybackWorkletURL(maxQueueSize)
+        );
     }
 
     /**
