@@ -42,7 +42,6 @@ const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
     ...DEFAULT_BANK_WRITE_OPTIONS,
     bankOffset: 0,
     correctBankOffset: true,
-    encoding: "utf-8",
     metadata: {},
     format: "sf2",
     ...DEFAULT_SF2_WRITE_OPTIONS
