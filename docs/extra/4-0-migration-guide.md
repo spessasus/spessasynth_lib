@@ -22,6 +22,18 @@ This page documents all the breaking changes in spessasynth_lib.
 All variables with `soundfont` in them have been renamed to use `soundBank` instead.
 This is done because spessasynth can load sound bank formats other than SoundFonts as well.
 
+## spessasynth_processor.min.js
+
+New location and name: `dist/spessasynth_processor.min.js`
+
+Now includes a sourcemap, much like index.js.
+
+Renamed from `worklet_processor` since it may conflict with other libraries providing their processor.
+
+### WORKLET_URL_ABSOLUTE
+
+Removed, as you have to include the worklet file manually.
+
 ## FancyChorus
 
 Renamed to `ChorusConfig`.
@@ -35,16 +47,6 @@ Connect nodes to its `input` property.
 Removed, replaced with `ReverbProcessor`. The unified interface allows for implementing other types of reverb in the future.
 
 Connect nodes to its `input` property.
-
-## worklet_processor.min.js
-
-New location: `dist/worklet_processor.min.js`
-
-Now includes a sourcemap, much like index.js.
-
-### WORKLET_URL_ABSOLUTE
-
-Removed, as you have to include the worklet file manually.
 
 ## WorkletSynthesizer
 

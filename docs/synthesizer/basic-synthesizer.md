@@ -48,7 +48,7 @@ const context = new AudioContext({
     sampleRate: 44100
 });
 // add worklet
-await context.audioWorklet.addModule("worklet_processor.min.js");
+await context.audioWorklet.addModule("spessasynth_processor.min.js");
 // load soundfont
 const file = document.getElementById("file_input").files[0];
 const soundfont = await file.arrayBuffer()

@@ -16,7 +16,7 @@ export const buildExamples = () => {
         dirname,
         "..",
         NPM_DIST_DIR,
-        "worklet_processor.min.js"
+        "spessasynth_processor.min.js"
     );
 
     // Create out
@@ -26,11 +26,11 @@ export const buildExamples = () => {
     fs.copyFileSync(CSS_FILE, path.join(OUTPUT_DIR, "examples.css"));
     fs.copyFileSync(
         WORKLET_JS_FILE,
-        path.join(OUTPUT_DIR, "worklet_processor.min.js")
+        path.join(OUTPUT_DIR, "spessasynth_processor.min.js")
     );
     fs.copyFileSync(
         WORKLET_JS_FILE + ".map",
-        path.join(OUTPUT_DIR, "worklet_processor.min.js.map")
+        path.join(OUTPUT_DIR, "spessasynth_processor.min.js.map")
     );
 
     // Read the HTML template content

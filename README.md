@@ -84,7 +84,7 @@ import { WorkletSynthesizer } from "spessasynth_lib"
 const sfont = await (await fetch("soundfont.sf3")).arrayBuffer();
 const ctx = new AudioContext();
 // make sure you copied the worklet processor!
-await ctx.audioWorklet.addModule("./worklet_processor.min.js");
+await ctx.audioWorklet.addModule("./spessasynth_processor.min.js");
 const synth = new WorkletSynthesizer(ctx.destination);
 await synth.soundBankManager.addSoundBank(sfont, "main");
 await synth.isReady;

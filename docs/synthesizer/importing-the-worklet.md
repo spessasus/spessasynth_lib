@@ -2,7 +2,7 @@
 
 !!! Warning
 
-    Make sure you always update `worklet_processor.min.js` along with the npm package!
+    Make sure you always update `spessasynth_processor.min.js` along with the npm package!
     Creating a script that automatically copies it is recommended.
 
 ## The problem
@@ -10,7 +10,7 @@ the `addModule` method uses URL _relative to the page URL_, so I (the creator) c
 ```js
 async function addWorkletHelper(context)
 {
-    await context.audioWorklet.addModule("./worklet_processor.min.js")
+    await context.audioWorklet.addModule("./spessasynth_processor.min.js")
 }
 ```
 This forces us to import the worklet manually.
@@ -21,9 +21,9 @@ This forces us to import the worklet manually.
 
 ## The Solution
 
-Copy the `worklet_processor.min.js` from `spessasynth_lib/synthetizer` to your destination, for example `src` folder.
+Copy the `spessasynth_processor.min.js` from `spessasynth_lib/synthetizer` to your destination, for example `src` folder.
 ```js
-await context.audioWorklet.addModule("./worklet_processor.min.js");
+await context.audioWorklet.addModule("./spessasynth_processor.min.js");
 ```
 
 I suggest creating an automation script, such as the one shown [here](../extra/working-with-browsers.md#automation).

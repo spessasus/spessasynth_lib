@@ -10,19 +10,19 @@ const OUTPUT_PATH = path.join(
     dirname,
     "..",
     NPM_DIST_DIR,
-    "worklet_processor.min.js"
+    "spessasynth_processor.min.js"
 );
-// main bundle
+// Main bundle
 runCommandSync("tsup src/index.ts --clean --sourcemap --dts --format esm");
 
-// worklet
-// esbuild src/worklet_processor/ts
+// Worklet
+// Esbuild src/worklet_processor/ts
 // --bundle
 // --tree-shaking=true
 // --minify
 // --sourcemap=linked
 // --format=esm
-// --outfile=dist/worklet_processor.min.js
+// --outfile=dist/spessasynth_processor.min.js
 // --platform=browser
 esbuild.buildSync({
     entryPoints: [INPUT_PATH],
