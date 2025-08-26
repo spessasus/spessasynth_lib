@@ -1,6 +1,7 @@
-import { KeyModifier } from "spessasynth_core";
+import { KeyModifier, type MIDIPatch } from "spessasynth_core";
 import type { WorkletKMManagerData } from "../types.ts";
 import type { BasicSynthesizer } from "./basic_synthesizer.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 
 export class WorkletKeyModifierManagerWrapper {
     // The velocity override mappings for MIDI keys
@@ -24,18 +25,22 @@ export class WorkletKeyModifierManagerWrapper {
         midiNote: number,
         options: Partial<{
             velocity: number;
-            patch: {
-                bank: number;
-                program: number;
-            };
+            patch: MIDIPatch;
             gain: number;
         }>
     ) {
-        const velocity = options?.velocity ?? -1;
-        const program = options?.patch?.program ?? -1;
-        const bank = options?.patch?.bank ?? -1;
-        const gain = options?.gain ?? 1;
-        const mod = new KeyModifier(velocity, bank, program, gain);
+        const mod = new KeyModifier();
+        mod.gain = options?.gain ?? 1;
+        mod.velocity = options?.velocity ?? -1;
+        mod.patch = fillWithDefaults(
+            options.patch ?? ({} as Partial<MIDIPatch>),
+            {
+                isGMGSDrum: false,
+                bankLSB: -1,
+                bankMSB: -1,
+                program: -1
+            }
+        );
         this.keyModifiers[channel] ??= [];
         this.keyModifiers[channel][midiNote] = mod;
         this.sendToWorklet("addMapping", {

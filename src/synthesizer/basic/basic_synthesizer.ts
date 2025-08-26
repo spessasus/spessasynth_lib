@@ -629,14 +629,30 @@ export abstract class BasicSynthesizer {
      */
     public setPitchWheelRange(channel: number, range: number) {
         // Set range
-        this.controllerChange(channel, midiControllers.RPNMsb, 0);
-        this.controllerChange(channel, midiControllers.RPNLsb, 0);
-        this.controllerChange(channel, midiControllers.dataEntryMsb, range);
+        this.controllerChange(
+            channel,
+            midiControllers.registeredParameterMSB,
+            0
+        );
+        this.controllerChange(
+            channel,
+            midiControllers.registeredParameterLSB,
+            0
+        );
+        this.controllerChange(channel, midiControllers.dataEntryMSB, range);
 
         // Reset rpn
-        this.controllerChange(channel, midiControllers.RPNMsb, 127);
-        this.controllerChange(channel, midiControllers.RPNLsb, 127);
-        this.controllerChange(channel, midiControllers.dataEntryMsb, 0);
+        this.controllerChange(
+            channel,
+            midiControllers.registeredParameterMSB,
+            127
+        );
+        this.controllerChange(
+            channel,
+            midiControllers.registeredParameterLSB,
+            127
+        );
+        this.controllerChange(channel, midiControllers.dataEntryMSB, 0);
     }
 
     /**
@@ -868,10 +884,11 @@ export abstract class BasicSynthesizer {
             pitchWheel: 0,
             pitchWheelRange: 0,
             isMuted: false,
-            isDrum: false,
+            isDrum: this.channelsAmount % 16 === DEFAULT_PERCUSSION,
             transposition: 0,
             program: 0,
-            bank: this.channelsAmount % 16 === DEFAULT_PERCUSSION ? 128 : 0
+            bankMSB: 0,
+            bankLSB: 0
         });
         if (!post) {
             return;
