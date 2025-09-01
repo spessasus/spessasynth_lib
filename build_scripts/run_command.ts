@@ -16,7 +16,6 @@ export function runCommandSync(command: string) {
     });
 
     if (proc.error) {
-        console.error(`Error executing command: ${command}`, proc.error);
-        process.exit(proc.status);
+        throw new Error(`Failed to execute ${command}`, proc.error)
     }
 }

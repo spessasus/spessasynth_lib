@@ -1,7 +1,7 @@
 import path from "path";
 import { NPM_DIST_DIR } from "./util.ts";
-import { runCommandSync } from "./run_command.ts";
 import esbuild from "esbuild";
+import * as tsup from "tsup";
 
 console.log("Building NPM package...");
 const dirname = import.meta.dirname;
@@ -12,8 +12,16 @@ const OUTPUT_PATH = path.join(
     NPM_DIST_DIR,
     "spessasynth_processor.min.js"
 );
+try 
+{
 // Main bundle
-runCommandSync("tsup src/index.ts --clean --sourcemap --dts --format esm");
+await tsup.build({
+    entry: ["src/index.ts"],
+    format: "esm",
+    dts: true,
+    sourcemap: true,
+    outDir: "dist"
+})
 
 // Worklet
 // Esbuild src/worklet_processor/ts
@@ -37,3 +45,8 @@ esbuild.buildSync({
     target: "esnext"
 });
 console.log("NPM package built successfully.");
+}
+catch(e)
+{
+    console.error(e, "\nFailed to build the NPM package.")
+}

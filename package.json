@@ -9,11 +9,11 @@
   "scripts": {
     "build": "npm run test:types && npm run local-build && npm run build:pages",
     "local-build": "npm run build:npm && npm pack",
-    "build:npm": "node build_scripts/build_npm.ts",
-    "build:pages": "node build_scripts/build_pages.ts",
+    "build:npm": "tsx build_scripts/build_npm.ts",
+    "build:pages": "tsx build_scripts/build_pages.ts",
     "test:types": "eslint src/ && tsc -b",
-    "debug": "node build_scripts/debug_enable.ts",
-    "release": "node build_scripts/debug_disable.ts"
+    "debug": "tsx build_scripts/debug_enable.ts",
+    "release": "tsx build_scripts/debug_disable.ts"
   },
   "repository": {
     "type": "git",
@@ -63,6 +63,7 @@
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0"
   },

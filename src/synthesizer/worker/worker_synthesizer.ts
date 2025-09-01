@@ -297,8 +297,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                         numberOfChannels: 2,
                         length: bufferLength
                     });
-                    buffer.copyToChannel(dryPair[0], 0);
-                    buffer.copyToChannel(dryPair[1], 1);
+                    buffer.copyToChannel(dryPair[0] as Float32Array<ArrayBuffer>, 0);
+                    buffer.copyToChannel(dryPair[1] as Float32Array<ArrayBuffer>, 1);
                     return buffer;
                 });
 
@@ -313,15 +313,15 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     numberOfChannels: 2,
                     length: bufferLength
                 });
-                reverb.copyToChannel(data.reverb[0], 0);
-                reverb.copyToChannel(data.reverb[1], 1);
+                reverb.copyToChannel(data.reverb[0] as Float32Array<ArrayBuffer>, 0);
+                reverb.copyToChannel(data.reverb[1] as Float32Array<ArrayBuffer>, 1);
                 const chorus = new AudioBuffer({
                     sampleRate,
                     numberOfChannels: 2,
                     length: bufferLength
                 });
-                chorus.copyToChannel(data.chorus[0], 0);
-                chorus.copyToChannel(data.chorus[1], 1);
+                chorus.copyToChannel(data.chorus[0] as Float32Array<ArrayBuffer>, 0);
+                chorus.copyToChannel(data.chorus[1] as Float32Array<ArrayBuffer>, 1);
 
                 // Effects can only be enabled for a single dry channel
                 const dry = dryChannels[0];
