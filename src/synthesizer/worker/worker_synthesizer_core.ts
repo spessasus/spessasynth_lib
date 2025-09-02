@@ -39,7 +39,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             synthesizerConfiguration.sampleRate,
             {
                 enableEventSystem: true,
-                effectsEnabled: true,
+                enableEffects: true,
                 initialTime: synthesizerConfiguration.initialTime
             },
             mainThreadCallback as PostMessageSynthCore

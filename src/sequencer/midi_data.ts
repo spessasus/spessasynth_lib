@@ -37,12 +37,6 @@ export class MIDIData extends BasicMIDI {
         this.tracks = mid.tracks.map((t) => new MIDIDataTrack(t));
         this.embeddedSoundBankSize = mid?.embeddedSoundBank?.byteLength;
     }
-
-    public static createFrom(mid: BasicMIDI) {
-        const newMid = this.copyFrom(mid);
-        newMid.tracks.forEach((t) => (t.events = []));
-        return newMid;
-    }
 }
 
 /**

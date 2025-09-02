@@ -32,7 +32,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         super(
             sampleRate,
             {
-                effectsEnabled: !opts.oneOutput, // One output mode disables effects
+                enableEffects: !opts.oneOutput, // One output mode disables effects
                 enableEventSystem: opts?.enableEventSystem, // Enable message port?
                 initialTime: currentTime
             },
