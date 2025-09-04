@@ -1,23 +1,24 @@
 {
   "name": "spessasynth_lib",
-  "version": "3.27.8",
+  "version": "4.0.0",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
-  "browser": "index.js",
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node build_scripts/build.js",
-    "debug": "node build_scripts/debug_enable.js",
-    "release": "node build_scripts/debug_disable.js",
-    "build:pages": "node build_scripts/build_pages.js",
-    "build:examples": "node examples/build_examples.js",
-    "build:docs": "node build_scripts/build_docs.js"
+    "build": "npm run test:types && npm run local-build && npm run build:pages",
+    "local-build": "npm run build:npm && npm pack",
+    "build:npm": "tsx build_scripts/build_npm.ts",
+    "build:pages": "tsx build_scripts/build_pages.ts",
+    "test:types": "eslint src/ && tsc -b",
+    "debug": "tsx build_scripts/debug_enable.ts",
+    "release": "tsx build_scripts/debug_disable.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/spessasus/spessasynth_lib.git"
   },
-  "main": "index.js",
   "keywords": [
     "soundfont",
     "synthesizer",
@@ -37,9 +38,10 @@
     "audio-buffer-to-wav"
   ],
   "files": [
-    "src",
-    "synthetizer/worklet_processor.min.js",
-    "index.js"
+    "dist",
+    "LICENSE",
+    "README.md",
+    "package.json"
   ],
   "author": {
     "name": "spessasus",
@@ -53,9 +55,19 @@
   },
   "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
   "devDependencies": {
-    "esbuild": "^0.25.2"
+    "@eslint/js": "^9.32.0",
+    "@types/audioworklet": "^0.0.81",
+    "@types/node": "^24.1.0",
+    "esbuild": "^0.25.8",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0"
   },
   "dependencies": {
-    "spessasynth_core": "latest"
+    "spessasynth_core": "file:../spessasynth_core/spessasynth_core-4.0.0.tgz"
   }
 }

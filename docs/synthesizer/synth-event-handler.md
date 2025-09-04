@@ -25,9 +25,10 @@ The properties depend on the
   Refer to the table below.
 
 **Example:**
+
 ```js
 // log every note played
-synth.eventHandler.addEvent("noteon", "note-on-listener", data => {
+synth.eventHandler.addEvent("noteOn", "note-on-listener", data => {
     console.log(`Note ${data.midiNote} played for channel ${data.channel} with velocity ${data.velocity}.`)
 })
 ```
@@ -42,9 +43,10 @@ synth.eventHandler.removeEvent(name, id);
 - id - the unique id of the event you wish to remove.
 
 **Example:**
+
 ```js
 // remove the listener we set above
-synth.eventHandler.removeEvent("noteon", "note-on-listener");
+synth.eventHandler.removeEvent("noteOn", "note-on-listener");
 ```
 
 ### Delaying the event system

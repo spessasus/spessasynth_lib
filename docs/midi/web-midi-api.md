@@ -1,4 +1,4 @@
-# Web MIDI API
+# MIDIDeviceHandler
 SpessaSynth provides an easy way to connect physical MIDI Devices
 to it and back using `MIDIDeviceHandler`.
 
@@ -7,57 +7,83 @@ to it and back using `MIDIDeviceHandler`.
     If you encounter any errors in this documentation, please **open an issue!**
 
 ## Initialization
-```js
-const MIDIHandler = new MIDIDeviceHandler();
-```
-
-## Properties
-### inputs
-The MIDI inputs as [MIDIInputMap](https://developer.mozilla.org/en-US/docs/Web/API/MIDIInputMap).
-
-### outputs
-The MIDI outputs as [MIDIOutputMap](https://developer.mozilla.org/en-US/docs/Web/API/MIDIOutputMap).
-
-## Methods
-### createMIDIDeviceHandler
 Initializes the connection to physical MIDI Devices.
 
-```js
-MIDIHandler.createMIDIDeviceHandler();
-```
-The returned value is `boolean`, true if succeeded, false if failed.
+``````js
+MIDIDeviceHandler.createMIDIDeviceHandler();
+``````
+The returned value is a `MIDIDeviceHandler`. An error is throws if the MIDI Devices fail to initialize.
 
 !!! Info
 
-    This function is asynchronous.
+    This method is *asynchronous.*
+    
 
-### connectMIDIOutputToSeq
-Connects a `Sequencer` instance to a MIDI Output, playing back the sequence to it.
+## Properties
 
-```js
-MIDIHandler.connectMIDIOutputToSeq(output, seq);
+### inputs
+
+The available MIDI inputs, a `Map`.
+ Key (the ID of the input, a string) maps to the input (`LibMIDIInput`).
+
+### outputs
+
+The available MIDI  outputs, a `Map`.
+ Key (the ID of the output, a string) maps to the output (`LibMIDIOutput`).
+ 
+
+## LibMIDIPort
+
+A shared interface between `LibMIDIInput` and `LibMIDIOutput`.
+
+### port
+
+The actual `MIDIPort` object this instance represents.
+
+### id, name, manufacturer, version
+
+Mirrored from the inner `MIDIPort`.
+
+## LibMIDIInput
+
+### connect
+
+Connects the input to a given synth, listening for all incoming events.
+
+```ts
+input.connect(synth);
 ```
-- output - a `MIDIOutput` to connect to.
-- seq - a `Sequencer` instance to connect.
 
-### disconnectSeqFromMIDI
-Disconnects all MIDI devices from the sequencer.
+- synth - the synthesizer to connect to.
 
-```js
-MIDIHandler.connectMIDIOutputToSeq(seq);
-```
-- seq - a `Sequencer` instance to disconnect.
+### disconnect
 
-### connectDeviceToSynth
-Connects a MIDI Input to a `Synthetizer` instance, responding to all received messages.
-```js
-MIDIHandler.connectDeviceToSynth(input, synth);
+Disconnects the input from a given synth.
+
+```ts
+input.disconnect(synth);
 ```
-- input - a `MIDIInput` to connect.
-- synth - a `Synthetizer` instance to connect to.
-### disconnectAllDevicesFromSynth
-Disconnects all MIDI Inputs from the `Synthetizer` instance.
-```js
-MIDIHandler.disconnectAllDevicesFromSynth();
+
+- synth - the synthesizer to disconnect from.
+
+## LibMIDIOutput
+
+### connect
+
+Connects a given sequencer to the output, playing back the MIDI file to it.
+
+```ts
+output.connect(seq);
 ```
-No arguments as this simply removes the `onmidimessage` property from the inputs.
+
+- seq - the sequencer to connect to.
+
+### disconnect
+
+Disconnects sequencer from the output, making it play to the attached Synthesizer instead.
+
+```ts
+output.disconnect(seq);
+```
+
+- seq - the sequencer to disconnect.

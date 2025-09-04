@@ -1,0 +1,112 @@
+import { KeyModifier, type MIDIPatch } from "spessasynth_core";
+import type { WorkletKMManagerData } from "../types.ts";
+import type { BasicSynthesizer } from "./basic_synthesizer.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+
+export class WorkletKeyModifierManagerWrapper {
+    // The velocity override mappings for MIDI keys
+    private keyModifiers: (KeyModifier | undefined)[][] = [];
+
+    private synth: BasicSynthesizer;
+
+    public constructor(synth: BasicSynthesizer) {
+        this.synth = synth;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Modifies a single key.
+     * @param channel The channel affected. Usually 0-15.
+     * @param midiNote The MIDI note to change. 0-127.
+     * @param options The key's modifiers.
+     */
+    public addModifier(
+        channel: number,
+        midiNote: number,
+        options: Partial<{
+            velocity: number;
+            patch: MIDIPatch;
+            gain: number;
+        }>
+    ) {
+        const mod = new KeyModifier();
+        mod.gain = options?.gain ?? 1;
+        mod.velocity = options?.velocity ?? -1;
+        mod.patch = fillWithDefaults(
+            options.patch ?? ({} as Partial<MIDIPatch>),
+            {
+                isGMGSDrum: false,
+                bankLSB: -1,
+                bankMSB: -1,
+                program: -1
+            }
+        );
+        this.keyModifiers[channel] ??= [];
+        this.keyModifiers[channel][midiNote] = mod;
+        this.sendToWorklet("addMapping", {
+            channel,
+            midiNote,
+            mapping: mod
+        });
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Gets a key modifier.
+     * @param channel The channel affected. Usually 0-15.
+     * @param midiNote The MIDI note to change. 0-127.
+     * @returns The key modifier if it exists.
+     */
+    public getModifier(
+        channel: number,
+        midiNote: number
+    ): KeyModifier | undefined {
+        return this.keyModifiers?.[channel]?.[midiNote];
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Deletes a key modifier.
+     * @param channel The channel affected. Usually 0-15.
+     * @param midiNote The MIDI note to change. 0-127.
+     */
+    public deleteModifier(channel: number, midiNote: number) {
+        this.sendToWorklet("deleteMapping", {
+            channel,
+            midiNote
+        });
+        if (this.keyModifiers[channel]?.[midiNote] === undefined) {
+            return;
+        }
+        this.keyModifiers[channel][midiNote] = undefined;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Clears ALL Modifiers
+     */
+    public clearModifiers() {
+        this.sendToWorklet("clearMappings", null);
+        this.keyModifiers = [];
+    }
+
+    private sendToWorklet<T extends keyof WorkletKMManagerData>(
+        type: T,
+        data: WorkletKMManagerData[T]
+    ) {
+        const msg = {
+            type,
+            data
+        } as {
+            [K in keyof WorkletKMManagerData]: {
+                type: K;
+                data: WorkletKMManagerData[K];
+            };
+        }[keyof WorkletKMManagerData];
+        this.synth.post({
+            type: "keyModifierManager",
+            channelNumber: -1,
+            data: msg
+        });
+    }
+}

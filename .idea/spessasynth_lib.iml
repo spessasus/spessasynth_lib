@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.tmp" />
       <excludeFolder url="file://$MODULE_DIR$/temp" />
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/gh_pages" />
       <excludeFolder url="file://$MODULE_DIR$/gh-pages" />
     </content>
     <orderEntry type="inheritedJdk" />

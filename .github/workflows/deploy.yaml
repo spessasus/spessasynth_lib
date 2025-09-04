@@ -36,6 +36,8 @@ jobs:
           python-version: '3.13'
       - name: Install Node dependencies
         run: npm ci
+      - name: Install Python dependencies
+        run: pip install -r docs/requirements.txt
       - name: Build Pages
         run: npm run build
       - name: Setup Pages
@@ -43,8 +45,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload dist folder
-          path: './dist'
+          # Upload docs folder
+          path: './docs'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

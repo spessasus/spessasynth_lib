@@ -8,22 +8,22 @@ The code here is responsible for wrapping the `SpessaSynthSequencer` from `spess
 
 ```js
 const message = {
-    messageType: number, // WorkletSequencerMessageType
-    messageData: any     // any
+    type: number, // WorkletSequencerMessageType
+    data: any     // any
 }
 ```
 
 #### To worklet
 
-Sequencer uses `Synthetizer`'s `post` method to post a message with `messageData` set to
+Sequencer uses `WorkletSynthesizer`'s `post` method to post a message with `data` set to
 `workletMessageType.sequencerSpecific`.
-The `messageData` is set to the sequencer's message.
+The `data` is set to the sequencer's message.
 
 #### From worklet
 
-`WorkletSequencer` uses `SpessaSynthProcessor`'s post to send a message with `messageData` set to
-`returnMessageType.sequencerSpecific`.
-The `messageData` is set to the sequencer's return message.
+`WorkletSequencer` uses `SpessaSynthProcessor`'s post to send a message with `data` set to
+`returnMessageType.sequencerReturn`.
+The `data` is set to the sequencer's return message.
 
 ### Process tick
 

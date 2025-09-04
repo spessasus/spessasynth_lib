@@ -1,85 +1,50 @@
 ## The Sound Bank Manager
 The sound bank manager allows for handling multiple sound bank with a single synthesizer instance.
 
-It is accessible via the `synth.soundfontManager` property.
+It is accessible via the `synth.soundBankManager` property.
 
-Every operation sends a new `presetlist` event.
+Every operation sends a new `presetList` event.
 
-### Accessing the list of sound bank
+## Methods
 
-```js
-synth.soundfontManager.soundfontList;
-```
+### deleteSoundBank
 
-Which is a list of objects defined as follows:
-
-- id - `string` - the unique sound bank identifier.
-- bankOffset - `number` - the bank offset for the sound bank.
-
-The list is ordered from the most important sound bank to the least
-(e.g., first sound bank is used as a base and other sound bank get added on top (not override))
-
-!!! Info
-
-    When first creating the synthesizer,
-    soundfontList contains one sound bank with the identifier `main` and bank offset of 0.
-
-The behavior is defined as follows:
-
-- The program looks for the first sound bank that has the requested program:bank combo and uses it.
-- If not found, the program looks for the first sound bank that has the requested program number and uses it.
-- If not found, the program uses the first preset of the first sound bank.
-
-### Adding a new sound bank
-
-This function adds a new sound bank at the top of the sound bank stack.
+This method removes a sound bank with a given ID from the sound bank list.
 
 ```js
-await synth.soundfontManager.addNewSoundFont(soundfontBuffer, id, bankOffset = 0);
+await soundBankManager.deleteSoundBank(id)
 ```
-
-- soundfontBuffer - `ArrayBuffer` - the sound bank binary data.
-- id - `string` - unique ID for the sound bank. Any string as long as it's unique.
-- bankOffset - `number`, optional - the bank offset for the sound bank.
-
-!!! Info
-
-    This function is asynchronous.
+- `id` - `string` - the ID of the sound bank to remove.
 
 !!! Tip
 
-    Using an existing ID will replace the existing bank in-place.
+    This method is *asynchronous.*
 
-### Removing a sound bank
+### addSoundBank
 
-This function removes a specified sound bank.
-
-```js
-synth.soundfontManager.deleteSoundFont(id);
-```
-
-- id - `string` - unique ID for the sound bank to delete.
-
-### Changing the order of sound banks
-
-This function reorders the sound banks.
+This method adds a new sound bank with a given ID to the list,
+or replaces an existing one.
 
 ```js
-synth.soundfontManager.rearrangeSoundFonts(newOrderedList);
+await soundBankManager.addSoundBank(soundBank, id, bankOffset = 0)
 ```
+- `soundBank` - the new sound bank to add, an `ArrayBuffer` of the file.
+- `id` - the ID of the sound bank. If it already exists, it will be replaced.
+- `bankOffset` - the bank number offset of the sound bank, set to 0 for no change.
 
-- newOrderedList - array of `string` - The new list of the sound bank identifiers, in the desired order.
+!!! Tip
 
-### Clearing the sound banks
+    This method is *asynchronous.*
 
-This function removes all sound banks and adds a new one with id `main` and bank offset of 0.
+!!! Warning
 
-```js
-await synth.soundfontManager.reloadManager(soundfontBuffer);
-```
+    This method detaches the provided `ArrayBuffer` by transferring it to the synthesizer.
+    It can't be used after passing it to the object!
 
-- soundfontBuffer - `ArrayBuffer` - the new sound bank to reload the synth with.
+## Properties
 
-!!! Into
+### priorityOrder
 
-    This function is asynchronous.
+The IDs of the sound banks in the current order. (from the most important to last)
+This can be used to set or retrieve the current order.
+Presets in the first bank override the second bank if they have the same MIDI patch and so on.
