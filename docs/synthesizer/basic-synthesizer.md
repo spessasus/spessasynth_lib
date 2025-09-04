@@ -3,7 +3,7 @@
 This is the main module that generates the sound with one of the WebAudio API methods.
 
 
-!!! Note
+!!! Info
 
     This page serves to document the shared methods between `WorkletSynthesizer` and `WorkerSynthesizer`.
     There is no `BasicSynthesizer` class.
@@ -485,7 +485,7 @@ synth.addNewChannel();
 Get a current snapshot of the Worklet synthesizer.
 !!! Info
 
-    This function is asynchronous.
+    This method is *asynchronous.*
 
 ```js
 const snapshot = await synth.getSnapshot();

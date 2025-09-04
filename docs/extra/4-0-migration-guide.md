@@ -6,14 +6,9 @@ It also includes a few breaking changes which were made to make the API more con
 
 This page documents all the breaking changes in spessasynth_lib.
 
-!!! Note
+!!! Tip
 
     Please report any innacurate or missing changes.
-    
-
-!!! Note
-
-    This is still in progress.
 
 ## Breaking changes
 

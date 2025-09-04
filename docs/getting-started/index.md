@@ -1,4 +1,4 @@
-# Getting Started with SpessaSynth
+# Getting Started with spessasynth_lib
 !!! TIP
 
     If you encounter any errors in this documentation, please **open an issue!**
@@ -14,27 +14,26 @@ It is dependent on core, so all writing and conversion features can be used dire
 So:
 
 ### Use spessasynth_lib if:
-- You want to play MIDI files in the browser without much work
-- You don't want to have to program your own audio processor
-- The default effects are good enough for you
-- You don't need direct access to the audio engine
+- You want to play MIDI files in the browser without much work.
+- You don't want to have to program your own audio processor.
+- The default effects are good enough for you.
+- You don't need direct access to the audio engine.
 
 ### Use spessasynth_core if:
-- You want [direct audio engine access](main-thread-rendering.md)
-- You want custom effect processors
-- You need full control over the audio
-- You don't have access to the WebAudioAPI
+- You want [direct audio engine access](main-thread-rendering.md).
+- You want custom effect processors.
+- You need full control over the audio.
+- You don't have access to the WebAudioAPI.
 
+
+!!! Tip
+
+    Note that `spessasynth_core` is a dependency of `spessasynth_lib`, so all writing functions and properties are still available!
 
 ## Installation
 ```shell
 npm install --save spessasynth_lib
 ```
-
-!!! Warning
-
-    I might forget to add a method to the npm's index.js, which results with it not being importable.
-    If that happens, **please open an issue.**
 
 ## Minimal setup
 The minimal working setup requires [`WorkletSynthesizer` class](../synthesizer/basic-synthesizer.md) and [adding the worklet module](../synthesizer/importing-the-worklet.md).
@@ -42,6 +41,14 @@ The minimal working setup requires [`WorkletSynthesizer` class](../synthesizer/b
 The setup is initialized as follows:
 ```js
 audioContext.audioWorklet.addModule("path/to/worklet");
-const synth = new WorkletSynthesizer(outputNode, soundBankBuffer);
+const synth = new WorkletSynthesizer(context);
 ```
 Make sure to replace `/path/to/worklet/` with one of the paths described [here](../synthesizer/importing-the-worklet.md).
+
+
+!!! Warning
+
+    This wiki only describes the WebAudio API wrappers that spesasynth_lib itself provides.
+    Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
+    
+    If what you're looking for isn't in this wiki, it's probably there.

@@ -2,7 +2,7 @@ site_name: spessasynth_lib documentation
 site_description: Documentation for the spessasynth_lib JavaScript SoundFont2/DLS MIDI Library for web browsers.
 site_author: spessasus
 site_url: https://spessasus.github.io/spessasynth_lib
-copyright: Copyright (C) spessasus 2025, licensed under the Apache-2.0 License.
+copyright: Copyright (C) spessasus 2025, licensed under the Apache-2.0 License. Make sure to visit spessasynth_core docs as well!
 repo_url: https://github.com/spessasus/spessasynth_lib
 repo_name: spessasus/spessasynth_lib
 

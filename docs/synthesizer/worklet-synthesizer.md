@@ -2,7 +2,7 @@
 
 This synthesizer uses a single AudioWorklet to provide real-time playback.
 
-!!! Note
+!!! Tip
 
     Methods shared between the synthesizers can be found [here](basic-synthesizer.md)
 
@@ -22,7 +22,7 @@ This synthesizer uses a single AudioWorklet to provide real-time playback.
 
 !!! Warning
 
-    Note that you need to add the worklet processor for the synthesizer to work!
+    Remember that you need to add the worklet processor for the synthesizer to work!
     See [Importing the worklet](importing-the-worklet.md)
 
 ```ts
@@ -48,7 +48,7 @@ const context = new AudioContext({
 // add worklet
 await context.audioWorklet.addModule("spessasynth_processor.min.js");
 // set up synthesizer
-const synth = new WorkletSynthesizer(context.destination);
+const synth = new WorkletSynthesizer(context);
 ```
 
 !!! Warning
@@ -95,7 +95,7 @@ An array of objects with two properties:
 The options to pass to the sequencer. The same options as with [initializing the sequencer](../sequencer/index.md#initialization)
 
 
-!!! Note
+!!! Tip
 
     This method is *asynchronous.*
 

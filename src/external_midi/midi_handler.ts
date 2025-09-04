@@ -61,7 +61,7 @@ class LibMIDIInput extends LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Connects the input to a given synth.
+     * Connects the input to a given synth, listening for all incoming events.
      * @param synth The synth to connect to.
      */
     public connect(synth: BasicSynthesizer) {
@@ -88,7 +88,7 @@ class LibMIDIOutput extends LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Connects a given sequencer to the output.
+     * Connects a given sequencer to the output, playing back the MIDI file to it.
      * @param seq The sequencer to connect.
      */
     public connect(seq: Sequencer) {
@@ -97,7 +97,7 @@ class LibMIDIOutput extends LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Disconnects a given sequencer from the output.
+     * Disconnects sequencer from the output, making it play to the attached Synthesizer instead.
      * @param seq The sequencer to disconnect.
      */
     public disconnect(seq: Sequencer) {

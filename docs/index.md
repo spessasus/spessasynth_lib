@@ -22,6 +22,14 @@ hide:
 - [Writing Wave files](writing-files/writing-wav-files.md) - How to write WAV files from `AudioBuffer`.
 - [NPM Exports](extra/all-npm-exports.md) - a listing of all the NPN exports in the `spessasynth_lib` NPM package.
 
+!!! Warning
+
+    This wiki only describes the WebAudio API wrappers that spesasynth_lib itself provides.
+    Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
+    
+    If what you're looking for isn't in this wiki, it's probably there.
+
+
 ## Extra info
 
 - [MIDI Implementation](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/) - The MIDI Implementation chart for spessasynth's synthesizer. This describes all the features of the synthesis engine.

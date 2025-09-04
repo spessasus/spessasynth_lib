@@ -163,7 +163,7 @@ const data = await sequencer.getMIDI();
 
 !!! Important
 
-    This function is asynchronous.
+    This method is *asynchronous.*
 
 !!! Warning
 

@@ -3,9 +3,10 @@
 This synthesizer uses a Worker communicating with an AudioWorklet to provide real-time playback.
 This is the synthesizer used by the SpessaSynth web app.
 
-!!! Note
+!!! Tip
 
     Methods shared between the synthesizers can be found [here.](basic-synthesizer.md)
+
 ## Advantages
 
 - Separate thread: The worker thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
@@ -135,7 +136,7 @@ WorkerSynthesizer.registerPlaybackWorklet(context, maxQueueSize = 20);
 - context - the context to register the worklet for.
 - maxQueueSize - te maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency. Defaults to 20.
 
-!!! Note
+!!! Tip
 
     This method is *static.*
     

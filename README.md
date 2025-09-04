@@ -6,8 +6,8 @@
 *A powerful SF2/DLS/MIDI JavaScript library for the browsers, based on spessasynth_core.
 This is a WebAudioAPI wrapper for the [spessasynth_core](https://github.com/spessasus/spessasynth_core) library.*
 
-**v3.28 TypeScript Update is here! The NPM package now contains type declarations for easier developing!**
-[**Read about breaking changes here**](https://spessasus.github.io/spessasynth_lib/extra/3-28-migration-guide)
+**v4.0.0 TypeScript Update is here! The NPM package now contains type declarations for easier developing!**
+[**Read about breaking changes here**](https://spessasus.github.io/spessasynth_lib/extra/4-0-migration-guide)
 
 
 It allows you to:
@@ -47,20 +47,23 @@ It allows you to:
 ### [All the features of spessasynth_core!](https://github.com/spessasus/spessasynth_core?#current-features)
 
 ### On top of that...
+- **Fully typed:** *Faster development and IDE auto-completion!*
 - **Modular design:** *Easy integration into other projects (load what you need)*
 - **[Detailed documentation:](https://spessasus.github.io/spessasynth_lib/)** *With [examples!](https://spessasus.github.io/spessasynth_lib/getting-started/#examples)*
 - **Easy to Use:** *Basic setup is just [two lines of code!](https://spessasus.github.io/spessasynth_lib/getting-started/#minimal-setup)*
 - **No external dependencies:** *Just spessasynth_core!*
-- **Reverb and chorus support:** [customizable!](https://spessasus.github.io/spessasynth_lib/synthesizer/#effects-configuration-object)
-- **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)
-- **Written using AudioWorklets:** 
-  - Runs in a **separate thread** for maximum performance
-  - Does not stop playing even when the main thread is frozen
-  - Supported by all modern browsers
+- **Reverb and chorus support:** [customizable](https://spessasus.github.io/spessasynth_lib/synthesizer/#effects-configuration-object) and can be used standalone!
+- **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)!
+- **AudioWorklet synthesizer:** 
+  - Runs in a **separate thread** for maximum performance!
+  - Does not stop playing even when the main thread is frozen!
+  - Supported by all modern browsers!
+- **Web Worker synthesizer:** 
+  - Synthesize directly in the Web Worker!
+  - Direct audio engine access!
+  - Export audio automatically in the worker!
+  - Avoids [Chromium Audio Bugs](https://issues.chromium.org/issues/367304685)!
 - **High-performance mode:** Play Rush E! *note: may kill your browser ;)*
-
-#### TODO
-- Enhance the built-in chorus and reverb effects (suggestions welcome!)
 
 ### Special Thanks
 - [FluidSynth](https://github.com/FluidSynth/fluidsynth) - for the source code that helped implement functionality and fixes
@@ -81,11 +84,12 @@ It allows you to:
 ```js
 import { WorkletSynthesizer } from "spessasynth_lib"
 
+// SF2, SF3, SFOGG and DLS files are all supported!
 const sfont = await (await fetch("soundfont.sf3")).arrayBuffer();
 const ctx = new AudioContext();
 // make sure you copied the worklet processor!
 await ctx.audioWorklet.addModule("./spessasynth_processor.min.js");
-const synth = new WorkletSynthesizer(ctx.destination);
+const synth = new WorkletSynthesizer(ctx);
 await synth.soundBankManager.addSoundBank(sfont, "main");
 await synth.isReady;
 document.getElementById("button").onclick = async () =>
@@ -95,11 +99,6 @@ document.getElementById("button").onclick = async () =>
     synth.noteOn(0, 52, 127);
 }
 ```
-
-*Audio may sometimes sound distorted in Chromium-based browsers: Chrome, Edge, Brave,
-etc. due to a **[Chromium Bug](https://issues.chromium.org/issues/367304685).**
-I can't do anything about it, only hope that it gets fixed.
-Please consider voting for it on the bug tracker to get it fixed!*
 
 # License
 Copyright © 2025 Spessasus

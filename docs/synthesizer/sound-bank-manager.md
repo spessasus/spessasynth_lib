@@ -44,7 +44,7 @@ await synth.soundfontManager.addNewSoundFont(soundfontBuffer, id, bankOffset = 0
 
 !!! Info
 
-    This function is asynchronous.
+    This method is *asynchronous.*
 
 !!! Tip
 
@@ -82,4 +82,4 @@ await synth.soundfontManager.reloadManager(soundfontBuffer);
 
 !!! Into
 
-    This function is asynchronous.
+    This method is *asynchronous.*
