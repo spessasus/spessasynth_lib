@@ -76,7 +76,7 @@ export abstract class BasicSynthesizer {
      * Synthesizer's chorus processor.
      * Undefined if chorus is disabled.
      */
-    public chorusProcessor?: ChorusProcessor;
+    public readonly chorusProcessor?: ChorusProcessor;
     // INTERNAL USE ONLY!
     public readonly post: (
         data: BasicSynthesizerMessage,
@@ -90,7 +90,7 @@ export abstract class BasicSynthesizer {
      */
     protected readonly _outputsAmount = 16;
     /**
-     * The current number of MIDI channels the synthesizer has
+     * The current amount of MIDI channels the synthesizer has.
      */
     public channelsAmount = this._outputsAmount;
     protected readonly masterParameters: MasterParameterType = {
@@ -210,6 +210,7 @@ export abstract class BasicSynthesizer {
      */
     protected _voicesAmount = 0;
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * The current number of voices playing.
      */
@@ -218,7 +219,7 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * @returns The audioContext's current time.
+     * The audioContext's current time.
      */
     public get currentTime() {
         return this.context.currentTime;
@@ -261,7 +262,7 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets the SpessaSynth's log level in the worklet processor.
+     * Sets the SpessaSynth's log level in the processor.
      * @param enableInfo Enable info (verbose)
      * @param enableWarning Enable warnings (unrecognized messages)
      * @param enableGroup Enable groups (to group a lot of logs)
@@ -320,6 +321,7 @@ export abstract class BasicSynthesizer {
         });
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Gets a complete snapshot of the synthesizer, effects.
      */
@@ -343,6 +345,7 @@ export abstract class BasicSynthesizer {
         });
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Adds a new channel to the synthesizer.
      */
@@ -483,7 +486,7 @@ export abstract class BasicSynthesizer {
 
     /**
      * Stops all notes.
-     * @param force If we should instantly kill the note, defaults to false.
+     * @param force If the notes should immediately be stopped, defaults to false.
      */
     public stopAll(force = false) {
         this.post({
@@ -528,6 +531,7 @@ export abstract class BasicSynthesizer {
         );
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Resets all controllers (for every channel)
      */
@@ -536,6 +540,29 @@ export abstract class BasicSynthesizer {
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             type: "ccReset",
             data: null
+        });
+    }
+
+    /**
+     * Causes the given midi channel to ignore controller messages for the given controller number.
+     * @param channel Usually 0-15: the channel to lock.
+     * @param controllerNumber 0-127 MIDI CC number.
+     * @param isLocked True if locked, false if unlocked.
+     * @remarks
+     *  Controller number -1 locks the preset.
+     */
+    public lockController(
+        channel: number,
+        controllerNumber: MIDIController | -1,
+        isLocked: boolean
+    ) {
+        this.post({
+            channelNumber: channel,
+            type: "lockController",
+            data: {
+                controllerNumber,
+                isLocked
+            }
         });
     }
 
@@ -587,7 +614,7 @@ export abstract class BasicSynthesizer {
     /**
      * Sets the pitch of the given channel.
      * @param channel Usually 0-15: the channel to change pitch.
-     * @param value The bend of the MIDI pitchWheel message. 0 - 16384
+     * @param value The bend of the MIDI pitch wheel message. 0 - 16384
      * @param eventOptions Additional options for this command.
      */
     public pitchWheel(
@@ -606,28 +633,11 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Transposes the channel by given number of semitones.
-     * @param channel The channel number.
-     * @param semitones The transposition of the channel, it can be a float.
-     * @param force Defaults to false, if true transposes the channel even if it's a drum channel.
-     */
-    public transposeChannel(channel: number, semitones: number, force = false) {
-        this.post({
-            channelNumber: channel,
-            type: "transposeChannel",
-            data: {
-                semitones,
-                force
-            }
-        });
-    }
-
-    /**
      * Sets the channel's pitch wheel range, in semitones.
      * @param channel Usually 0-15: the channel to change.
      * @param range The bend range in semitones.
      */
-    public setPitchWheelRange(channel: number, range: number) {
+    public pitchWheelRange(channel: number, range: number) {
         // Set range
         this.controllerChange(
             channel,
@@ -671,32 +681,28 @@ export abstract class BasicSynthesizer {
         );
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
-     * Causes the given midi channel to ignore controller messages for the given controller number.
-     * @param channel Usually 0-15: the channel to lock.
-     * @param controllerNumber 0-127 MIDI CC number.
-     * @param isLocked True if locked, false if unlocked.
-     * @remarks
-     *  Controller number -1 locks the preset.
+     * Transposes the channel by given number of semitones.
+     * @param channel The channel number.
+     * @param semitones The transposition of the channel, it can be a float.
+     * @param force Defaults to false, if true transposes the channel even if it's a drum channel.
      */
-    public lockController(
-        channel: number,
-        controllerNumber: MIDIController | -1,
-        isLocked: boolean
-    ) {
+    public transposeChannel(channel: number, semitones: number, force = false) {
         this.post({
             channelNumber: channel,
-            type: "lockController",
+            type: "transposeChannel",
             data: {
-                controllerNumber,
-                isLocked
+                semitones,
+                force
             }
         });
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Mutes or unmutes the given channel.
-     * @param channel Usually 0-15: the channel to lock.
+     * @param channel Usually 0-15: the channel to mute.
      * @param isMuted Indicates if the channel is muted.
      */
     public muteChannel(channel: number, isMuted: boolean) {

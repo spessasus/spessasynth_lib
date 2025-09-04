@@ -5,7 +5,7 @@
 This example demonstrates how to quickly set up a synthesizer and a sequencer to play a MIDI file.
 
 The example uses two classes:
-[`WorkletSynthesizer` class](../synthesizer/basic-synthesizer.md) and [`Sequencer` class](../sequencer/index.md).
+[`WorkletSynthesizer` class](../synthesizer/basic-synthesizer.md) and [`Sequencer` class](../sequencer/index.md) to play a MIDI file.
 
 ```html title='simple_demo.html'
 --8<-- "simple_demo.html"

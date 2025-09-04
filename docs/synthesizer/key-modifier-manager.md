@@ -1,4 +1,5 @@
 ## Synthesizer Key Modifier Manager
+
 This powerful tool allows modifying each key on each channel to your needs.
 
 It is accessible via the `synth.keyModifierManager` property.
@@ -20,10 +21,7 @@ synth.keyModifierManager.addModifier(channel, midiNote, options);
 - midiNote - the MIDI note to modify. Ranges from 0 to 127.
 - options - the note's modifiers. An `Object`:
   - velocity - `number` - optional. Forces this key on this channel to be the given velocity. Unchanged if undefined.
-  - patch - `Object` - optional. Forces this key on this channel to play with the given patch.
-    - program - `number` - the program number of the desired patch.
-    - bank - `number` - the bank number of the desired patch.
-    - Note that both `program` and `bank` must be provided if the `patch` option is used.
+  - patch - [`MIDIPatch`](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/midi-patch/) - optional. Overrides the preset for the given key. This is especially useful for drums.
   - gain - `number` - optional. Linear gain of the voice
 
 ### Removing a key modifier
@@ -48,7 +46,7 @@ synth.keyModifierManager.getModifier(channel, midiNote)
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
 - midiNote - the MIDI note to modify. Ranges from 0 to 127.
 
-The returned value is a `KeyModifier` object.
+The returned value is a [`KeyModifier`](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/key-modifier-manager/#keymodifier) object.
 
 ### Clearing all modifiers
 

@@ -81,14 +81,13 @@ nav:
   - Documentation:
       - Getting Started:
           - getting-started/index.md
-          - Examples:
-              - getting-started/simple-example.md
-              - getting-started/advanced-example.md
-              - getting-started/worker-synth-example.md
-              - getting-started/piano-example.md
-              - getting-started/visualizer-example.md
-              - getting-started/render-audio-example.md
-              - getting-started/main-thread-rendering.md
+          - getting-started/simple-example.md
+          - getting-started/advanced-example.md
+          - getting-started/worker-synth-example.md
+          - getting-started/piano-example.md
+          - getting-started/visualizer-example.md
+          - getting-started/render-audio-example.md
+          - getting-started/main-thread-rendering.md
       - Synthesizer:
           - synthesizer/index.md
           - synthesizer/basic-synthesizer.md

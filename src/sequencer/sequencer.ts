@@ -1,4 +1,8 @@
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION, BasicMIDI, midiMessageTypes } from "spessasynth_core";
+import {
+    ALL_CHANNELS_OR_DIFFERENT_ACTION,
+    BasicMIDI,
+    midiMessageTypes
+} from "spessasynth_core";
 import { songChangeType } from "./enums.js";
 import { MIDIData } from "./midi_data.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
@@ -38,24 +42,21 @@ export class Sequencer {
     /**
      * The MIDI port to play to.
      */
-    protected midiOut?: MIDIOutput;
+    private midiOut?: MIDIOutput;
+
+    private isLoading = false;
 
     /**
      * Indicates if the sequencer is paused.
      * Paused if a number, undefined if playing.
      */
-    protected pausedTime?: number = 0;
-    protected getMIDICallback?: (receivedMIDI: BasicMIDI) => unknown =
-        undefined;
-    protected highResTimeOffset = 0;
+    private pausedTime?: number = 0;
+    private getMIDICallback?: (receivedMIDI: BasicMIDI) => unknown = undefined;
+    private highResTimeOffset = 0;
     /**
      * Absolute playback startTime, bases on the synth's time.
      */
-    protected absoluteStartTime: number;
-    /**
-     * Internal loop marker.
-     */
-    protected _loop = false;
+    private absoluteStartTime: number;
 
     /**
      * Creates a new MIDI sequencer for playing back MIDI files.
@@ -87,7 +88,7 @@ export class Sequencer {
         );
     }
 
-    protected _songIndex = 0;
+    private _songIndex = 0;
 
     /**
      * The current song number in the playlist.
@@ -103,7 +104,12 @@ export class Sequencer {
         /**
          * Sets the song index in the playlist.
          */
-        const clamped = Math.max(Math.min(this._songsAmount - 1, value), 0);
+        const clamped = Math.max(0, value % this._songsAmount);
+        if (clamped === this._songIndex) {
+            return;
+        }
+        this.isLoading = true;
+        this.midiData = undefined;
         this.sendMessage("changeSong", {
             changeType: songChangeType.index,
             data: clamped
@@ -220,6 +226,9 @@ export class Sequencer {
      * Current playback time, in seconds.
      */
     public get currentTime() {
+        if (this.isLoading) {
+            return 0;
+        }
         // Return the paused time if it's set to something other than undefined
         if (this.pausedTime !== undefined) {
             return this.pausedTime;
@@ -290,6 +299,7 @@ export class Sequencer {
      * @param midiBuffers The MIDI files to play.
      */
     public loadNewSongList(midiBuffers: SuppliedMIDIData[]) {
+        this.isLoading = true;
         this.midiData = undefined;
         this.sendMessage("loadNewSongList", midiBuffers);
         this._songIndex = 0;
@@ -344,6 +354,7 @@ export class Sequencer {
                 this._songIndex = m.data.songIndex;
                 const songChangeData = this.songListData[this._songIndex];
                 this.midiData = songChangeData;
+                this.isLoading = false;
                 this.absoluteStartTime = 0;
                 this.callEventInternal("songChange", songChangeData);
                 break;

@@ -83,6 +83,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         );
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Destroys the synthesizer instance.
      */
@@ -102,6 +103,8 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // @ts-expect-error destruction!
         // noinspection JSConstantReassignment
         delete this.reverbProcessor;
+        // @ts-expect-error destruction!
+        // noinspection JSConstantReassignment
         delete this.chorusProcessor;
     }
 }

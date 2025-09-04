@@ -45,6 +45,8 @@ const synth = new WorkletSynthesizer(context);
 ```
 Make sure to replace `/path/to/worklet/` with one of the paths described [here](../synthesizer/importing-the-worklet.md).
 
+That's it! Now you can move onto learning how a  [simple MIDI player](simple-example.md) works.
+
 
 !!! Warning
 
@@ -52,3 +54,4 @@ Make sure to replace `/path/to/worklet/` with one of the paths described [here](
     Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
     
     If what you're looking for isn't in this wiki, it's probably there.
+    

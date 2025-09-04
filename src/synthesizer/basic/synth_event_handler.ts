@@ -95,7 +95,7 @@ export class SynthEventHandler {
 
     /**
      * Calls the given event.
-     * Internal use only.
+     * INTERNAL USE ONLY!
      */
     public callEventInternal<T extends keyof SynthProcessorEventData>(
         name: T,

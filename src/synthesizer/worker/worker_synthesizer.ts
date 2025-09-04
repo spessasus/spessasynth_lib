@@ -144,7 +144,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     /**
      * Registers an audio worklet for the WorkerSynthesizer.
      * @param context The context to register the worklet for.
-     * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency. Defaults to 20.
+     * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency.
      */
     public static async registerPlaybackWorklet(
         context: BaseAudioContext,

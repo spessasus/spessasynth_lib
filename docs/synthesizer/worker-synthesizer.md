@@ -1,4 +1,4 @@
-# Worker Synthesizer
+# Worker-based Synthesizer
 
 This synthesizer uses a Worker communicating with an AudioWorklet to provide real-time playback.
 This is the synthesizer used by the SpessaSynth web app.
@@ -75,7 +75,7 @@ It returns a `Promise<Uint8Array>`.
 Below is a simple example of creating a new synthesizer.
 Note that the two snippets are two files, one for the worker and one in the main thread.
 
-```ts
+```js
 // worker
 let workerSynthCore;
 // Wait for the first message with parameters
