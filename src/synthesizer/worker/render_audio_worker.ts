@@ -16,6 +16,11 @@ export interface WorkerRenderAudioOptions {
      */
     loopCount: number;
 
+    /**
+     * The function that tracks the rendering progress.
+     * @param progress mapped 0 to 1.
+     * @param stage 0 is a dry pass, 1 is adding effects.
+     */
     progressCallback?: (progress: number, stage: number) => unknown;
 
     /**

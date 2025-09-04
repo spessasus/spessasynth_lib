@@ -94,6 +94,9 @@ nav:
           - synthesizer/basic-synthesizer.md
           - synthesizer/worklet-synthesizer.md
           - synthesizer/worker-synthesizer.md
+          - Effects:
+              - synthesizer/chorus-processor.md
+              - synthesizer/reverb-processor.md
           - Managers:
               - synthesizer/sound-bank-manager.md
               - synthesizer/key-modifier-manager.md

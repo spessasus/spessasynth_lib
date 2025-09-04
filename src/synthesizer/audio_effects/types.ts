@@ -7,12 +7,16 @@ export interface SynthConfig {
     oneOutput: boolean;
 
     /**
-     * If the chorus processor should be initialized during creation. This cannot be changed after creating the synthesizer.
+     * If the chorus processor should be initialized during creation.
+     * Note that setting this to false will not allow it to be used later.
+     * If you want to enable it at some point, set this to true and set the chorus gain to 0.
      */
     initializeChorusProcessor: boolean;
 
     /**
-     * If the reverb processor should be initialized during creation. This cannot be changed after creating the synthesizer.
+     * If the reverb processor should be initialized during creation.
+     * Note that setting this to false will not allow it to be used later.
+     * If you want to enable it at some point, set this to true and set the reverb gain to 0.
      */
     initializeReverbProcessor: boolean;
 

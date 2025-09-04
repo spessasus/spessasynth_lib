@@ -26,6 +26,15 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     protected readonly compressionFunction?: WorkerSampleEncodingFunction;
 
+    /**
+     * Creates a new worker synthesizer core: the synthesizer that runs in the worker.
+     * Most parameters here are provided with the first message that is posted to the worker by the WorkerSynthesizer.
+     * @param synthesizerConfiguration The data from the first message sent from WorkerSynthesizer.
+     * Listen for the first event and use its data to initialize this class.
+     * @param workletMessagePort The first port from the first message sent from WorkerSynthesizer.
+     * @param mainThreadCallback postMessage function or similar.
+     * @param compressionFunction Optional function for compressing SF3 banks.
+     */
     public constructor(
         synthesizerConfiguration: {
             sampleRate: number;

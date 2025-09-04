@@ -142,7 +142,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Registers an audio worklet. for the WorkerSynthesizer.
+     * Registers an audio worklet for the WorkerSynthesizer.
      * @param context The context to register the worklet for.
      * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency. Defaults to 20.
      */
@@ -268,7 +268,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Renders the current song in the connected sequencer to Float32 buffers.
-     * @param sampleRate The sample rate to use, in hertz.
+     * @param sampleRate The sample rate to use, in Hertz.
      * @param renderOptions Extra options for the render.
      * @returns A single audioBuffer if separate channels were not enabled, otherwise 16.
      * @remarks
@@ -297,8 +297,14 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                         numberOfChannels: 2,
                         length: bufferLength
                     });
-                    buffer.copyToChannel(dryPair[0] as Float32Array<ArrayBuffer>, 0);
-                    buffer.copyToChannel(dryPair[1] as Float32Array<ArrayBuffer>, 1);
+                    buffer.copyToChannel(
+                        dryPair[0] as Float32Array<ArrayBuffer>,
+                        0
+                    );
+                    buffer.copyToChannel(
+                        dryPair[1] as Float32Array<ArrayBuffer>,
+                        1
+                    );
                     return buffer;
                 });
 
@@ -313,15 +319,27 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     numberOfChannels: 2,
                     length: bufferLength
                 });
-                reverb.copyToChannel(data.reverb[0] as Float32Array<ArrayBuffer>, 0);
-                reverb.copyToChannel(data.reverb[1] as Float32Array<ArrayBuffer>, 1);
+                reverb.copyToChannel(
+                    data.reverb[0] as Float32Array<ArrayBuffer>,
+                    0
+                );
+                reverb.copyToChannel(
+                    data.reverb[1] as Float32Array<ArrayBuffer>,
+                    1
+                );
                 const chorus = new AudioBuffer({
                     sampleRate,
                     numberOfChannels: 2,
                     length: bufferLength
                 });
-                chorus.copyToChannel(data.chorus[0] as Float32Array<ArrayBuffer>, 0);
-                chorus.copyToChannel(data.chorus[1] as Float32Array<ArrayBuffer>, 1);
+                chorus.copyToChannel(
+                    data.chorus[0] as Float32Array<ArrayBuffer>,
+                    0
+                );
+                chorus.copyToChannel(
+                    data.chorus[1] as Float32Array<ArrayBuffer>,
+                    1
+                );
 
                 // Effects can only be enabled for a single dry channel
                 const dry = dryChannels[0];

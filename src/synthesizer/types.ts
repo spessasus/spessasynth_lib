@@ -97,7 +97,7 @@ export interface WorkerBankWriteOptions {
     trim: boolean;
 
     /**
-     * The sound bank ID to write.
+     * The sound bank ID in the sound bank manager to write.
      */
     bankID: string;
 
@@ -116,7 +116,7 @@ export type WorkerSoundFont2WriteOptions = Omit<
 > &
     WorkerBankWriteOptions & {
         /**
-         * The compression quality to call your provided compressionFunction with.
+         * The compression quality to call your provided compressionFunction with, if compressing.
          */
         compressionQuality: number;
     };
@@ -269,7 +269,7 @@ export interface SynthesizerReturn {
     };
     workerSynthWriteFile: {
         /**
-         * The binary data of the file
+         * The binary data of the file.
          */
         binary: ArrayBuffer;
         /**

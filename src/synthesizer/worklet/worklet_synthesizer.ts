@@ -65,8 +65,9 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * Starts an offline audio render.
      * @param config The configuration to use.
      * @remarks
+     * Call this method immediately after you've set up the synthesizer.
      * Do NOT call any other methods after initializing before this one.
-     * Chromium seems to ignore
+     * Chromium seems to ignore worklet messages for OfflineAudioContext.
      */
     public async startOfflineRender(config: OfflineRenderWorkletData) {
         this.post(

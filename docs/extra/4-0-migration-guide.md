@@ -34,9 +34,9 @@ Renamed from `worklet_processor` since it may conflict with other libraries prov
 
 Removed, as you have to include the worklet file manually.
 
-## FancyChorus
+## ChorusProcessor
 
-Renamed to `ChorusConfig`.
+Renamed from `FancyChorus`.
 
 Now includes `connect`, `disconnect` and `update` methods and `config` property.
 

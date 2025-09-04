@@ -1,4 +1,4 @@
-# Synthesizer
+# Types of the Synthesizer
 
 spessasynth_lib provides two synthesizers:
 

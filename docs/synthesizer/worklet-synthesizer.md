@@ -1,6 +1,10 @@
 # Worklet Synthesizer
 
-This synthesizer uses a single AudioWorklet with the Processor and Sequencer in it, along with the effects.
+This synthesizer uses a single AudioWorklet to provide real-time playback.
+
+!!! Note
+
+    Methods shared between the synthesizers can be found [here](basic-synthesizer.md)
 
 ## Advantages
 
@@ -21,37 +25,93 @@ This synthesizer uses a single AudioWorklet with the Processor and Sequencer in 
     Note that you need to add the worklet processor for the synthesizer to work!
     See [Importing the worklet](importing-the-worklet.md)
 
-```js
+```ts
 const synth = new WorkletSynthesizer(
-    tagetNode,
-    soundBankBuffer,
-    enableEventSystem(optional),
-    startRenderingData(optional),
-    synthConfig(optional)
+    context,
+    config
 );
 ```
 
-- targetNode - the AudioNode the synth should play to. Usually it is the `AudioContext.destination` property.
-- soundBankBuffer - the `ArrayBuffer` to your sound bank.
-- enableEventSystem - `boolean`, disables the event system.
-Useful
-  when [rendering audio to file](../getting-started/render-audio-example.md)
-- startRenderingData - `object`, used for rendering to file. It's formatted as follows:
-  - midiSequence: the same type as [passed in loadNewSongList](../sequencer/index.md#loadnewsonglist), but singular. The synthesizer will immediately start rendering it if specified
-  - snapshot: a [`SynthesizerSnapshot`](basic-synthesizer.md#getsnapshot) object, a copy of controllers from another synthesizer
-    instance.
-    If specified, synth will copy this configuration.
-  - oneOutput: a `boolean` - indicates the [One output mode](basic-synthesizer.md#one-output-mode)
-  - loopCount: the number of loops to play.
-  It defaults to 0.
-  Make sure your `OfflineAudioContext`'s length accounts for
-    these!
-  - sequencerOptions: The same object as with [the sequencer constructor `options` parameter.](../sequencer/index.md#initialization)
-  Note that the `autoPlay` property will be ignored.
-- synthConfig → optional, the configuration for audio effects. [See below.](basic-synthesizer.md#synthesizer-configuration)
+- context - `BaseAudioContext` - the context for the synthesizer to use.
+- config - `SynthConfig` - optional additional configuration. All properties are optional. [Described here](basic-synthesizer.md#configuration-object)
+
+
+### Example initialization
+
+Below is a simple example of creating a new synthesizer.
+
+```ts
+// create audio context
+const context = new AudioContext({
+    sampleRate: 44100
+});
+// add worklet
+await context.audioWorklet.addModule("spessasynth_processor.min.js");
+// set up synthesizer
+const synth = new WorkletSynthesizer(context.destination);
+```
 
 !!! Warning
 
     Avoid using multiple synthesizer instances.
     The [Sound bank manager](sound-bank-manager.md) and one instance should be sufficient.
-    See [this comment for more info.](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985)
+    See [this comment for more info.](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985)    
+
+## Methods
+
+### startOfflineRender
+
+Starts an offline audio render.
+
+```ts
+await synth.startOfflineRender(config);
+```
+
+- config - a configuration object, described below:
+
+#### midiSequence
+
+The MIDI to render, a `BasicMIDI` instance.
+
+#### snapshot
+
+Optional, the `SynthesizerSnapshot` to apply before starting the render.
+
+#### loopCount
+
+The amount times to loop the song. A number.
+
+#### soundBankList
+
+The list of sound banks to render this file with.
+
+An array of objects with two properties:
+- bankOffset - bank offset for this sound bank, a number. Leave at 0 if you are not sure.
+- soundBankBuffer - an ArrayBuffer containing the file.
+
+
+#### sequencerOptions
+
+The options to pass to the sequencer. The same options as with [initializing the sequencer](../sequencer/index.md#initialization)
+
+
+!!! Note
+
+    This method is *asynchronous.*
+
+!!! Danger
+
+    Call this method immediately after you've set up the synthesizer.
+    Do NOT call any other methods after initializing before this one.
+    Chromium seems to ignore worklet messages for OfflineAudioContext.
+    
+
+### destroy
+
+Properly disposes of the synthesizer along with its worklet.
+
+
+!!! Warning
+
+    Remember, you **MUST** call this method after you're done with the synthesizer!
+    Otherwise it will keep processing and the performance will greatly suffer.

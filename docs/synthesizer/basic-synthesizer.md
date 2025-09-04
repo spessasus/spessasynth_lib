@@ -1,85 +1,70 @@
-# BasicSynthesizer
+# Shared Synthesizer Methods
 
-This is the main module that generates the sound.
+This is the main module that generates the sound with one of the WebAudio API methods.
 
-!!! Warning
 
-    This class does not have a constructor. The specific synthesizer types share methods described here.
+!!! Note
+
+    This page serves to document the shared methods between `WorkletSynthesizer` and `WorkerSynthesizer`.
+    There is no `BasicSynthesizer` class.
 
 [**MIDI implementation chart**](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/)
 
+## Configuration object
 
-## Init parameters parameters
-### Synthesizer Configuration
-- `chorusEnabled` - `boolean` - indicates if the chorus effect is enabled.
-- `chorus` - `ChorusConfig` - the configuration for chorus. Pass `undefined` to use defaults. Described below.
-- `reverbEnabled` - `boolean` - indicates if the reverb effect is enabled.
-- `impulseResponse` - `AudioBuffer` - the impulse response for the reverb. Pass `undefined` to use defaults.
-- `audioNodeCreators` - custom functions for creating Web Audio API wrapper nodes, such as `standardized-audio-context`.
-  - `worklet` - a function that takes three arguments, the exact same as regular `AudioWorkletNode` constructor:
-  context, processor's name and worklet processor options.
-  It should return the initialized `AudioWorkletNode` object.
-  - Example with regular Web Audio API constructor:
-```js
-worklet: (ctx, name, options) => new AudioWorkletNode(ctx, name, options);
-```
+Below is the `SynthConfig` configuration object that can be passed to both synthesizers during configuration:
 
-#### Chorus config
-- `chorus` - `object` - this is the chorus config object:
-  - `nodesAmount` - `number` - the number of delay nodes (for each channel) and the corresponding oscillators.
-  - `defaultDelay` - `number` - the initial delay, in seconds.
-  - `delayVariation` - `number` - the difference between delays in the delay nodes.
-  - `stereoDifference` - `number` - the difference of delays between two channels (added to the right channel).
-  - `oscillatorFrequency` - `number` - the initial delay oscillator frequency, in Hz.
-  - `oscillatorFrequencyVariation` - `number` - the difference between frequencies of oscillators, in Hz.
-  - `oscillatorGain` - `number` - how much the oscillator will alter the delay in delay nodes, in seconds.
+### oneOutput
+
+Indicates if the [one output mode](#one-output-mode) should be enabled.
+A boolean.
+
+### initializeChorusProcessor
+
+If the chorus processor should be initialized during creation.
+Note that setting this to false will not initialize a chorus processor.
+If you want to enable it at some point, set this to true and set the chorus gain to 0.
+                                          
+A boolean.
 
 
-!!! TIP
+### initializeReverbProcessor
 
-    Pass `undefined` to `chorus` or `impulseResponse` to use the defaults.
+If the reverb processor should be initialized during creation.
+Note that setting this to false will not allow it to be used later.
+If you want to enable it at some point, set this to true and set the reverb gain to 0.
 
-### Example initialization
-Below is a simple example of creating 
-a new synthesizer with a soundfont coming from a file input.
-```js
-// create audio context
-const context = new AudioContext({
-    sampleRate: 44100
+A boolean.
+
+
+### enableEventSystem
+
+If the event system should be enabled. This can only be set once.
+
+A boolean.
+
+### audioNodeCreators
+
+Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.
+Pass undefined to use the Web Audio API.
+
+Currently, there's only a single property defined: `worklet`:
+
+A custom creator for an AudioWorkletNode.
+
+It takes three parameters:
+
+- context - the same parameter passed in the initialization.
+- workletName - the name of the registered processor.
+- options - AudioWorkletNodeOptions.
+
+An example function that creates the standard worklet node looks like this:
+
+```ts
+((context: BaseAudioContext, name: string, options: AudioWorkletNodeOptions) => {
+    return new AudioWorkletNode(context, name, options);
 });
-// add worklet
-await context.audioWorklet.addModule("spessasynth_processor.min.js");
-// load soundfont
-const file = document.getElementById("file_input").files[0];
-const soundfont = await file.arrayBuffer()
-// set up synthesizer
-const synth = new WorkletSynthesizer(context.destination, soundfont);
 ```
-
-### isReady
-
-A promise that gets resolved when the synthesizer gets fully initialized with the SF3 decoded.
-
-```js
-await synth.isReady;
-```
-
-!!! Warning
-
-    Remember to wait for this promise before playing anything or rendering audio!
-    Not waiting may break SF3 and reverb support!
-
-## Destruction
-Use the `.destroy()` method.
-
-```js
-synth.destroy();
-```
-
-!!! Warning
-
-    Remember, you **MUST** call this method after you're done with the synthesizer!
-    Otherwise it will keep processing and the performance will greatly suffer.
 
 ## Methods
 
@@ -564,6 +549,19 @@ synth.debugMessage();
 ```
 
 ## Properties
+
+### isReady
+
+A promise that gets resolved when the synthesizer gets fully initialized with the SF3 decoded.
+
+```js
+await synth.isReady;
+```
+
+!!! Warning
+
+    Remember to wait for this promise before playing anything or rendering audio!
+    Not waiting may break SF3 and reverb support!
 
 ### eventHandler
 
