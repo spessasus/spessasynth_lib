@@ -121,7 +121,7 @@ Removed in favor of `embeddedSoundBankSize` which will be undefined if it does n
 
 ### loadNewSongList
 
-`altName` property has been renamed to `fileName` as this is what it sets in `BasicMIDI`.
+`altName` property has been renamed to `fileName` as this is what it sets in [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/).
 
 ### loop
 

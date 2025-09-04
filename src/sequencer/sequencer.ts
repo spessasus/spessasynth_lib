@@ -1,11 +1,6 @@
-import {
-    ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    BasicMIDI,
-    MIDIMessage,
-    midiMessageTypes
-} from "spessasynth_core";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION, BasicMIDI, midiMessageTypes } from "spessasynth_core";
 import { songChangeType } from "./enums.js";
-import { DUMMY_MIDI_DATA, MIDIData } from "./midi_data.js";
+import { MIDIData } from "./midi_data.js";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
 import type {
     SequencerMessage,
@@ -33,25 +28,18 @@ export class Sequencer {
      */
     public eventHandler = new SeqEventHandler();
     /**
-     * Indicates if the current midiData property has fake data in it (not yet loaded).
-     */
-    public hasDummyData = true;
-    /**
      * Indicates whether the sequencer has finished playing a sequence.
      */
     public isFinished = false;
-    // The synthesizer attached to this sequencer.
-    public readonly synth: BasicSynthesizer;
-    // The MIDI port to play to.
-    protected midiOut?: MIDIOutput;
     /**
-     * Fires on meta-event
-     * @type {Object<string, function([MIDIMessage, number])>}
+     * The synthesizer attached to this sequencer.
      */
-    protected onMetaEvent: Record<
-        string,
-        (metaMessage: MIDIMessage, trackIndex: number) => unknown
-    > = {};
+    public readonly synth: BasicSynthesizer;
+    /**
+     * The MIDI port to play to.
+     */
+    protected midiOut?: MIDIOutput;
+
     /**
      * Indicates if the sequencer is paused.
      * Paused if a number, undefined if playing.
@@ -251,6 +239,7 @@ export class Sequencer {
     }
 
     /**
+     * A smoothed version of currentTime.
      * Use for visualization as it's not affected by the audioContext stutter.
      */
     public get currentHighResolutionTime() {
@@ -301,9 +290,7 @@ export class Sequencer {
      * @param midiBuffers The MIDI files to play.
      */
     public loadNewSongList(midiBuffers: SuppliedMIDIData[]) {
-        // Add some fake data
-        this.midiData = DUMMY_MIDI_DATA;
-        this.hasDummyData = true;
+        this.midiData = undefined;
         this.sendMessage("loadNewSongList", midiBuffers);
         this._songIndex = 0;
         this._songsAmount = midiBuffers.length;
@@ -311,7 +298,7 @@ export class Sequencer {
 
     /**
      * Connects a given output to the sequencer.
-     * @param output The output to connect.
+     * @param output The output to connect. Pass undefined to use the connected synthesizer.
      */
     public connectMIDIOutput(output?: MIDIOutput) {
         this.resetMIDIOutput();
@@ -357,7 +344,6 @@ export class Sequencer {
                 this._songIndex = m.data.songIndex;
                 const songChangeData = this.songListData[this._songIndex];
                 this.midiData = songChangeData;
-                this.hasDummyData = false;
                 this.absoluteStartTime = 0;
                 this.callEventInternal("songChange", songChangeData);
                 break;

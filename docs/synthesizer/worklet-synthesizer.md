@@ -71,7 +71,7 @@ await synth.startOfflineRender(config);
 
 #### midiSequence
 
-The MIDI to render, a `BasicMIDI` instance.
+The MIDI to render, a [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) instance.
 
 #### snapshot
 
