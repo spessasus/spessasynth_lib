@@ -314,8 +314,10 @@ export abstract class BasicSynthesizerCore {
                                 break;
 
                             case songChangeType.index:
-                                if (seqMsg.data.data)
+                                if (seqMsg.data.data !== undefined) {
+                                    console.log("INDEX", seqMsg.data);
                                     seq.songIndex = seqMsg.data.data;
+                                }
                                 break;
                         }
                         break;

@@ -891,10 +891,7 @@ export abstract class BasicSynthesizer {
             pitchWheelRange: 0,
             isMuted: false,
             isDrum: this.channelsAmount % 16 === DEFAULT_PERCUSSION,
-            transposition: 0,
-            program: 0,
-            bankMSB: 0,
-            bankLSB: 0
+            transposition: 0
         });
         if (!post) {
             return;
