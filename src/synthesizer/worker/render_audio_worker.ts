@@ -147,6 +147,7 @@ export function renderAudioWorker(
                         index,
                         sampleDuration - index
                     );
+                    this.startAudioLoop();
                     return returnedChunks;
                 }
                 rendererSeq.processTick();
