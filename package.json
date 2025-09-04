@@ -68,6 +68,6 @@
     "typescript-eslint": "^8.38.0"
   },
   "dependencies": {
-    "spessasynth_core": "file:../spessasynth_core/spessasynth_core-4.0.0.tgz"
+    "spessasynth_core": "latest"
   }
 }
