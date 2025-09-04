@@ -31,7 +31,7 @@ It allows you to:
 - [SpessaFont - Online SoundFont/DLS Editor](https://spessasus.github.io/SpessaFont)
 
 
-### [Documentation](https://github.com/spessasus/spessasynth_lib/wiki/)
+### [Documentation](https://spessasus.github.io/spessasynth_lib)
 
 
 
