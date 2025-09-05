@@ -1,6 +1,6 @@
 {
   "name": "spessasynth_lib",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
   "type": "module",
   "main": "dist/index.js",
@@ -14,7 +14,7 @@
     "debug": "tsx build_scripts/debug_enable.ts",
     "release": "tsx build_scripts/debug_disable.ts",
     "prepack": "npm run build:npm",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run release && npm run build"
   },
   "repository": {
     "type": "git",
