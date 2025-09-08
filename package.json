@@ -7,7 +7,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "npm run test:types && npm run build:pages",
+    "build": "npm run test:types && npm run build:npm && npm run build:pages",
     "build:npm": "tsx build_scripts/build_npm.ts",
     "build:pages": "tsx build_scripts/build_pages.ts",
     "test:types": "eslint src/ && tsc -b",
