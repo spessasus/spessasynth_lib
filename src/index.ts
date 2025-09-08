@@ -1,5 +1,6 @@
 // Import modules
 
+import { BasicSynthesizer } from "./synthesizer/basic/basic_synthesizer.ts";
 import { WorkletSynthesizer } from "./synthesizer/worklet/worklet_synthesizer.js";
 import { WorkerSynthesizer } from "./synthesizer/worker/worker_synthesizer.ts";
 import { WorkerSynthesizerCore } from "./synthesizer/worker/worker_synthesizer_core.ts";
@@ -14,6 +15,7 @@ import { DEFAULT_SYNTH_CONFIG } from "./synthesizer/audio_effects/effects_config
 // Export modules
 export {
     // Synthesizer and Sequencer
+    type BasicSynthesizer,
     Sequencer,
     WorkletSynthesizer,
     WorkerSynthesizer,

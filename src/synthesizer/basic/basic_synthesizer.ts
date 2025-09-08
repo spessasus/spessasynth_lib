@@ -61,7 +61,9 @@ export abstract class BasicSynthesizer {
      * The current preset list.
      */
     public presetList: PresetList = [];
-    // INTERNAL USE ONLY!
+    /**
+     * INTERNAL USE ONLY!
+     */
     public sequencerCallbackFunction?: (m: SequencerReturnMessage) => unknown;
     /**
      * Resolves when the synthesizer is ready.
@@ -77,7 +79,9 @@ export abstract class BasicSynthesizer {
      * Undefined if chorus is disabled.
      */
     public readonly chorusProcessor?: ChorusProcessor;
-    // INTERNAL USE ONLY!
+    /**
+     * INTERNAL USE ONLY!
+     */
     public readonly post: (
         data: BasicSynthesizerMessage,
         transfer?: Transferable[]

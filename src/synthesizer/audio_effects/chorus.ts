@@ -100,6 +100,7 @@ export class ChorusProcessor extends BasicEffectsProcessor {
     }
 
     private deleteNodes() {
+        this.input.disconnect();
         for (const node of this.chorusLeft) {
             node.delay.disconnect();
             node.oscillator.disconnect();
