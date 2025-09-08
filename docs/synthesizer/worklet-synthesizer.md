@@ -1,22 +1,16 @@
 # Worklet-based Synthesizer
 
-This synthesizer uses a single AudioWorklet to provide real-time playback.
+This synthesizer uses a single AudioWorklet to provide real-time or offline playback.
 
 !!! Tip
 
+    [A comparison of both synthesizers](index.md).
+    
     Methods shared between the synthesizers can be found [here](basic-synthesizer.md)
 
-## Advantages
 
-- Stable audio system: The processor lives in the worklet. As long as the system can keep up, there should be no dropouts.
-- Separate thread: The audio thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
-- Fast main thread communication: suitable for real-time playback from Web MIDI Inputs.
 
-## Disadvantages
 
-- Susceptible to the [Chromium SF3 audio bug](https://github.com/spessasus/spessasynth_lib/issues/8) with no workarounds.
-- Rendering audio requires another instance of the synthesizer. This potentially means copying a 4GB sound bank buffer twice.
-- No access to the audio engine.
 
 ## Initialization
 

@@ -1,14 +1,13 @@
-# Synthesizer
+# Basic Synthesizer
 
-This is the main module that generates the sound with one of the WebAudio API methods.
+This page serves to document the shared methods between `WorkletSynthesizer` and `WorkerSynthesizer`.
+There is no `Synthesizer` class.
 
+## Features
 
-!!! Info
+The synthesizer uses `spessasynth_core`'s synthesizer as the core audio engine, providing extensive support for all supported audio formats and various MIDI extensions.
 
-    This page serves to document the shared methods between `WorkletSynthesizer` and `WorkerSynthesizer`.
-    There is no `Synthesizer` class.
-
-[**MIDI implementation chart**](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/)
+[MIDI implementation chart can be found here](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/).
 
 ## Configuration object
 
