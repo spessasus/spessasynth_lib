@@ -4,6 +4,7 @@
     If you encounter any errors in this documentation, please **open an issue!**
 
 ## spessasynth_lib vs spessasynth_core
+
 There are two similar libraries: `spessasynth_lib` and `spessasynth_core`:
 
 - core is the main library that contains all MIDI, SF2,DLS parsing and synthesis engine. It can run in any JS environment.
@@ -26,9 +27,14 @@ So:
 - You don't have access to the WebAudioAPI.
 
 
+
 !!! Tip
 
-    Note that `spessasynth_core` is a dependency of `spessasynth_lib`, so all writing functions and properties are still available!
+    If you intend on using the "Microsoft GS Wavetable Synth" as your sound bank of choice,
+    it is highly recommended to use the original `gm.dls` (from `c:/windows/system32/drivers`)
+    file directly instead of an SF2 conversion for better accuracy.
+    
+    If you want to fully recreate the sound, disable effects and set the sample rate to 22050 Hz.  
 
 ## Installation
 ```shell

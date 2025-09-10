@@ -35,6 +35,10 @@ export class MIDIData extends BasicMIDI {
         super();
         super.copyMetadataFrom(mid);
         this.tracks = mid.tracks.map((t) => new MIDIDataTrack(t));
-        this.embeddedSoundBankSize = mid?.embeddedSoundBank?.byteLength;
+        if (mid instanceof MIDIData) {
+            this.embeddedSoundBankSize = mid.embeddedSoundBankSize;
+        } else {
+            this.embeddedSoundBankSize = mid?.embeddedSoundBank?.byteLength;
+        }
     }
 }
