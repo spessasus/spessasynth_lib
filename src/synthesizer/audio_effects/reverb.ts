@@ -1,7 +1,7 @@
-import { reverbBufferBinary } from "./compressed_reverb_decoder.js";
 import { BasicEffectsProcessor } from "./basic_effects_processor.ts";
 import type { ReverbConfig } from "./types.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { getDefaultReverbBinary } from "./compressed_reverb_decoder.ts";
 
 export const DEFAULT_REVERB_CONFIG: ReverbConfig = {
     impulseResponse: undefined // Will load the integrated one
@@ -33,7 +33,9 @@ export class ReverbProcessor extends BasicEffectsProcessor {
             this.isReady = new Promise<AudioBuffer>((r) => r(reverbBuffer));
         } else {
             // Decode
-            this.isReady = context.decodeAudioData(reverbBufferBinary.slice(0));
+            this.isReady = context.decodeAudioData(
+                getDefaultReverbBinary().slice(0)
+            );
             void this.isReady.then((b) => {
                 convolver.buffer = b;
             });

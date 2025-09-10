@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import esbuild from "esbuild";
 import url from "url";
-import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util.ts";
+import { GH_PAGES_DIR } from "../build_scripts/util.ts";
 
 export const buildExamples = () => {
     // File paths and directories
@@ -12,26 +12,11 @@ export const buildExamples = () => {
     const OUTPUT_DIR = path.join(dirname, "..", GH_PAGES_DIR, "examples");
     const CSS_FILE = path.join(dirname, "examples.css");
 
-    const WORKLET_JS_FILE = path.join(
-        dirname,
-        "..",
-        NPM_DIST_DIR,
-        "spessasynth_processor.min.js"
-    );
-
     // Create out
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
     // Copy CSS file to the output directory
     fs.copyFileSync(CSS_FILE, path.join(OUTPUT_DIR, "examples.css"));
-    fs.copyFileSync(
-        WORKLET_JS_FILE,
-        path.join(OUTPUT_DIR, "spessasynth_processor.min.js")
-    );
-    fs.copyFileSync(
-        WORKLET_JS_FILE + ".map",
-        path.join(OUTPUT_DIR, "spessasynth_processor.min.js.map")
-    );
 
     // Read the HTML template content
     const TEMPLATE_CONTENT = fs.readFileSync(TEMPLATE_FILE, "utf8");

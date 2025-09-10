@@ -3,6 +3,7 @@
 import { BasicSynthesizer } from "./synthesizer/basic/basic_synthesizer.ts";
 import { WorkletSynthesizer } from "./synthesizer/worklet/worklet_synthesizer.js";
 import { WorkerSynthesizer } from "./synthesizer/worker/worker_synthesizer.ts";
+import { initializeWorkletProcessor } from "./synthesizer/worklet/worklet_processor.ts";
 import { WorkerSynthesizerCore } from "./synthesizer/worker/worker_synthesizer_core.ts";
 import { Sequencer } from "./sequencer/sequencer.js";
 import { ChorusProcessor } from "./synthesizer/audio_effects/chorus.js";
@@ -18,6 +19,7 @@ export {
     type BasicSynthesizer,
     Sequencer,
     WorkletSynthesizer,
+    initializeWorkletProcessor,
     WorkerSynthesizer,
     WorkerSynthesizerCore,
     DEFAULT_SYNTH_CONFIG,
