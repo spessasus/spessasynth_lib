@@ -1,6 +1,7 @@
 # Working with browsers
 
 Since `spessasynth_lib` is a npm package, you need to do two things to make it work with browsers:
+
 1. Bundle the code
 2. Copy the processor (if you are using the `WorkletSynthesizer`)
 

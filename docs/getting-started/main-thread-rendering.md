@@ -21,6 +21,7 @@ This page is intended to show how to use both `spessasynth_core` and `spessasynt
 `spessasynth_lib` exposes both audio processors, allowing us to connect them to the synthesizer directly.
 
 A simple audio loop that achieves this is as follows:
+
 1. Create the `Float32Array` buffers for the dry, chorus and reverb outputs.
 2. Perform any custom tasks needed and then render the audio
 3. Send the processed audio to playback nodes, like a custom audio worklet or `AudioBufferSourceNode`s
@@ -47,6 +48,7 @@ Nothing special here.
 
 
 The audio loop presented in this script is very similar to the one shown above:
+
 1. Make sure that the synthesizer is not too far ahead
 2. Create the buffers
 3. Process the MIDI playback and render audio
