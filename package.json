@@ -1,6 +1,6 @@
 {
   "name": "spessasynth_lib",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
   "type": "module",
   "main": "dist/index.js",
