@@ -42,7 +42,7 @@ export class Sequencer {
     /**
      * The MIDI port to play to.
      */
-    private midiOut?: MIDIOutput;
+    private midiOut?: { send: (data: number[]) => unknown };
 
     private isLoading = false;
 
@@ -192,9 +192,11 @@ export class Sequencer {
      * Controls the playback's rate.
      */
     public set playbackRate(value: number) {
+        const t = this.currentTime;
         this.sendMessage("setPlaybackRate", value);
         this.highResTimeOffset *= value / this._playbackRate;
         this._playbackRate = value;
+        this.recalculateStartTime(t);
     }
 
     protected _shuffleSongs = false;
@@ -310,7 +312,7 @@ export class Sequencer {
      * Connects a given output to the sequencer.
      * @param output The output to connect. Pass undefined to use the connected synthesizer.
      */
-    public connectMIDIOutput(output?: MIDIOutput) {
+    public connectMIDIOutput(output?: { send: (data: number[]) => unknown }) {
         this.resetMIDIOutput();
         this.midiOut = output;
         this.sendMessage("changeMIDIMessageSending", output !== undefined);
