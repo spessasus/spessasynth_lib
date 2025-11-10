@@ -1,6 +1,9 @@
 // import the modules
 import { Sequencer, WorkletSynthesizer } from "../../src/index.ts";
-import { EXAMPLE_SOUND_BANK_PATH, EXAMPLE_WORKLET_PATH } from "../examples_common.js";
+import {
+    EXAMPLE_SOUND_BANK_PATH,
+    EXAMPLE_WORKLET_PATH
+} from "../examples_common.js"; // load the sound bank
 
 // load the sound bank
 fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
@@ -83,4 +86,8 @@ fetch(EXAMPLE_SOUND_BANK_PATH).then(async (response) => {
                 seq.songIndex++; // go to the next song
             };
         });
+
+    // Make both objects accessible through the console
+    window.synth = synth;
+    window.seq = seq;
 });
