@@ -101,7 +101,7 @@ document.getElementById("button").onclick = async () =>
 ```
 
 # License
-Copyright © 2025 Spessasus
+Copyright © 2026 Spessasus
 Licensed under the Apache-2.0 License.
 
 SoundFont® is a registered trademark of Creative Technology Ltd.
