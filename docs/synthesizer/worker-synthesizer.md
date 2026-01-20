@@ -156,6 +156,7 @@ const file = await synth.writeDLS(options);
 - options - an optional configuration for writing the file. All properties are optional.
   - progressFunction - a function to track the progress of writing the file.
   - trim - trim the sound bank to only include samples used in the current MIDI file.
+  - sequencerID - which sequencer to grab the MIDI from if trimming. Defaults to the first one (0).
   - bankID - the sound bank ID in the sound bank manager to write.
   - writeEmbeddedSoundBank - if the embedded sound bank should be written instead if it exists.
 
@@ -184,6 +185,7 @@ const file = await synth.writeSF2(options);
   - decompress - if an SF3 bank should be decompressed back to SF2. Not recommended.
   - progressFunction - a function to track the progress of writing the file.
   - trim - trim the sound bank to only include samples used in the current MIDI file.
+  - sequencerID - which sequencer to grab the MIDI from if trimming. Defaults to the first one (0).
   - bankID - the sound bank ID in the sound bank manager to write.
   - writeEmbeddedSoundBank - if the embedded sound bank should be written instead if it exists.
 
@@ -207,6 +209,7 @@ const file = await synth.writeRMIDI(options);
 
 - options - an optional configuration for writing the file. All properties are optional.
   - format - either `sf2` or `dls`. Depending on the format, the options in methods above apply.
+  - sequencerID - which sequencer to grab the MIDI from. Defaults to the first one (0).
   - all options in [`BasicMIDI.writeRMIDI`](https://spessasus.github.io/spessasynth_core/midi/#writermidi) except for `soundBank`.
 
 The returned value is an ArrayBuffer, the binary data of the file.
@@ -234,6 +237,7 @@ const rendered = synth.renderAudio(sampleRate, renderOptions);
     - stage - 0 is a dry pass, 1 is adding effects.
   - preserveSynthParams - if the current parameters of the synthesizer should be preserved.
   - enableEffects - if the effects should be enabled.
+  - sequencerID - which sequencer to render. Defaults to the first one (0).
 
 The returned value is an array of `AudioBuffer`s:
 

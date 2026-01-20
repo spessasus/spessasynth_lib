@@ -7,7 +7,8 @@ export async function writeRMIDIWorker(
     this: WorkerSynthesizerCore,
     opts: WorkerRMIDIWriteOptions
 ) {
-    if (!this.sequencer.midiData) {
+    const sq = this.sequencers[opts.sequencerID];
+    if (!sq.midiData) {
         throw new Error("No MIDI is loaded!");
     }
     let sf: BasicSoundBank;
@@ -22,7 +23,7 @@ export async function writeRMIDIWorker(
         sf = bin.bank;
     }
 
-    const mid = BasicMIDI.copyFrom(this.sequencer.midiData);
+    const mid = BasicMIDI.copyFrom(sq.midiData);
     return mid.writeRMIDI(sfBin, {
         soundBank: sf,
         ...opts

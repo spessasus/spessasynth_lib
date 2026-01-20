@@ -17,12 +17,6 @@ const sequencer = new Sequencer(synth, options);
     - `initialPlaybackRate` - a `number` with the initial playback rate, other than the default 1.0.
 
 
-!!! Warning
-
-    Due to the way the sequencer has been coded, 
-    only one sequencer can be used with a `Synthesizer` instance at once!
-    If this is something that you want to be fixed, feel free to open an issue.
-
 ## Properties
 
 ### midiData
