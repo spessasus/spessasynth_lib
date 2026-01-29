@@ -5,7 +5,7 @@ The examples have a custom build process.
 1. `npm install` (in the root directory)
 
 ### Build
-`npm run build:examples`
+`npm run build:pages`
 
-The compiled examples are located under `dist/examples` (for hosting on GitHub pages)
+The compiled examples are located under `gh-pages/examples` (for hosting on GitHub pages)
 
