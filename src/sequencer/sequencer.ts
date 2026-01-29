@@ -60,6 +60,11 @@ export class Sequencer {
     private absoluteStartTime: number;
 
     /**
+     * For sending the messages to the correct SpessaSynthSequencer in core
+     */
+    private readonly sequencerID: number;
+
+    /**
      * Creates a new MIDI sequencer for playing back MIDI files.
      * @param synth synth to send events to.
      * @param options the sequencer's options.
@@ -71,7 +76,9 @@ export class Sequencer {
         this.synth = synth;
         this.absoluteStartTime = this.synth.currentTime;
 
-        this.synth.sequencerCallbackFunction = this.handleMessage.bind(this);
+        this.sequencerID = this.synth.assignNewSequencer(
+            this.handleMessage.bind(this)
+        );
         this._skipToFirstNoteOn = options?.skipToFirstNoteOn ?? true;
 
         if (options?.initialPlaybackRate !== 1) {
@@ -117,7 +124,7 @@ export class Sequencer {
         });
     }
 
-    protected _currentTempo = 120;
+    private _currentTempo = 120;
 
     /**
      * Current song's tempo in BPM.
@@ -133,14 +140,14 @@ export class Sequencer {
         return this.midiData?.duration ?? 0;
     }
 
-    protected _songsAmount = 0;
+    private _songsAmount = 0;
 
     // The amount of songs in the list.
     public get songsAmount() {
         return this._songsAmount;
     }
 
-    protected _skipToFirstNoteOn: boolean;
+    private _skipToFirstNoteOn: boolean;
 
     /**
      * Indicates if the sequencer should skip to first note on.
@@ -160,7 +167,7 @@ export class Sequencer {
     /**
      * Internal loop count marker (-1 is infinite).
      */
-    protected _loopCount = -1;
+    private _loopCount = -1;
 
     /**
      * The current remaining number of loops. -1 means infinite looping.
@@ -180,7 +187,7 @@ export class Sequencer {
     /**
      * Controls the playback's rate.
      */
-    protected _playbackRate = 1;
+    private _playbackRate = 1;
 
     /**
      * Controls the playback's rate.
@@ -200,7 +207,7 @@ export class Sequencer {
         this.recalculateStartTime(t);
     }
 
-    protected _shuffleSongs = false;
+    private _shuffleSongs = false;
 
     /**
      * Indicates if the song order is random.
@@ -341,7 +348,7 @@ export class Sequencer {
         this.sendMessage("play", null);
     }
 
-    protected handleMessage(m: SequencerReturnMessage) {
+    private handleMessage(m: SequencerReturnMessage) {
         switch (m.type) {
             case "midiMessage":
                 const midiEventData = m.data.message as number[];
@@ -472,13 +479,13 @@ export class Sequencer {
         }
     }
 
-    protected callEventInternal<
+    private callEventInternal<
         EventType extends keyof WorkletSequencerEventType
     >(type: EventType, data: WorkletSequencerEventType[EventType]) {
         this.eventHandler.callEventInternal(type, data);
     }
 
-    protected resetMIDIOutput() {
+    private resetMIDIOutput() {
         if (!this.midiOut) {
             return;
         }
@@ -509,7 +516,8 @@ export class Sequencer {
             type: "sequencerSpecific",
             data: {
                 type: messageType,
-                data: messageData
+                data: messageData,
+                id: this.sequencerID
             } as SequencerMessage
         });
     }

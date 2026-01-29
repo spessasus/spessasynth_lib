@@ -32,6 +32,11 @@ export interface WorkerRenderAudioOptions {
      * If the effects should be enabled.
      */
     enableEffects: boolean;
+
+    /**
+     * Which sequencer to render. Defaults to the first one (0).
+     */
+    sequencerID: number;
 }
 
 export const DEFAULT_WORKER_RENDER_AUDIO_OPTIONS: WorkerRenderAudioOptions = {
@@ -40,7 +45,8 @@ export const DEFAULT_WORKER_RENDER_AUDIO_OPTIONS: WorkerRenderAudioOptions = {
     loopCount: 0,
     progressCallback: undefined,
     preserveSynthParams: true,
-    enableEffects: true
+    enableEffects: true,
+    sequencerID: 0
 };
 
 const RENDER_BLOCKS_PER_PROGRESS = 64;
@@ -76,11 +82,12 @@ export function renderAudioWorker(
         this.synthesizer.soundBankManager.priorityOrder;
     this.stopAudioLoop();
 
-    const parsedMid = this.sequencer.midiData;
+    const seq = this.sequencers[options.sequencerID];
+    const parsedMid = seq.midiData;
     if (!parsedMid) {
         throw new Error("No MIDI is loaded!");
     }
-    const playbackRate = this.sequencer.playbackRate;
+    const playbackRate = seq.playbackRate;
     // Calculate times
     const loopStartAbsolute =
         parsedMid.midiTicksToSeconds(parsedMid.loop.start) / playbackRate;
@@ -97,7 +104,7 @@ export function renderAudioWorker(
     // Initialize
     rendererSeq.loopCount = options.loopCount;
     if (options.preserveSynthParams) {
-        rendererSeq.playbackRate = this.sequencer.playbackRate;
+        rendererSeq.playbackRate = seq.playbackRate;
         const snapshot = this.synthesizer.getSnapshot();
         rendererSynth.applySynthesizerSnapshot(snapshot);
     }

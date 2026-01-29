@@ -28,7 +28,7 @@ export type PostMessageSynthCore = (
  */
 export abstract class BasicSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
-    public readonly sequencer: SpessaSynthSequencer;
+    public readonly sequencers = Array<SpessaSynthSequencer>();
     protected readonly post: PostMessageSynthCore;
     /**
      * Indicates if the processor is alive.
@@ -42,7 +42,6 @@ export abstract class BasicSynthesizerCore {
         postMessage: PostMessageSynthCore
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.sequencer = new SpessaSynthSequencer(this.synthesizer);
         this.post = postMessage;
 
         // Prepare synthesizer connections
@@ -53,9 +52,15 @@ export abstract class BasicSynthesizerCore {
                 currentTime: this.synthesizer.currentSynthTime
             });
         };
+    }
+
+    protected createNewSequencer() {
+        const sequencer = new SpessaSynthSequencer(this.synthesizer);
+        const sequencerID = this.sequencers.length;
+        this.sequencers.push(sequencer);
 
         // Prepare sequencer connections
-        this.sequencer.onEventCall = (e) => {
+        sequencer.onEventCall = (e) => {
             if (e.type === "songListChange") {
                 const songs = e.data.newSongList;
                 const midiDatas = songs.map((s) => {
@@ -65,7 +70,8 @@ export abstract class BasicSynthesizerCore {
                     type: "sequencerReturn",
                     data: {
                         type: e.type,
-                        data: { newSongList: midiDatas }
+                        data: { newSongList: midiDatas },
+                        id: sequencerID
                     },
                     currentTime: this.synthesizer.currentSynthTime
                 });
@@ -73,7 +79,7 @@ export abstract class BasicSynthesizerCore {
             }
             this.post({
                 type: "sequencerReturn",
-                data: e,
+                data: { ...e, id: sequencerID },
                 currentTime: this.synthesizer.currentSynthTime
             });
         };
@@ -243,10 +249,10 @@ export abstract class BasicSynthesizerCore {
                 break;
 
             case "sequencerSpecific": {
-                if (!this.sequencer) {
+                const seq = this.sequencers[m.data.id];
+                if (!seq) {
                     return;
                 }
-                const seq = this.sequencer;
                 const seqMsg = m.data;
                 switch (seqMsg.type) {
                     default:
@@ -272,7 +278,8 @@ export abstract class BasicSynthesizerCore {
                                 type: "sequencerReturn",
                                 data: {
                                     type: "midiError",
-                                    data: e as Error
+                                    data: e as Error,
+                                    id: m.data.id
                                 },
                                 currentTime: this.synthesizer.currentSynthTime
                             });
@@ -329,7 +336,8 @@ export abstract class BasicSynthesizerCore {
                             type: "sequencerReturn",
                             data: {
                                 type: "getMIDI",
-                                data: seq.midiData
+                                data: seq.midiData,
+                                id: m.data.id
                             },
                             currentTime: this.synthesizer.currentSynthTime
                         });
@@ -409,6 +417,11 @@ export abstract class BasicSynthesizerCore {
             case "requestSynthesizerSnapshot": {
                 const snapshot = SynthesizerSnapshot.create(this.synthesizer);
                 this.postReady("synthesizerSnapshot", snapshot);
+                break;
+            }
+
+            case "requestNewSequencer": {
+                this.createNewSequencer();
                 break;
             }
 

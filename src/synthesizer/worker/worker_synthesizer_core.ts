@@ -140,13 +140,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     protected getBank(opts: WorkerBankWriteOptions): BasicSoundBank {
         let sf;
-        if (
-            opts.writeEmbeddedSoundBank &&
-            this.sequencer.midiData?.embeddedSoundBank
-        ) {
-            sf = SoundBankLoader.fromArrayBuffer(
-                this.sequencer.midiData.embeddedSoundBank
-            );
+        const sq = this.sequencers[opts.sequencerID];
+        if (opts.writeEmbeddedSoundBank && sq.midiData?.embeddedSoundBank) {
+            sf = SoundBankLoader.fromArrayBuffer(sq.midiData.embeddedSoundBank);
         } else
             sf = this.synthesizer.soundBankManager.soundBankList.find(
                 (b) => b.id === opts.bankID
@@ -167,7 +163,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     protected stopAudioLoop() {
         this.synthesizer.stopAllChannels(true);
-        this.sequencer.pause();
+        for (const seq of this.sequencers) {
+            seq.pause();
+        }
         this.alive = false;
     }
 
@@ -214,7 +212,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             dry.push([dryL, dryR]);
         }
-        this.sequencer.processTick();
+        for (const seq of this.sequencers) {
+            seq.processTick();
+        }
         this.synthesizer.renderAudioSplit(rev, chr, dry);
         this.workletMessagePort.postMessage(data, [data.buffer]);
     }

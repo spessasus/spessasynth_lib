@@ -26,7 +26,8 @@ import { ReverbProcessor } from "../audio_effects/reverb.ts";
 const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
     trim: true,
     bankID: "",
-    writeEmbeddedSoundBank: true
+    writeEmbeddedSoundBank: true,
+    sequencerID: 0
 };
 
 const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {

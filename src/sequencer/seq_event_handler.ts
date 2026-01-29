@@ -58,6 +58,7 @@ export class SeqEventHandler {
     /**
      * Calls the given event.
      * Internal use only.
+     * @internal
      */
     public callEventInternal<T extends keyof WorkletSequencerEventType>(
         name: T,
