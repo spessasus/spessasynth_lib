@@ -21,6 +21,8 @@ export type SequencerMessage = {
     [K in keyof SequencerMessageData]: {
         type: K;
         data: SequencerMessageData[K];
+        // Pretty much just index in the sequencer array
+        id: number;
     };
 }[keyof SequencerMessageData];
 
@@ -48,9 +50,9 @@ export interface SequencerMessageData {
 }
 
 export type SequencerReturnMessage =
-    | SequencerEvent
-    | { type: "getMIDI"; data: BasicMIDI }
-    | { type: "midiError"; data: Error };
+    | (SequencerEvent & { id: number })
+    | { type: "getMIDI"; data: BasicMIDI; id: number }
+    | { type: "midiError"; data: Error; id: number };
 
 /**
  * Sequencer.js

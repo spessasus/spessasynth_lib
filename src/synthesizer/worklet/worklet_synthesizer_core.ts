@@ -67,7 +67,9 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             return false;
         }
         // Process sequencer
-        this.sequencer.processTick();
+        for (const sq of this.sequencers) {
+            sq.processTick();
+        }
 
         if (this.oneOutputMode) {
             const out = outputs[0];
@@ -110,26 +112,28 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     }
 
     private startOfflineRender(config: OfflineRenderWorkletData) {
-        if (!this.sequencer) {
+        // Use the first sequencer
+        const sq = this.sequencers[0];
+        if (!sq) {
             return;
         }
 
         // Load the bank list
-        for (const [i, b] of config.soundBankList.entries()) {
+        config.soundBankList.forEach((b, i) => {
             try {
                 this.synthesizer.soundBankManager.addSoundBank(
                     SoundBankLoader.fromArrayBuffer(b.soundBankBuffer),
                     `bank-${i}`,
                     b.bankOffset
                 );
-            } catch (error) {
+            } catch (e) {
                 this.post({
                     type: "soundBankError",
-                    data: error as Error,
+                    data: e as Error,
                     currentTime: this.synthesizer.currentSynthTime
                 });
             }
-        }
+        });
 
         if (config.snapshot !== undefined) {
             this.synthesizer.applySynthesizerSnapshot(config.snapshot);
@@ -140,7 +144,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             "%cRendering enabled! Starting render.",
             consoleColors.info
         );
-        this.sequencer.loopCount = config.loopCount;
+        sq.loopCount = config.loopCount;
         // Set voice cap to unlimited
         this.synthesizer.setMasterParameter("voiceCap", Infinity);
 
@@ -151,22 +155,21 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             config.sequencerOptions,
             DEFAULT_SEQUENCER_OPTIONS
         );
-        this.sequencer.skipToFirstNoteOn = seqOptions.skipToFirstNoteOn;
-        this.sequencer.playbackRate = seqOptions.initialPlaybackRate;
+        sq.skipToFirstNoteOn = seqOptions.skipToFirstNoteOn;
+        sq.playbackRate = seqOptions.initialPlaybackRate;
         // Autoplay is ignored
         try {
             // Cloned objects don't have methods
-            this.sequencer.loadNewSongList([
-                BasicMIDI.copyFrom(config.midiSequence)
-            ]);
-            this.sequencer.play();
-        } catch (error) {
-            console.error(error);
+            sq.loadNewSongList([BasicMIDI.copyFrom(config.midiSequence)]);
+            sq.play();
+        } catch (e) {
+            console.error(e);
             this.post({
                 type: "sequencerReturn",
                 data: {
                     type: "midiError",
-                    data: error as Error
+                    data: e as Error,
+                    id: 0
                 },
                 currentTime: this.synthesizer.currentSynthTime
             });

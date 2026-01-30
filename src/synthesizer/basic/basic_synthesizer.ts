@@ -61,10 +61,13 @@ export abstract class BasicSynthesizer {
      * The current preset list.
      */
     public presetList: PresetList = [];
+
     /**
      * INTERNAL USE ONLY!
+     * @internal
+     * All sequencer callbacks
      */
-    public sequencerCallbackFunction?: (m: SequencerReturnMessage) => unknown;
+    public sequencers = Array<(m: SequencerReturnMessage) => unknown>();
     /**
      * Resolves when the synthesizer is ready.
      */
@@ -81,6 +84,7 @@ export abstract class BasicSynthesizer {
     public readonly chorusProcessor?: ChorusProcessor;
     /**
      * INTERNAL USE ONLY!
+     * @internal
      */
     public readonly post: (
         data: BasicSynthesizerMessage,
@@ -766,7 +770,7 @@ export abstract class BasicSynthesizer {
             } else {
                 const midiNote = Math.floor(tuning.targetPitch);
                 const fraction = Math.floor(
-                    (tuning.targetPitch - midiNote) / 0.000_061
+                    (tuning.targetPitch - midiNote) / 0.000061
                 );
                 systemExclusive.push(
                     midiNote, // Frequency data byte 1
@@ -809,6 +813,7 @@ export abstract class BasicSynthesizer {
      * INTERNAL USE ONLY!
      * @param type INTERNAL USE ONLY!
      * @param resolve INTERNAL USE ONLY!
+     * @internal
      */
     public awaitWorkerResponse<K extends keyof SynthesizerReturn>(
         type: K,
@@ -816,6 +821,23 @@ export abstract class BasicSynthesizer {
     ) {
         // @ts-expect-error I can't use generics with map
         this.resolveMap.set(type, resolve);
+    }
+
+    /**
+     * INTERNAL USE ONLY!
+     * @param callback the sequencer callback
+     * @internal
+     */
+    public assignNewSequencer(
+        callback: (m: SequencerReturnMessage) => unknown
+    ) {
+        this.post({
+            channelNumber: -1,
+            type: "requestNewSequencer",
+            data: null
+        });
+        this.sequencers.push(callback);
+        return this.sequencers.length - 1;
     }
 
     protected assignProgressTracker<K extends keyof SynthesizerProgress>(
@@ -863,33 +885,28 @@ export abstract class BasicSynthesizer {
      */
     protected handleMessage(m: BasicSynthesizerReturnMessage) {
         switch (m.type) {
-            case "eventCall": {
+            case "eventCall":
                 this.eventHandler.callEventInternal(m.data.type, m.data.data);
                 break;
-            }
 
-            case "sequencerReturn": {
-                this.sequencerCallbackFunction?.(m.data);
+            case "sequencerReturn":
+                this.sequencers[m.data.id](m.data);
                 break;
-            }
 
-            case "isFullyInitialized": {
+            case "isFullyInitialized":
                 this.workletResponds(m.data.type, m.data.data);
                 break;
-            }
 
-            case "soundBankError": {
+            case "soundBankError":
                 util.SpessaSynthWarn(m.data as unknown as string);
                 this.eventHandler.callEventInternal("soundBankError", m.data);
                 break;
-            }
 
-            case "renderingProgress": {
+            case "renderingProgress":
                 this.renderingProgressTracker.get(m.data.type)?.(
                     // @ts-expect-error I can't use generics with map
                     m.data.data
                 );
-            }
         }
     }
 

@@ -69,22 +69,22 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
      */
     public handleMessage(m: BasicSynthesizerMessage) {
         switch (m.type) {
-            case "renderAudio": {
+            case "renderAudio":
                 const rendered = renderAudioWorker.call(
                     this,
                     m.data.sampleRate,
                     m.data.options
                 );
                 const transferable: Transferable[] = [];
-                for (const r of rendered.reverb) transferable.push(r.buffer);
-                for (const c of rendered.chorus) transferable.push(c.buffer);
-                for (const d of rendered.dry)
-                    transferable.push(...d.map((c) => c.buffer));
+                rendered.reverb.forEach((r) => transferable.push(r.buffer));
+                rendered.chorus.forEach((c) => transferable.push(c.buffer));
+                rendered.dry.forEach((d) =>
+                    transferable.push(...d.map((c) => c.buffer))
+                );
                 this.postReady("renderAudio", rendered, transferable);
                 break;
-            }
 
-            case "writeRMIDI": {
+            case "writeRMIDI":
                 this.stopAudioLoop();
                 void writeRMIDIWorker.call(this, m.data).then((data) => {
                     this.postReady(
@@ -98,9 +98,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     this.startAudioLoop();
                 });
                 break;
-            }
 
-            case "writeSF2": {
+            case "writeSF2":
                 this.stopAudioLoop();
                 void writeSF2Worker.call(this, m.data).then((data) => {
                     this.postReady(
@@ -118,9 +117,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     this.startAudioLoop();
                 });
                 break;
-            }
 
-            case "writeDLS": {
+            case "writeDLS":
                 this.stopAudioLoop();
                 void writeDLSWorker.call(this, m.data).then((data) => {
                     this.postReady(
@@ -134,24 +132,21 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     this.startAudioLoop();
                 });
                 break;
-            }
 
-            default: {
+            default:
                 super.handleMessage(m);
-            }
         }
     }
 
     protected getBank(opts: WorkerBankWriteOptions): BasicSoundBank {
-        const sf =
-            opts.writeEmbeddedSoundBank &&
-            this.sequencer.midiData?.embeddedSoundBank
-                ? SoundBankLoader.fromArrayBuffer(
-                      this.sequencer.midiData.embeddedSoundBank
-                  )
-                : this.synthesizer.soundBankManager.soundBankList.find(
-                      (b) => b.id === opts.bankID
-                  )?.soundBank;
+        let sf;
+        const sq = this.sequencers[opts.sequencerID];
+        if (opts.writeEmbeddedSoundBank && sq.midiData?.embeddedSoundBank) {
+            sf = SoundBankLoader.fromArrayBuffer(sq.midiData.embeddedSoundBank);
+        } else
+            sf = this.synthesizer.soundBankManager.soundBankList.find(
+                (b) => b.id === opts.bankID
+            )?.soundBank;
         if (!sf) {
             const e = new Error(
                 `${opts.bankID} does not exist in the sound bank list!`
@@ -168,7 +163,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     protected stopAudioLoop() {
         this.synthesizer.stopAllChannels(true);
-        this.sequencer.pause();
+        for (const seq of this.sequencers) {
+            seq.pause();
+        }
         this.alive = false;
     }
 
@@ -215,7 +212,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             dry.push([dryL, dryR]);
         }
-        this.sequencer.processTick();
+        for (const seq of this.sequencers) {
+            seq.processTick();
+        }
         this.synthesizer.renderAudioSplit(rev, chr, dry);
         this.workletMessagePort.postMessage(data, [data.buffer]);
     }

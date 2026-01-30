@@ -97,6 +97,11 @@ export interface WorkerBankWriteOptions {
     trim: boolean;
 
     /**
+     * Which sequencer to grab the MIDI from if trimming. Defaults to the first one (0).
+     */
+    sequencerID: number;
+
+    /**
      * The sound bank ID in the sound bank manager to write.
      */
     bankID: string;
@@ -192,6 +197,7 @@ interface BasicSynthesizerMessageData {
     };
     sequencerSpecific: SequencerMessage;
     requestSynthesizerSnapshot: null;
+    requestNewSequencer: null;
     setLogLevel: {
         enableInfo: boolean;
         enableWarning: boolean;

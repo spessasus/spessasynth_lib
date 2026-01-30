@@ -26,16 +26,18 @@ export async function writeSF2Worker(
         throw e;
     }
 
+    const sq = this.sequencers[opts.sequencerID];
+
     // Trim
     if (opts.trim) {
-        if (!this.sequencer.midiData) {
+        if (!sq.midiData) {
             throw new Error(
                 "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
             );
         }
         // Copy
         const sfCopy = BasicSoundBank.copyFrom(sf);
-        sfCopy.trimSoundBank(this.sequencer.midiData);
+        sfCopy.trimSoundBank(sq.midiData);
         sf = sfCopy;
     }
 
@@ -76,16 +78,17 @@ export async function writeDLSWorker(
     bank: BasicSoundBank;
 }> {
     let sf = this.getBank(opts);
+    const sq = this.sequencers[opts.sequencerID];
 
     // Trim
     if (opts.trim) {
-        if (!this.sequencer.midiData) {
+        if (!sq.midiData) {
             throw new Error(
                 "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
             );
         }
         const sfCopy = BasicSoundBank.copyFrom(sf);
-        sfCopy.trimSoundBank(this.sequencer.midiData);
+        sfCopy.trimSoundBank(sq.midiData);
         sf = sfCopy;
     }
 
