@@ -74,14 +74,14 @@
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.38.0"
     },
-    "dependencies": {
-        "spessasynth_core": "file:../spessasynth_core"
-    },
     "lint-staged": {
         "*.{ts,js}": [
             "prettier --write",
             "eslint --cache --fix"
         ],
         "*.{json,md,yml,yaml,css}": "prettier --write"
+    },
+    "dependencies": {
+        "spessasynth_core": "latest"
     }
 }

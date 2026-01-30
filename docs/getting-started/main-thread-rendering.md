@@ -29,11 +29,11 @@ A simple audio loop that achieves this is as follows:
 4. The node/s play back to the target node and the effect processors (three `BufferSource`s for three nodes)
 5. The effects are connected to the target node as well, so they process the audio as needed
 
-## Showing voice list example
+## Showing channel status example
 
 ### [See this demo live](https://spessasus.github.io/spessasynth_lib/examples/main_thread_rendering.html)
 
-Below is an example that shows the list of active voices currently playing,
+Below is an example that shows the current channel status,
 which is something that cannot be achieved with just the `WorkletSynthesizer` class.
 
 ```html title='main_thread_rendering.html'
