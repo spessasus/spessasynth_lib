@@ -1,18 +1,17 @@
 ---
 hide:
-  - navigation
-  - toc
+    - navigation
+    - toc
 ---
 
 # Welcome to the spessasynth_lib documentation!
 
-    
 !!! DANGER
 
     SpessaSynth 3.27 and below is no longer supported!
-    
+
     [The migration guide for 4.0 is available here.](extra/4-0-migration-guide.md)
- 
+
 ## spessasynth_lib documentation
 
 - [Getting started with spessasynth_lib](getting-started/index.md)
@@ -26,9 +25,8 @@ hide:
 
     This wiki only describes the WebAudio API wrappers that spesasynth_lib itself provides.
     Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
-    
-    If what you're looking for isn't in this wiki, it's probably there.
 
+    If what you're looking for isn't in this wiki, it's probably there.
 
 ## Extra info
 
@@ -36,7 +34,6 @@ hide:
 - [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/) - The documentation of the underlying spessasynth_core library. If what you're looking for isn't in this wiki, it's probably there.
 - [SF2 RMIDI Extension Specification](https://github.com/spessasus/sf2-rmidi-specification) - The specification for the SF2 RMIDI format that spessasynth supports.
 - [Multi-Port files explained](https://spessasus.github.io/spessasynth_core/extra/about-multi-port/) - Explanation of the Multi-Port MIDI feature.
-
 
 !!! TIP
 

@@ -1,4 +1,5 @@
 # MIDIDeviceHandler
+
 SpessaSynth provides an easy way to connect physical MIDI Devices
 to it and back using `MIDIDeviceHandler`.
 
@@ -7,30 +8,30 @@ to it and back using `MIDIDeviceHandler`.
     If you encounter any errors in this documentation, please **open an issue!**
 
 ## Initialization
+
 Initializes the connection to physical MIDI Devices.
 
-``````js
+```js
 MIDIDeviceHandler.createMIDIDeviceHandler();
-``````
+```
+
 The returned value is a `MIDIDeviceHandler`. An error is throws if the MIDI Devices fail to initialize.
 
 !!! Info
 
     This method is *asynchronous.*
-    
 
 ## Properties
 
 ### inputs
 
 The available MIDI inputs, a `Map`.
- Key (the ID of the input, a string) maps to the input (`LibMIDIInput`).
+Key (the ID of the input, a string) maps to the input (`LibMIDIInput`).
 
 ### outputs
 
-The available MIDI  outputs, a `Map`.
- Key (the ID of the output, a string) maps to the output (`LibMIDIOutput`).
- 
+The available MIDI outputs, a `Map`.
+Key (the ID of the output, a string) maps to the output (`LibMIDIOutput`).
 
 ## LibMIDIPort
 

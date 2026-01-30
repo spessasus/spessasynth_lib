@@ -1,0 +1,5 @@
+**/*.min.*
+**/*.d.ts
+dist/
+gh-pages
+.husky

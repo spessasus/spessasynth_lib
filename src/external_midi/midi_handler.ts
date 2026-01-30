@@ -53,10 +53,11 @@ class LibMIDIInput extends LibMIDIPort {
 
     public constructor(input: MIDIInput) {
         super(input);
-        input.onmidimessage = (e) =>
-            this.connectedSynths.forEach((s) => {
+        input.onmidimessage = (e) => {
+            for (const s of this.connectedSynths) {
                 if (e.data) s.sendMessage(e.data);
-            });
+            }
+        };
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -120,12 +121,12 @@ export class MIDIDeviceHandler {
     public readonly outputs = new Map<string, LibMIDIOutput>();
 
     private constructor(access: MIDIAccess) {
-        access.inputs.forEach((value, key) => {
+        for (const [key, value] of access.inputs.entries()) {
             this.inputs.set(key, new LibMIDIInput(value));
-        });
-        access.outputs.forEach((value, key) => {
+        }
+        for (const [key, value] of access.outputs.entries()) {
             this.outputs.set(key, new LibMIDIOutput(value));
-        });
+        }
     }
 
     /**
@@ -146,9 +147,9 @@ export class MIDIDeviceHandler {
                     consoleColors.recognized
                 );
                 return new MIDIDeviceHandler(response);
-            } catch (e) {
-                util.SpessaSynthWarn(`Could not get MIDI Devices:`, e);
-                throw e;
+            } catch (error) {
+                util.SpessaSynthWarn(`Could not get MIDI Devices:`, error);
+                throw error;
             }
         } else {
             util.SpessaSynthWarn(

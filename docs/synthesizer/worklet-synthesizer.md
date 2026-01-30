@@ -5,12 +5,8 @@ This synthesizer uses a single AudioWorklet to provide real-time or offline play
 !!! Tip
 
     [A comparison of both synthesizers](index.md).
-    
+
     Methods shared between the synthesizers can be found [here](basic-synthesizer.md)
-
-
-
-
 
 ## Initialization
 
@@ -20,15 +16,11 @@ This synthesizer uses a single AudioWorklet to provide real-time or offline play
     See [Importing the worklet](importing-the-worklet.md)
 
 ```ts
-const synth = new WorkletSynthesizer(
-    context,
-    config
-);
+const synth = new WorkletSynthesizer(context, config);
 ```
 
 - context - `BaseAudioContext` - the context for the synthesizer to use.
 - config - `SynthConfig` - optional additional configuration. All properties are optional. [Described here](basic-synthesizer.md#configuration-object)
-
 
 ### Example initialization
 
@@ -49,7 +41,7 @@ const synth = new WorkletSynthesizer(context);
 
     Avoid using multiple synthesizer instances.
     The [Sound bank manager](sound-bank-manager.md) and one instance should be sufficient.
-    See [this comment for more info.](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985)    
+    See [this comment for more info.](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985)
 
 ## Methods
 
@@ -80,14 +72,13 @@ The amount times to loop the song. A number.
 The list of sound banks to render this file with.
 
 An array of objects with two properties:
+
 - bankOffset - bank offset for this sound bank, a number. Leave at 0 if you are not sure.
 - soundBankBuffer - an ArrayBuffer containing the file.
-
 
 #### sequencerOptions
 
 The options to pass to the sequencer. The same options as with [initializing the sequencer](../sequencer/index.md#initialization)
-
 
 !!! Tip
 
@@ -98,12 +89,10 @@ The options to pass to the sequencer. The same options as with [initializing the
     Call this method immediately after you've set up the synthesizer.
     Do NOT call any other methods after initializing before this one.
     Chromium seems to ignore worklet messages for OfflineAudioContext.
-    
 
 ### destroy
 
 Properly disposes of the synthesizer along with its worklet.
-
 
 !!! Warning
 

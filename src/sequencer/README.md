@@ -9,8 +9,8 @@ The code here is responsible for wrapping the `SpessaSynthSequencer` from `spess
 ```js
 const message = {
     type: number, // WorkletSequencerMessageType
-    data: any     // any
-}
+    data: any // any
+};
 ```
 
 #### To worklet

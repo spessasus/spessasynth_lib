@@ -21,7 +21,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // Ensure default values for options
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
-        let outputChannelCount = Array<number>(18).fill(2);
+        let outputChannelCount = new Array<number>(18).fill(2);
         let numberOfOutputs = 18;
 
         if (synthConfig.oneOutput) {
@@ -46,8 +46,8 @@ export class WorkletSynthesizer extends BasicSynthesizer {
                     enableEventSystem: synthConfig.enableEventSystem
                 }
             });
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
             throw new Error(
                 "Could not create the AudioWorkletNode. Did you forget to addModule()?"
             );

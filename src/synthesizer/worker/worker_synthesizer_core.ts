@@ -69,22 +69,22 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
      */
     public handleMessage(m: BasicSynthesizerMessage) {
         switch (m.type) {
-            case "renderAudio":
+            case "renderAudio": {
                 const rendered = renderAudioWorker.call(
                     this,
                     m.data.sampleRate,
                     m.data.options
                 );
                 const transferable: Transferable[] = [];
-                rendered.reverb.forEach((r) => transferable.push(r.buffer));
-                rendered.chorus.forEach((c) => transferable.push(c.buffer));
-                rendered.dry.forEach((d) =>
-                    transferable.push(...d.map((c) => c.buffer))
-                );
+                for (const r of rendered.reverb) transferable.push(r.buffer);
+                for (const c of rendered.chorus) transferable.push(c.buffer);
+                for (const d of rendered.dry)
+                    transferable.push(...d.map((c) => c.buffer));
                 this.postReady("renderAudio", rendered, transferable);
                 break;
+            }
 
-            case "writeRMIDI":
+            case "writeRMIDI": {
                 this.stopAudioLoop();
                 void writeRMIDIWorker.call(this, m.data).then((data) => {
                     this.postReady(
@@ -98,8 +98,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     this.startAudioLoop();
                 });
                 break;
+            }
 
-            case "writeSF2":
+            case "writeSF2": {
                 this.stopAudioLoop();
                 void writeSF2Worker.call(this, m.data).then((data) => {
                     this.postReady(
@@ -117,8 +118,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     this.startAudioLoop();
                 });
                 break;
+            }
 
-            case "writeDLS":
+            case "writeDLS": {
                 this.stopAudioLoop();
                 void writeDLSWorker.call(this, m.data).then((data) => {
                     this.postReady(
@@ -132,25 +134,24 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     this.startAudioLoop();
                 });
                 break;
+            }
 
-            default:
+            default: {
                 super.handleMessage(m);
+            }
         }
     }
 
     protected getBank(opts: WorkerBankWriteOptions): BasicSoundBank {
-        let sf;
-        if (
+        const sf =
             opts.writeEmbeddedSoundBank &&
             this.sequencer.midiData?.embeddedSoundBank
-        ) {
-            sf = SoundBankLoader.fromArrayBuffer(
-                this.sequencer.midiData.embeddedSoundBank
-            );
-        } else
-            sf = this.synthesizer.soundBankManager.soundBankList.find(
-                (b) => b.id === opts.bankID
-            )?.soundBank;
+                ? SoundBankLoader.fromArrayBuffer(
+                      this.sequencer.midiData.embeddedSoundBank
+                  )
+                : this.synthesizer.soundBankManager.soundBankList.find(
+                      (b) => b.id === opts.bankID
+                  )?.soundBank;
         if (!sf) {
             const e = new Error(
                 `${opts.bankID} does not exist in the sound bank list!`

@@ -147,7 +147,7 @@ export abstract class BasicSynthesizerCore {
             }
         }
         switch (m.type) {
-            case "midiMessage":
+            case "midiMessage": {
                 this.synthesizer.processMessage(
                     m.data.messageData,
                     m.data.channelOffset,
@@ -155,24 +155,27 @@ export abstract class BasicSynthesizerCore {
                     m.data.options
                 );
                 break;
+            }
 
-            case "customCcChange":
+            case "customCcChange": {
                 // Custom controller change
                 channelObject?.setCustomController(
                     m.data.ccNumber,
                     m.data.ccValue
                 );
                 break;
+            }
 
-            case "ccReset":
+            case "ccReset": {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                     this.synthesizer.resetAllControllers();
                 } else {
                     channelObject?.resetControllers();
                 }
                 break;
+            }
 
-            case "setChannelVibrato":
+            case "setChannelVibrato": {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                     for (const chan of this.synthesizer.midiChannels) {
                         if (m.data.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
@@ -195,40 +198,43 @@ export abstract class BasicSynthesizerCore {
                     );
                 }
                 break;
+            }
 
-            case "stopAll":
+            case "stopAll": {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                     this.synthesizer.stopAllChannels(m.data === 1);
                 } else {
                     channelObject?.stopAllNotes(m.data === 1);
                 }
                 break;
+            }
 
-            case "killNotes":
-                this.synthesizer.killVoices(m.data);
-                break;
-
-            case "muteChannel":
+            case "muteChannel": {
                 channelObject?.muteChannel(m.data);
                 break;
+            }
 
-            case "addNewChannel":
+            case "addNewChannel": {
                 this.synthesizer.createMIDIChannel();
                 break;
+            }
 
-            case "setMasterParameter":
+            case "setMasterParameter": {
                 this.synthesizer.setMasterParameter(m.data.type, m.data.data);
                 break;
+            }
 
-            case "setDrums":
+            case "setDrums": {
                 channelObject?.setDrums(m.data);
                 break;
+            }
 
-            case "transposeChannel":
+            case "transposeChannel": {
                 channelObject?.transposeChannel(m.data.semitones, m.data.force);
                 break;
+            }
 
-            case "lockController":
+            case "lockController": {
                 if (
                     m.data.controllerNumber === ALL_CHANNELS_OR_DIFFERENT_ACTION
                 ) {
@@ -241,6 +247,7 @@ export abstract class BasicSynthesizerCore {
                         m.data.isLocked;
                 }
                 break;
+            }
 
             case "sequencerSpecific": {
                 if (!this.sequencer) {
@@ -249,10 +256,11 @@ export abstract class BasicSynthesizerCore {
                 const seq = this.sequencer;
                 const seqMsg = m.data;
                 switch (seqMsg.type) {
-                    default:
+                    default: {
                         break;
+                    }
 
-                    case "loadNewSongList":
+                    case "loadNewSongList": {
                         try {
                             const sList = seqMsg.data;
                             const songMap = sList.map((s) => {
@@ -266,62 +274,73 @@ export abstract class BasicSynthesizerCore {
                                 );
                             });
                             seq.loadNewSongList(songMap);
-                        } catch (e) {
-                            console.error(e);
+                        } catch (error) {
+                            console.error(error);
                             this.post({
                                 type: "sequencerReturn",
                                 data: {
                                     type: "midiError",
-                                    data: e as Error
+                                    data: error as Error
                                 },
                                 currentTime: this.synthesizer.currentSynthTime
                             });
                         }
                         break;
+                    }
 
-                    case "pause":
+                    case "pause": {
                         seq.pause();
                         break;
+                    }
 
-                    case "play":
+                    case "play": {
                         seq.play();
                         break;
+                    }
 
-                    case "setTime":
+                    case "setTime": {
                         seq.currentTime = seqMsg.data;
                         break;
+                    }
 
-                    case "changeMIDIMessageSending":
+                    case "changeMIDIMessageSending": {
                         seq.externalMIDIPlayback = seqMsg.data;
                         break;
+                    }
 
-                    case "setPlaybackRate":
+                    case "setPlaybackRate": {
                         seq.playbackRate = seqMsg.data;
                         break;
+                    }
 
-                    case "setLoopCount":
+                    case "setLoopCount": {
                         seq.loopCount = seqMsg.data;
                         break;
+                    }
 
-                    case "changeSong":
+                    case "changeSong": {
                         switch (seqMsg.data.changeType) {
-                            case songChangeType.shuffleOff:
+                            case songChangeType.shuffleOff: {
                                 seq.shuffleMode = false;
                                 break;
+                            }
 
-                            case songChangeType.shuffleOn:
+                            case songChangeType.shuffleOn: {
                                 seq.shuffleMode = true;
                                 break;
+                            }
 
-                            case songChangeType.index:
+                            case songChangeType.index: {
                                 if (seqMsg.data.data !== undefined) {
                                     seq.songIndex = seqMsg.data.data;
                                 }
                                 break;
+                            }
                         }
                         break;
+                    }
 
-                    case "getMIDI":
+                    case "getMIDI": {
                         if (!seq.midiData) {
                             throw new Error("No MIDI is loaded!");
                         }
@@ -334,21 +353,23 @@ export abstract class BasicSynthesizerCore {
                             currentTime: this.synthesizer.currentSynthTime
                         });
                         break;
+                    }
 
-                    case "setSkipToFirstNote":
+                    case "setSkipToFirstNote": {
                         seq.skipToFirstNoteOn = seqMsg.data;
                         break;
+                    }
                 }
                 break;
             }
 
-            case "soundBankManager":
+            case "soundBankManager": {
                 try {
                     const sfManager = this.synthesizer.soundBankManager;
                     const sfManMsg = m.data;
                     let font;
                     switch (sfManMsg.type) {
-                        case "addSoundBank":
+                        case "addSoundBank": {
                             font = SoundBankLoader.fromArrayBuffer(
                                 sfManMsg.data.soundBankBuffer
                             );
@@ -359,49 +380,57 @@ export abstract class BasicSynthesizerCore {
                             );
                             this.postReady("soundBankManager", null);
                             break;
+                        }
 
-                        case "deleteSoundBank":
+                        case "deleteSoundBank": {
                             sfManager.deleteSoundBank(sfManMsg.data);
                             this.postReady("soundBankManager", null);
                             break;
+                        }
 
-                        case "rearrangeSoundBanks":
+                        case "rearrangeSoundBanks": {
                             sfManager.priorityOrder = sfManMsg.data;
                             this.postReady("soundBankManager", null);
+                        }
                     }
-                } catch (e) {
+                } catch (error) {
                     this.post({
                         type: "soundBankError",
-                        data: e as Error,
+                        data: error as Error,
                         currentTime: this.synthesizer.currentSynthTime
                     });
                 }
                 break;
+            }
 
             case "keyModifierManager": {
                 const kmMsg = m.data;
                 const man = this.synthesizer.keyModifierManager;
                 switch (kmMsg.type) {
-                    default:
+                    default: {
                         return;
+                    }
 
-                    case "addMapping":
+                    case "addMapping": {
                         man.addMapping(
                             kmMsg.data.channel,
                             kmMsg.data.midiNote,
                             kmMsg.data.mapping
                         );
                         break;
+                    }
 
-                    case "clearMappings":
+                    case "clearMappings": {
                         man.clearMappings();
                         break;
+                    }
 
-                    case "deleteMapping":
+                    case "deleteMapping": {
                         man.deleteMapping(
                             kmMsg.data.channel,
                             kmMsg.data.midiNote
                         );
+                    }
                 }
                 break;
             }
@@ -412,23 +441,26 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "setLogLevel":
+            case "setLogLevel": {
                 SpessaSynthLogging(
                     m.data.enableInfo,
                     m.data.enableWarning,
                     m.data.enableGroup
                 );
                 break;
+            }
 
-            case "destroyWorklet":
+            case "destroyWorklet": {
                 this.alive = false;
                 this.synthesizer.destroySynthProcessor();
                 this.destroy();
                 break;
+            }
 
-            default:
+            default: {
                 util.SpessaSynthWarn("Unrecognized event!", m);
                 break;
+            }
         }
     }
 }

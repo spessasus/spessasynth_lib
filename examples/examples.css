@@ -4,7 +4,9 @@
     font-size: 1.1rem;
 }
 
-button, select, input[type='file'] {
+button,
+select,
+input[type="file"] {
     background: #444;
     border: solid #555;
     padding: 0.5rem;
@@ -28,7 +30,7 @@ canvas {
     max-height: 40vh;
 }
 
-input[type='range'] {
+input[type="range"] {
     width: 100%;
 }
 

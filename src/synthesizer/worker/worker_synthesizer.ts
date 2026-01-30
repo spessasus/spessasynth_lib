@@ -34,7 +34,7 @@ const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {
     writeDefaultModulators: true,
     writeExtendedLimits: true,
     compress: false,
-    compressionQuality: 1.0,
+    compressionQuality: 1,
     decompress: false
 };
 
@@ -98,7 +98,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 context,
                 PLAYBACK_WORKLET_PROCESSOR_NAME,
                 {
-                    outputChannelCount: Array<number>(18).fill(2),
+                    outputChannelCount: new Array<number>(18).fill(2),
                     numberOfOutputs: 18,
                     processorOptions: {
                         oneOutput: synthConfig.oneOutput,
@@ -106,8 +106,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     }
                 }
             );
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
             throw new Error(
                 "Could not create the AudioWorkletNode. Did you forget to registerPlaybackWorklet()?"
             );

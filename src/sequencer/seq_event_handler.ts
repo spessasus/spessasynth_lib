@@ -65,16 +65,16 @@ export class SeqEventHandler {
     ) {
         const eventList = this.events[name];
         const callback = () => {
-            eventList.forEach((callback) => {
+            for (const callback of eventList.values()) {
                 try {
                     callback(eventData);
-                } catch (e) {
+                } catch (error) {
                     console.error(
                         `Error while executing a sequencer event callback for ${name}:`,
-                        e
+                        error
                     );
                 }
-            });
+            }
         };
         if (this.timeDelay > 0) {
             setTimeout(callback.bind(this), this.timeDelay * 1000);

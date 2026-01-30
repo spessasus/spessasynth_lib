@@ -5,13 +5,11 @@
 This example shows how to use the new `WorkerSynthesizer` class introduced in SpessaSynth 4.0.
 This example adapts the Advanced example.
 
-
 ```html title='worker_synth.html'
 --8<-- "worker_synth.html"
 ```
 
 Nothing new here.
-
 
 ```js title='worker_synth.js'
 --8<-- "worker_synth.js"

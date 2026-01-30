@@ -23,9 +23,8 @@ A boolean.
 If the chorus processor should be initialized during creation.
 Note that setting this to false will not initialize a chorus processor.
 If you want to enable it at some point, set this to true and set the chorus gain to 0.
-                                          
-A boolean.
 
+A boolean.
 
 ### initializeReverbProcessor
 
@@ -34,7 +33,6 @@ Note that setting this to false will not allow it to be used later.
 If you want to enable it at some point, set this to true and set the reverb gain to 0.
 
 A boolean.
-
 
 ### enableEventSystem
 
@@ -80,6 +78,7 @@ The synthesizer's [sound bank manager](sound-bank-manager.md).
 ### keyModifierManager
 
 The synthesizer's [key modifier manager](key-modifier-manager.md).
+
 ### eventHandler
 
 The synthesizer's [event handler](synth-event-handler.md).
@@ -138,8 +137,9 @@ The connected `BaseAudioContext`'s time.
 Most real-time events (note on, off, etc.) can be scheduled as they take an object called `eventOptions`.
 
 Here are the currently defined properties:
+
 - `time` - number - the audio context time in seconds for when the event occurs.
-If the time provided is below the current time, the event gets executed immediately.
+  If the time provided is below the current time, the event gets executed immediately.
 
 ### connect, disconnect
 
@@ -161,7 +161,7 @@ synth.setLogLeveL(enableInfo, enableWarning, enableGroup);
 
 ```js
 // Enable all logs
-synth.setLogLevel(true, true, true)
+synth.setLogLevel(true, true, true);
 ```
 
 ### getMasterParameter
@@ -235,7 +235,7 @@ synth.setVibrato(channel, value);
 synth.setVibrato(0, {
     rate: 7.6,
     depth: 19.7,
-    delay: 1.5,
+    delay: 1.5
 });
 ```
 
@@ -248,7 +248,7 @@ synth.connectIndividualOutputs(audioNodes);
 ```
 
 - audioNodes - `AudioNode[]` - an array of exactly 16 `AudioNodes` to connect each channel to.
-The first node connects to the first channel and so on.
+  The first node connects to the first channel and so on.
 
 **Example:**
 
@@ -267,7 +267,7 @@ synth.disconnectIndividualOutputs(audioNodes);
 ```
 
 - audioNodes - `audioNode[]` - an array of exactly 16 `AudioNodes` to disconnect each channel from.
-The first node disconnects the first channel and so on.
+  The first node disconnects the first channel and so on.
 
 **Example:**
 
@@ -286,7 +286,7 @@ Currently, the custom vibrato and Time-Variant Filter.
 Send a raw MIDI message to the synthesizer. Calls noteOn, noteOff, etc. internally.
 
 ```js
-synth.sendMessage(message, channelOffset = 0, eventOptions);
+synth.sendMessage(message, (channelOffset = 0), eventOptions);
 ```
 
 - message - an array of bytes (numbers from 0 to 255). The MIDI message to process.
@@ -297,7 +297,7 @@ synth.sendMessage(message, channelOffset = 0, eventOptions);
 
 ```js
 // send a MIDI note on message for channel 2 and a note 61 (C#) with velocity 120
-synth.sendMessage([0x92, 0x3D, 0x78]);
+synth.sendMessage([0x92, 0x3d, 0x78]);
 ```
 
 ### noteOn
@@ -311,7 +311,7 @@ synth.noteOn(channel, midiNote, velocity, eventOptions);
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
 - midiNote - the note to play. Ranges from 0 to 127.
 - velocity - controls how loud the note is.
-Note that velocity of 0 has
+  Note that velocity of 0 has
   the same effect as using `noteOff`.
   Ranges from 0 to 127, where 127 is the loudest and 1 is the quietest.
 - eventOptions - refer to [event options](#event-options). It can be undefined.
@@ -328,7 +328,7 @@ synth.noteOn(0, 64, 120);
 Stop the given note.
 
 ```js
-synth.noteOff(channel, midiNote, force = false, eventOptions);
+synth.noteOff(channel, midiNote, (force = false), eventOptions);
 ```
 
 - channel - the MIDI channel to use. It Usually ranges from 0 to 15, but it depends on the channel count.
@@ -348,7 +348,7 @@ synt.noteOff(15, 77);
 Stop all notes. Equivalent of MIDI "panic."
 
 ```js
-synth.stopAll(force = false);
+synth.stopAll((force = false));
 ```
 
 - force - if the notes should immediately be stopped.
@@ -358,12 +358,18 @@ synth.stopAll(force = false);
 Set a given MIDI controller to a given value.
 
 ```js
-synth.controllerChange(channel, controllerNumber, controllerValue, force = false, eventOptions);
+synth.controllerChange(
+    channel,
+    controllerNumber,
+    controllerValue,
+    (force = false),
+    eventOptions
+);
 ```
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
 - controllerNumber - the MIDI CC number of the controller to change.
-Refer
+  Refer
   to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives#default-supported-controllers) for the list of controllers
   supported by default.
 - controllerValue - the value to set the given controller to. Ranges from 0 to 127.
@@ -410,7 +416,6 @@ synth.lockController(0, 65, true); // lock portamento on/off
     To lock other modulator sources add 128 to the Source Enumerator [(Soundfont 2.04 Specification section 8.2.1)](https://www.synthfont.com/sfspec24.pdf#%5B%7B%22num%22%3A317%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C0%2C532%2Cnull%5D)
     For example to lock pitch wheel, use `synth.lockController(channel, 142, true)`. (128 + 14 = 142)
 
-
 ### channelPressure
 
 Apply pressure to the given channel. It usually controls the vibrato amount.
@@ -449,7 +454,6 @@ synth.polyPressure(channel, midiNote, pressure, eventOptions);
 // set channel 11 pressure on note 60 (C) to 127 (max)
 synth.polylPressure(11, 60, 127);
 ```
-
 
 ### pitchWheel
 
@@ -502,8 +506,8 @@ synth.programChange(channel, programNumber, eventOptions);
 
 - channel - the MIDI channel to change. It usually ranges from 0 to 15, but it depends on the channel count.
 - programNumber - the MIDI program number to use.
-Ranges from 0 to 127.
-To use other banks, go
+  Ranges from 0 to 127.
+  To use other banks, go
   to [controllerChange](#controllerchange).
 - eventOptions - refer to [event options](#event-options). It can be undefined.
 
@@ -514,19 +518,18 @@ To use other banks, go
 synth.programChange(0, 16);
 ```
 
-
 ### transposeChannel
 
 Transposes the channel by given number of semitones. Floating point values can be used for microtonal tuning.
 
 ```js
-synth.transposeChannel(channel, semitones, force = false);
+synth.transposeChannel(channel, semitones, (force = false));
 ```
 
 - channel - the MIDI channel to change. It usually ranges from 0 to 15, but it depends on the channel count.
 - semitones - number - the number of semitones to transpose the channel by.
-It can be positive or negative or zero.
-Zero resets the pitch.
+  It can be positive or negative or zero.
+  Zero resets the pitch.
 - force - defaults to false, if true transposes the channel even if it's a drum channel.
 
 **Example:**
@@ -535,7 +538,6 @@ Zero resets the pitch.
 // transpose channel 1 up by 125 cents
 synth.transposeChannel(0, 1.25);
 ```
-
 
 ### muteChannel
 
@@ -548,19 +550,14 @@ synth.muteChannel(channel, isMuted);
 - channel - number - the MIDI channel to change. It usually ranges from 0 to 15, but it depends on the channel count.
 - isMuted - boolean - if the channel should be muted.
 
-
 **Example:**
 
 ```js
 // set solo on channel 4
-for(const i = 0; i < synth.channelsAmount; i++)
-{
-    if(i === 3)
-    {
+for (const i = 0; i < synth.channelsAmount; i++) {
+    if (i === 3) {
         synth.muteChannel(i, false);
-    }
-    else
-    {
+    } else {
         synth.muteChannel(i, true);
     }
 }
@@ -571,13 +568,13 @@ for(const i = 0; i < synth.channelsAmount; i++)
 Handle a MIDI System Exclusive message.
 
 ```js
-synth.systemExclusive(data, channelOffset = 0, eventOptions);
+synth.systemExclusive(data, (channelOffset = 0), eventOptions);
 ```
 
 - data - Uint8Array or `number[]`, the message byte data **Excluding the 0xF0 byte!**
 - channelOffset - number, the channel offset for the message as they usually can only address the first 16 channels.
-For example, to send a system exclusive on channel 16,
-send a system exclusive for channel 0 and specify the channel offset to be 16.
+  For example, to send a system exclusive on channel 16,
+  send a system exclusive for channel 0 and specify the channel offset to be 16.
 - eventOptions - refer to [event options](#event-options). It can be undefined.
 
 !!! TIP
@@ -585,12 +582,18 @@ send a system exclusive for channel 0 and specify the channel offset to be 16.
     Refer to [MIDI Implementation](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives) for the list of supported System Exclusives.
 
 **Example:**
+
 ```js
 // send a GS DT1 Use Drums On Channel 10 (turn channel 10 into a drum channel)
-synth.systemExclusive([0x41, 0x10, 0x42, 0x12, 0x40, 0x1A, 0x15, 0x01, 0x10, 0xF7]);
+synth.systemExclusive([
+    0x41, 0x10, 0x42, 0x12, 0x40, 0x1a, 0x15, 0x01, 0x10, 0xf7
+]);
 
 // send a GS DT1 Use Drums On Channel 10 (turn channel 20 into a drum channel)
-synth.systemExclusive([0x41, 0x10, 0x42, 0x12, 0x40, 0x1A, 0x15, 0x01, 0x10, 0xF7], 10);
+synth.systemExclusive(
+    [0x41, 0x10, 0x42, 0x12, 0x40, 0x1a, 0x15, 0x01, 0x10, 0xf7],
+    10
+);
 ```
 
 ### tuneKeys
@@ -604,18 +607,19 @@ synth.tuneKeys(program, tunings);
 
 - program - the MIDI program to tune. Ranges from 0 to 127.
 - tunings - an array of objects, each containing two properties:
-  - sourceKey - the MIDI key number to tune.
-  - targetPitch - the MIDI key number of the target pitch. 
-  Note that floating values are allowed and they are specified in cents. 
-  TargetPitch of -1 sets the tuning for this key to be tuned regularly.
+    - sourceKey - the MIDI key number to tune.
+    - targetPitch - the MIDI key number of the target pitch.
+      Note that floating values are allowed and they are specified in cents.
+      TargetPitch of -1 sets the tuning for this key to be tuned regularly.
 
 **Example:**
+
 ```js
 // tune the program 81 (Saw Lead)
 // tune the MIDI note 60 (middle C) an octave and 57.78 cents up, and tune note 78 (F) to note 64 (E) and 12 cents up.
 synth.tuneKeys(81, [
     { sourceKey: 60, targetPitch: 72.5778 },
-    { sourceKey: 78, targetPitch: 64.12   }
+    { sourceKey: 78, targetPitch: 64.12 }
 ]);
 ```
 
@@ -654,14 +658,14 @@ One output mode changes the synthesizer to have only a single output with 16 ste
 Every midi channel has two audio channels. So it looks like this:
 
 - MIDI channel 0:
-  - audio output 0
-  - audio output 1
+    - audio output 0
+    - audio output 1
 - MIDI channel 1:
-  - audio output 2
-  - audio output 3
+    - audio output 2
+    - audio output 3
 - MIDI channel 2:
-  - audio output 4
-  - audio output 5
+    - audio output 4
+    - audio output 5
 
 etc.
 
