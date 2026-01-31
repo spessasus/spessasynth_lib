@@ -1,12 +1,13 @@
 # Sequencer Class
+
 This is the module that plays MIDI sequences using a Synthesizer.
 
 !!! Tip
 
     If you encounter any errors in this documentation, please **open an issue!**
 
-
 ## Initialization
+
 ```ts
 const sequencer = new Sequencer(synth, options);
 ```
@@ -16,10 +17,10 @@ const sequencer = new Sequencer(synth, options);
     - `skipToFirstNoteOn` - a `boolean` indicating if the sequencer should skip to the first note on. Defaults to `true`.
     - `initialPlaybackRate` - a `number` with the initial playback rate, other than the default 1.0.
 
-
 ## Properties
 
 ### midiData
+
 The data of the current sequence.
 A [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) (the song data).
 Undefined if the data is currently loading of if no song is playing.
@@ -30,10 +31,9 @@ Note that the `embeddedSoundBank` property and `events` in the tracks are both e
 
     To get the actual MIDI data, use the `getMIDI` method.
 
-
 !!! Danger
 
-    The sequencer doesn't instantly get the new MIDI information. 
+    The sequencer doesn't instantly get the new MIDI information.
     Make sure to use `addOnSongChangeEvent` instead of waiting or assuming that the data is available instantly.
     Also keep in mind that The sequencer _preloads_ the samples for the MIDI, which might take a bit!
 
@@ -121,7 +121,9 @@ Read-only boolean, true if paused, false if playing or stopped.
 ## Methods
 
 ### getMIDI
+
 Gets the actual [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) sequence, complete with track data.
+
 ```js
 const data = await sequencer.getMIDI();
 ```
@@ -138,14 +140,14 @@ Note that this does not start playing the songs automatically.
 ```ts
 sequencer.loadNewSongList(midiBuffers);
 ```
-- midiBuffers - an array of the parsed MIDI files to play,  Either [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) or objects (can be mixed up) with two properties: 
-  - `binary` - the `ArrayBuffer` representation of the file.
-  - `fileName` - alternative name of the sequence if it doesn't have one (like file name, for example). `string`, can be undefined.
+
+- midiBuffers - an array of the parsed MIDI files to play, Either [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) or objects (can be mixed up) with two properties:
+    - `binary` - the `ArrayBuffer` representation of the file.
+    - `fileName` - alternative name of the sequence if it doesn't have one (like file name, for example). `string`, can be undefined.
 
 !!! Tip
 
     For performance reasons, it is recommended passing the binary data rather than the parsed `MIDI` instance.
-
 
 ### connectMIDIOutput
 
@@ -154,12 +156,12 @@ Connect a given MIDI output port and play the sequence to it.
 ```ts
 sequencer.connectMIDIOutput(output);
 ```
+
 - output - a [`MIDIOutput`](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API) object, the output port to play to. Pass undefined to use the connected synthesizer.
 
 !!! Info
 
     You can also use the [MIDIDeviceHandler](../midi/web-midi-api.md).
-
 
 ### pause
 

@@ -67,7 +67,7 @@ export abstract class BasicSynthesizer {
      * @internal
      * All sequencer callbacks
      */
-    public sequencers = Array<(m: SequencerReturnMessage) => unknown>();
+    public sequencers = new Array<(m: SequencerReturnMessage) => unknown>();
     /**
      * Resolves when the synthesizer is ready.
      */
@@ -770,7 +770,7 @@ export abstract class BasicSynthesizer {
             } else {
                 const midiNote = Math.floor(tuning.targetPitch);
                 const fraction = Math.floor(
-                    (tuning.targetPitch - midiNote) / 0.000061
+                    (tuning.targetPitch - midiNote) / 0.000_061
                 );
                 systemExclusive.push(
                     midiNote, // Frequency data byte 1
@@ -885,28 +885,33 @@ export abstract class BasicSynthesizer {
      */
     protected handleMessage(m: BasicSynthesizerReturnMessage) {
         switch (m.type) {
-            case "eventCall":
+            case "eventCall": {
                 this.eventHandler.callEventInternal(m.data.type, m.data.data);
                 break;
+            }
 
-            case "sequencerReturn":
+            case "sequencerReturn": {
                 this.sequencers[m.data.id](m.data);
                 break;
+            }
 
-            case "isFullyInitialized":
+            case "isFullyInitialized": {
                 this.workletResponds(m.data.type, m.data.data);
                 break;
+            }
 
-            case "soundBankError":
+            case "soundBankError": {
                 util.SpessaSynthWarn(m.data as unknown as string);
                 this.eventHandler.callEventInternal("soundBankError", m.data);
                 break;
+            }
 
-            case "renderingProgress":
+            case "renderingProgress": {
                 this.renderingProgressTracker.get(m.data.type)?.(
                     // @ts-expect-error I can't use generics with map
                     m.data.data
                 );
+            }
         }
     }
 

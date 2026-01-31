@@ -119,21 +119,21 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         }
 
         // Load the bank list
-        config.soundBankList.forEach((b, i) => {
+        for (const [i, b] of config.soundBankList.entries()) {
             try {
                 this.synthesizer.soundBankManager.addSoundBank(
                     SoundBankLoader.fromArrayBuffer(b.soundBankBuffer),
                     `bank-${i}`,
                     b.bankOffset
                 );
-            } catch (e) {
+            } catch (error) {
                 this.post({
                     type: "soundBankError",
-                    data: e as Error,
+                    data: error as Error,
                     currentTime: this.synthesizer.currentSynthTime
                 });
             }
-        });
+        }
 
         if (config.snapshot !== undefined) {
             this.synthesizer.applySynthesizerSnapshot(config.snapshot);
@@ -162,13 +162,13 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             // Cloned objects don't have methods
             sq.loadNewSongList([BasicMIDI.copyFrom(config.midiSequence)]);
             sq.play();
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
             this.post({
                 type: "sequencerReturn",
                 data: {
                     type: "midiError",
-                    data: e as Error,
+                    data: error as Error,
                     id: 0
                 },
                 currentTime: this.synthesizer.currentSynthTime
