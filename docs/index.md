@@ -4,7 +4,11 @@ hide:
     - toc
 ---
 
-# Welcome to the spessasynth_lib documentation!
+# Welcome to the spessasynth_lib wiki!
+
+You've reached the central documentation for the spessasynth_lib library, a powerful SF2/DLS/MIDI library for web browsers.
+
+_If you're looking for the SpessaSynth web app, it can be found [here](https://spessasus.github.io/SpessaSynth)._
 
 !!! DANGER
 
@@ -16,7 +20,7 @@ hide:
 
 - [Getting started with spessasynth_lib](getting-started/index.md)
 - [WorkletSynthesizer](synthesizer/worklet-synthesizer.md) - Responsible for generating sound using AudioWorklets.
-- [WorkerSynthesizer](synthesizer/worker-synthesizer.md) - Responsible for generating sound using Web Workers..
+- [WorkerSynthesizer](synthesizer/worker-synthesizer.md) - Responsible for generating sound using Web Workers.
 - [Sequencer](sequencer/index.md) - Responsible for playing the parsed MIDI sequence.
 - [Writing Wave files](writing-files/writing-wav-files.md) - How to write WAV files from `AudioBuffer`.
 - [NPM Exports](extra/all-npm-exports.md) - a listing of all the NPN exports in the `spessasynth_lib` NPM package.

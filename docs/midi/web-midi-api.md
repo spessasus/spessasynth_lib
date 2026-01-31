@@ -3,10 +3,6 @@
 SpessaSynth provides an easy way to connect physical MIDI Devices
 to it and back using `MIDIDeviceHandler`.
 
-!!! TIP
-
-    If you encounter any errors in this documentation, please **open an issue!**
-
 ## Initialization
 
 Initializes the connection to physical MIDI Devices.

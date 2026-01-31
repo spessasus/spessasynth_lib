@@ -2,10 +2,6 @@
 
 This is the module that plays MIDI sequences using a Synthesizer.
 
-!!! Tip
-
-    If you encounter any errors in this documentation, please **open an issue!**
-
 ## Initialization
 
 ```ts
@@ -16,6 +12,10 @@ const sequencer = new Sequencer(synth, options);
 - `options` - an optional `Object` with options for the sequencer (all of them are optional as well as the object itself)
     - `skipToFirstNoteOn` - a `boolean` indicating if the sequencer should skip to the first note on. Defaults to `true`.
     - `initialPlaybackRate` - a `number` with the initial playback rate, other than the default 1.0.
+
+!!! TIP
+
+    As of `v4.1.0` you can connect more than 1 Sequencer to any synthesizer!
 
 ## Properties
 

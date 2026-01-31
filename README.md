@@ -3,11 +3,8 @@
 <img src='https://raw.githubusercontent.com/spessasus/SpessaSynth/refs/heads/master/src/website/spessasynth_logo_rounded.png' width='300' alt='SpessaSynth logo'>
 </p>
 
-_A powerful SF2/DLS/MIDI JavaScript library for the browsers, based on spessasynth_core.
+_A powerful SF2/DLS/MIDI TypeScript/JavaScript library for the browsers, based on spessasynth_core.
 This is a WebAudioAPI wrapper for the [spessasynth_core](https://github.com/spessasus/spessasynth_core) library._
-
-**v4.0.0 TypeScript Update is here! The NPM package now contains type declarations for easier developing!**
-[**Read about breaking changes here**](https://spessasus.github.io/spessasynth_lib/extra/4-0-migration-guide)
 
 It allows you to:
 
