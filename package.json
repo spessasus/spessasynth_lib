@@ -79,7 +79,7 @@
             "prettier --write",
             "eslint --cache --fix"
         ],
-        "*.{json,md,yml,yaml,css}": "prettier --write"
+        "*.{html,json,md,yml,yaml,css}": "prettier --write"
     },
     "dependencies": {
         "spessasynth_core": "latest"
