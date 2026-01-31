@@ -19,14 +19,13 @@ const chorusProcessor = new ChorusProcessor(context, config);
 - context - the BaseAudioContext to use.
 - config - an optional configuration. This can be changed later. Described below.
 
-
 ## Chorus configuration
 
 ### nodesAmount
 
 The amount of delay nodes (for each channel) and the corresponding oscillators.
 
-### defaultDelay 
+### defaultDelay
 
 The initial delay, in seconds.
 

@@ -71,13 +71,12 @@ export function renderAudioWorker(
     const rendererSeq = new SpessaSynthSequencer(rendererSynth);
 
     // Copy sound banks
-    this.synthesizer.soundBankManager.soundBankList.forEach((entry) =>
+    for (const entry of this.synthesizer.soundBankManager.soundBankList)
         rendererSynth.soundBankManager.addSoundBank(
             entry.soundBank,
             entry.id,
             entry.bankOffset
-        )
-    );
+        );
     rendererSynth.soundBankManager.priorityOrder =
         this.synthesizer.soundBankManager.priorityOrder;
     this.stopAudioLoop();
@@ -110,10 +109,6 @@ export function renderAudioWorker(
     }
     rendererSeq.loadNewSongList([parsedMid]);
     rendererSeq.play();
-
-    const progressCallback = (progress: number) => {
-        this.postProgress("renderAudio", progress);
-    };
 
     // Allocate memory
     // Reverb, chorus
@@ -167,7 +162,7 @@ export function renderAudioWorker(
                 );
                 index += BLOCK_SIZE;
             }
-            progressCallback(index / sampleDuration);
+            this.postProgress("renderAudio", index / sampleDuration);
         }
     } else {
         const dry: StereoAudioChunk = [
@@ -200,7 +195,7 @@ export function renderAudioWorker(
                 );
                 index += BLOCK_SIZE;
             }
-            progressCallback(index / sampleDuration);
+            this.postProgress("renderAudio", index / sampleDuration);
         }
     }
 }

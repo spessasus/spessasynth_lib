@@ -350,17 +350,16 @@ export class Sequencer {
 
     private handleMessage(m: SequencerReturnMessage) {
         switch (m.type) {
-            case "midiMessage":
+            case "midiMessage": {
                 const midiEventData = m.data.message as number[];
-                if (this.midiOut) {
-                    if (midiEventData[0] >= 0x80) {
-                        this.midiOut.send(midiEventData);
-                        return;
-                    }
+                if (this.midiOut && midiEventData[0] >= 0x80) {
+                    this.midiOut.send(midiEventData);
+                    return;
                 }
                 break;
+            }
 
-            case "songChange":
+            case "songChange": {
                 this._songIndex = m.data.songIndex;
                 const songChangeData = this.songListData[this._songIndex];
                 this.midiData = songChangeData;
@@ -368,43 +367,49 @@ export class Sequencer {
                 this.absoluteStartTime = 0;
                 this.callEventInternal("songChange", songChangeData);
                 break;
+            }
 
-            case "timeChange":
+            case "timeChange": {
                 // Message data is absolute time
                 const time = m.data.newTime;
                 this.recalculateStartTime(time);
                 this.callEventInternal("timeChange", time);
                 break;
+            }
 
-            case "pause":
+            case "pause": {
                 this.pausedTime = this.currentTime;
                 this.isFinished = m.data.isFinished;
                 if (this.isFinished) {
                     this.callEventInternal("songEnded", null);
                 }
                 break;
+            }
 
-            case "midiError":
+            case "midiError": {
                 this.callEventInternal("midiError", m.data);
                 throw new Error(`MIDI parsing error:  ${m.data}`);
+            }
 
-            case "getMIDI":
+            case "getMIDI": {
                 if (this.getMIDICallback) {
                     this.getMIDICallback(BasicMIDI.copyFrom(m.data));
                 }
                 break;
+            }
 
-            case "metaEvent":
+            case "metaEvent": {
                 const event = m.data.event;
                 switch (event.statusByte) {
-                    case midiMessageTypes.setTempo:
+                    case midiMessageTypes.setTempo: {
                         this._currentTempo =
-                            60000000 /
+                            60_000_000 /
                             SpessaSynthCoreUtils.readBytesAsUintBigEndian(
                                 event.data,
                                 3
                             );
                         break;
+                    }
 
                     case midiMessageTypes.text:
                     case midiMessageTypes.lyric:
@@ -413,7 +418,7 @@ export class Sequencer {
                     case midiMessageTypes.marker:
                     case midiMessageTypes.cuePoint:
                     case midiMessageTypes.instrumentName:
-                    case midiMessageTypes.programName:
+                    case midiMessageTypes.programName: {
                         if (!this.midiData) {
                             break;
                         }
@@ -453,29 +458,34 @@ export class Sequencer {
                             lyricsIndex
                         });
                         break;
+                    }
                 }
                 this.callEventInternal("metaEvent", {
                     event: m.data.event,
                     trackNumber: m.data.trackIndex
                 });
                 break;
+            }
 
-            case "loopCountChange":
+            case "loopCountChange": {
                 this._loopCount = m.data.newCount;
                 if (this._loopCount === 0) {
                 }
                 break;
+            }
 
-            case "songListChange":
+            case "songListChange": {
                 // Remap to MIDI data again as cloned objects don't get methods.
                 this.songListData = m.data.newSongList.map(
                     (m) => new MIDIData(m)
                 );
                 this.midiData = this.songListData[this._songIndex];
                 break;
+            }
 
-            default:
+            default: {
                 break;
+            }
         }
     }
 

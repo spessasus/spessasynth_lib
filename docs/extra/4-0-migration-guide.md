@@ -131,7 +131,6 @@ Now defaults to false.
 
 This is the behavior of `SpessaSynthProcessor`.
 
-
 ### previousSong, nextSong
 
 Removed, replaced with setting the `songIndex` property.
@@ -153,5 +152,5 @@ Now takes an `options` object instead of optional arguments.
 Initialization is now done via `MIDIDeviceHandler.createMIDIDeviceHandler()` directly.
 
 The connect methods have been removed,
- as the `inputs` and `outputs` have been replaced with
-  `LibMIDIInput` and `LibMIDIOutput` respectively that have their methods to connecting to a given sequencer/synthesizer.
+as the `inputs` and `outputs` have been replaced with
+`LibMIDIInput` and `LibMIDIOutput` respectively that have their methods to connecting to a given sequencer/synthesizer.

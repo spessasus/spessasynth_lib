@@ -4,7 +4,6 @@
 
     Make sure you always update `spessasynth_processor.min.js` along with the npm package!
     Creating a script that automatically copies it is recommended.
-    
 
 !!! Tip
 
@@ -15,11 +14,11 @@
 the `addModule` method uses URL _relative to the page URL_, so I (the creator) can't simply just do:
 
 ```ts
-async function addWorkletHelper(context)
-{
-    await context.audioWorklet.addModule("./spessasynth_processor.min.js")
+async function addWorkletHelper(context) {
+    await context.audioWorklet.addModule("./spessasynth_processor.min.js");
 }
 ```
+
 This forces us to import the worklet manually.
 
 !!! Tip
@@ -31,7 +30,9 @@ This forces us to import the worklet manually.
 Copy the `spessasynth_processor.min.js` from `spessasynth_lib/synthetizer` to your destination, for example `src` folder.
 
 ```ts
-await context.audioWorklet.addModule(new ULR("./spessasynth_processor.min.js", import.meta.url));
+await context.audioWorklet.addModule(
+    new ULR("./spessasynth_processor.min.js", import.meta.url)
+);
 ```
 
 I suggest creating an automation script, such as the one shown [here](../extra/working-with-browsers.md#automation).

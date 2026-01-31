@@ -7,112 +7,111 @@ repo_url: https://github.com/spessasus/spessasynth_lib
 repo_name: spessasus/spessasynth_lib
 
 plugins:
-  - search
-  - minify:
-      minify_html: true
-      minify_js: true
-      minify_css: true
-      htmlmin_opts:
-        remove_comments: true
-      cache_safe: true
-
+    - search
+    - minify:
+          minify_html: true
+          minify_js: true
+          minify_css: true
+          htmlmin_opts:
+              remove_comments: true
+          cache_safe: true
 
 markdown_extensions:
-  - admonition
-  - pymdownx.inlinehilite
-  - pymdownx.snippets:
-      base_path: examples/examples_code
-  - pymdownx.superfences
-  - pymdownx.details
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - smarty
-  - toc
-  - tables
-  - meta
+    - admonition
+    - pymdownx.inlinehilite
+    - pymdownx.snippets:
+          base_path: examples/examples_code
+    - pymdownx.superfences
+    - pymdownx.details
+    - pymdownx.highlight:
+          anchor_linenums: true
+          line_spans: __span
+          pygments_lang_class: true
+    - smarty
+    - toc
+    - tables
+    - meta
 
 theme:
-  name: material
-  logo: ./assets/images/favicon.png
-  icon:
-    repo: fontawesome/brands/github
-  palette:
-    - media: "(prefers-color-scheme)"
-      toggle:
-        icon: material/brightness-auto
-        name: Switch to light mode
+    name: material
+    logo: ./assets/images/favicon.png
+    icon:
+        repo: fontawesome/brands/github
+    palette:
+        - media: "(prefers-color-scheme)"
+          toggle:
+              icon: material/brightness-auto
+              name: Switch to light mode
 
-    # Palette toggle for light mode
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
+        # Palette toggle for light mode
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          toggle:
+              icon: material/brightness-7
+              name: Switch to dark mode
 
-    # Palette toggle for dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      toggle:
-        icon: material/brightness-4
-        name: Switch to system preference
+        # Palette toggle for dark mode
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          toggle:
+              icon: material/brightness-4
+              name: Switch to system preference
 
-  features:
-    - content.code.copy
-    - content.code.select
-    - navigation.instant
-    - navigation.instant.progress
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.top
-    - navigation.expand
+    features:
+        - content.code.copy
+        - content.code.select
+        - navigation.instant
+        - navigation.instant.progress
+        - navigation.tracking
+        - navigation.tabs
+        - navigation.top
+        - navigation.expand
 
-    - toc.follow
+        - toc.follow
 
-    - header.autohide
+        - header.autohide
 
 extra_css:
-  - stylesheets/extra.css
+    - stylesheets/extra.css
 
 nav:
-  - Home: index.md
-  - Issue Tracker: 'https://github.com/spessasus/spessasynth_lib/issues'
-  - Documentation:
-      - Getting Started:
-          - getting-started/index.md
-          - getting-started/simple-example.md
-          - getting-started/advanced-example.md
-          - getting-started/worker-synth-example.md
-          - getting-started/piano-example.md
-          - getting-started/visualizer-example.md
-          - getting-started/render-audio-example.md
-          - getting-started/main-thread-rendering.md
-      - Synthesizer:
-          - synthesizer/index.md
-          - synthesizer/basic-synthesizer.md
-          - synthesizer/worklet-synthesizer.md
-          - synthesizer/worker-synthesizer.md
-          - Effects:
-              - synthesizer/chorus-processor.md
-              - synthesizer/reverb-processor.md
-          - Managers:
-              - synthesizer/sound-bank-manager.md
-              - synthesizer/key-modifier-manager.md
-              - synthesizer/synth-event-handler.md
-          - synthesizer/importing-the-worklet.md
-          - Callback Event Types: https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/
-      - Sequencer: sequencer/index.md
-      - Web MIDI Support:
-          - midi/web-midi-api.md
-          - midi/web-midi-link.md
-      - writing-files/writing-wav-files.md
+    - Home: index.md
+    - Issue Tracker: "https://github.com/spessasus/spessasynth_lib/issues"
+    - Documentation:
+          - Getting Started:
+                - getting-started/index.md
+                - getting-started/simple-example.md
+                - getting-started/advanced-example.md
+                - getting-started/worker-synth-example.md
+                - getting-started/piano-example.md
+                - getting-started/visualizer-example.md
+                - getting-started/render-audio-example.md
+                - getting-started/main-thread-rendering.md
+          - Synthesizer:
+                - synthesizer/index.md
+                - synthesizer/basic-synthesizer.md
+                - synthesizer/worklet-synthesizer.md
+                - synthesizer/worker-synthesizer.md
+                - Effects:
+                      - synthesizer/chorus-processor.md
+                      - synthesizer/reverb-processor.md
+                - Managers:
+                      - synthesizer/sound-bank-manager.md
+                      - synthesizer/key-modifier-manager.md
+                      - synthesizer/synth-event-handler.md
+                - synthesizer/importing-the-worklet.md
+                - Callback Event Types: https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/
+          - Sequencer: sequencer/index.md
+          - Web MIDI Support:
+                - midi/web-midi-api.md
+                - midi/web-midi-link.md
+          - writing-files/writing-wav-files.md
 
-  - spessasynth_core docs: https://spessasus.github.io/spessasynth_core/
-  - Extra Info:
-      - extra/4-0-migration-guide.md
-      - extra/all-npm-exports.md
-      - extra/working-with-browsers.md
-      - About Multi-Port MIDI Files: https://spessasus.github.io/spessasynth_core/extra/about-multi-port/
-      - SF2 RMIDI Extension Specification: https://github.com/spessasus/sf2-rmidi-specification#readme
-      - MIDI Implementation: https://spessasus.github.io/spessasynth_core/extra/midi-implementation/
+    - spessasynth_core docs: https://spessasus.github.io/spessasynth_core/
+    - Extra Info:
+          - extra/4-0-migration-guide.md
+          - extra/all-npm-exports.md
+          - extra/working-with-browsers.md
+          - About Multi-Port MIDI Files: https://spessasus.github.io/spessasynth_core/extra/about-multi-port/
+          - SF2 RMIDI Extension Specification: https://github.com/spessasus/sf2-rmidi-specification#readme
+          - MIDI Implementation: https://spessasus.github.io/spessasynth_core/extra/midi-implementation/

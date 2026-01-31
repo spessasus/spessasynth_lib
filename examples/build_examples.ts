@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import esbuild from "esbuild";
-import url from "url";
+import url from "node:url";
 import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util.ts";
 
 export const buildExamples = () => {
@@ -40,7 +40,7 @@ export const buildExamples = () => {
     const partials = fs
         .readdirSync(PARTIALS_DIR)
         .filter((file) => file.endsWith(".html"));
-    partials.forEach((partial) => {
+    for (const partial of partials) {
         const partialPath = path.join(PARTIALS_DIR, partial);
         const basename = path.basename(partial, ".html");
         const outputFile = path.join(OUTPUT_DIR, `${basename}.html`);
@@ -53,25 +53,25 @@ export const buildExamples = () => {
 
         // Split header and footer based on placeholder div
         const header = modifiedTemplate
-            .split("<div class='example_content'>")[0]
+            .split('<div class="example_content">')[0]
             .trimEnd();
         const footer = modifiedTemplate
-            .split("<div class='example_content'>")[1]
+            .split('<div class="example_content">')[1]
             .split("</div>")[1];
 
         // Create the output HTML file
         const partialContent = fs.readFileSync(partialPath, "utf8");
-        const outputHTML = `${header}\n<div class='example_content'>\n${partialContent}</div>${footer}\n`;
+        const outputHTML = `${header}\n<div class="example_content">\n${partialContent}</div>${footer}\n`;
 
         fs.writeFileSync(outputFile, outputHTML);
         console.log(`compiled HTML: ${outputFile}`);
-    });
+    }
 
     // Process each js file and bundle with esbuild
     const jsFiles = fs
         .readdirSync(PARTIALS_DIR)
         .filter((file) => file.endsWith(".js"));
-    jsFiles.forEach((jsFile) => {
+    for (const jsFile of jsFiles) {
         const jsFilePath = path.join(PARTIALS_DIR, jsFile);
         const basename = path.basename(jsFile, ".js");
         const outputJsFile = path.join(OUTPUT_DIR, `${basename}.js`);
@@ -89,10 +89,10 @@ export const buildExamples = () => {
                 sourcemap: "linked"
             });
             console.log(`built: ${outputJsFile}`);
-        } catch (err) {
-            console.error(`error bundling: ${err as string}`);
+        } catch (error) {
+            console.error(`error bundling: ${error as string}`);
         }
-    });
+    }
 
     console.log("examples built successfully");
 };

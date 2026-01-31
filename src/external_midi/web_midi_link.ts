@@ -25,7 +25,7 @@ export class WebMIDILinkHandler {
 
             data.shift(); // Remove MIDI
 
-            const midiData = data.map((byte) => parseInt(byte, 16));
+            const midiData = data.map((byte) => Number.parseInt(byte, 16));
 
             synth.sendMessage(midiData);
         });

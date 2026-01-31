@@ -176,8 +176,6 @@ interface BasicSynthesizerMessageData {
     };
     // Force: (0 false, 1 true) note: if channel is -1 then stop all channels
     stopAll: number;
-    // Amount
-    killNotes: number;
     // Is muted?
     muteChannel: boolean;
     addNewChannel: null;

@@ -4,7 +4,6 @@
 
 Let's make use of SpessaSynth 3.0. It allows us to render an audio file to a file!
 
-
 ```html title='offline_audio.html'
 --8<-- "offline_audio.html"
 ```

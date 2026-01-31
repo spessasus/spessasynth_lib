@@ -70,13 +70,13 @@ export class SoundBankManager {
         );
         await this.awaitResponse();
         const found = this.soundBankList.find((s) => s.id === id);
-        if (found !== undefined) {
-            found.bankOffset = bankOffset;
-        } else {
+        if (found === undefined) {
             this.soundBankList.push({
                 id: id,
                 bankOffset: bankOffset
             });
+        } else {
+            found.bankOffset = bankOffset;
         }
     }
 
@@ -92,7 +92,7 @@ export class SoundBankManager {
             );
             return;
         }
-        if (this.soundBankList.findIndex((s) => s.id === id) === -1) {
+        if (!this.soundBankList.some((s) => s.id === id)) {
             SpessaSynthCoreUtils.SpessaSynthWarn(
                 `No sound banks with id of "${id}" found. Aborting!`
             );

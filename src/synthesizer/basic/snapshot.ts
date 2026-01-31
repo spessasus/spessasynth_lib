@@ -1,4 +1,9 @@
-import { ChannelSnapshot, KeyModifier, type MasterParameterType, SynthesizerSnapshot } from "spessasynth_core";
+import {
+    ChannelSnapshot,
+    KeyModifier,
+    type MasterParameterType,
+    SynthesizerSnapshot
+} from "spessasynth_core";
 import type { ChorusConfig, ReverbConfig } from "../audio_effects/types.ts";
 import { DEFAULT_CHORUS_CONFIG } from "../audio_effects/chorus.ts";
 import { DEFAULT_REVERB_CONFIG } from "../audio_effects/reverb.ts";

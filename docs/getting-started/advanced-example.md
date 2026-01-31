@@ -12,6 +12,7 @@ Let's add some control buttons:
 ```
 
 Now we need to add functionality to those buttons:
+
 - Input can now accept more files
 - Previous song button
 - Pause button

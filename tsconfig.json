@@ -1,49 +1,34 @@
 {
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
-    "target": "esnext",
-    "useDefineForClassFields": true,
-    "lib": [
-      "ESNext",
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "module": "esnext",
-    "skipLibCheck": true,
-    "allowJs": true,
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "moduleDetection": "force",
-    /* Linting */
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitReturns": true,
-    "alwaysStrict": true,
-    "noImplicitThis": true,
-    "strictBindCallApply": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noUncheckedSideEffectImports": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true
-  },
-  "types": [
-    "@types/audioworklet"
-  ],
-  "include": [
-    "src",
-    "examples",
-    "build_scripts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "gh-pages"
-  ]
+    "compilerOptions": {
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
+        "target": "esnext",
+        "useDefineForClassFields": true,
+        "lib": ["ESNext", "ES2020", "DOM", "DOM.Iterable"],
+        "module": "esnext",
+        "skipLibCheck": true,
+        "allowJs": true,
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "moduleDetection": "force",
+        /* Linting */
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "noImplicitReturns": true,
+        "alwaysStrict": true,
+        "noImplicitThis": true,
+        "strictBindCallApply": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "erasableSyntaxOnly": true,
+        "noUncheckedSideEffectImports": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
+        "allowImportingTsExtensions": true
+    },
+    "types": ["@types/audioworklet"],
+    "include": ["src", "examples", "build_scripts"],
+    "exclude": ["node_modules", "dist", "gh-pages"]
 }

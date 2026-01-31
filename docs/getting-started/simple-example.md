@@ -15,9 +15,6 @@ The example uses two classes:
 
     Note the type="module" in the script tag.
 
-
-   
-
 ```js title='simple_demo.js'
 --8<-- "simple_demo.js"
 ```
@@ -30,9 +27,9 @@ What the script does:
 4. Initializes `WorkletSynthesizer` instance
 5. Adds a sound bank to the synthesizer
 6. Adds an `EventListener` for the file input:
-   - Initializes `WorkletSynthesizer` instance
-   - Adds a sound bank to the synthesizer
-   - Initializes a `Sequencer` instance and connects it to the `WorkletSynthesizer` instance we created earlier
-   - Starts the playback via `sequencer.play();`
+    - Initializes `WorkletSynthesizer` instance
+    - Adds a sound bank to the synthesizer
+    - Initializes a `Sequencer` instance and connects it to the `WorkletSynthesizer` instance we created earlier
+    - Starts the playback via `sequencer.play();`
 
 It's that simple!

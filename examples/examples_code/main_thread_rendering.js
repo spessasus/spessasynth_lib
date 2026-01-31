@@ -4,158 +4,175 @@ import {
     SpessaSynthProcessor,
     SpessaSynthSequencer
 } from "spessasynth_core";
-import { ChorusProcessor, ReverbProcessor } from "../../src/index.ts"; // this demo shows how to render in the main thread in real time
+import { ChorusProcessor, ReverbProcessor } from "../../src/index.ts"; // This demo shows how to render in the main thread in real time
 
-// this demo shows how to render in the main thread in real time
-// use firefox for this, chromium poorly handles audio buffers being used like this
-// for chromium, consider making a simple playback worklet processor instead
+// This demo shows how to render in the main thread in real time
+// Use firefox for this, chromium poorly handles audio buffers being used like this
+// For chromium, consider making a simple playback worklet processor instead
 
-// create a new audio context
+// Create a new audio context
 const context = new AudioContext({
-    sampleRate: 44100
+    sampleRate: 44_100
 });
 
-// wait for the user to upload the sound bank
-document.getElementById("sound_bank_input").onchange = async (e) => {
-    /**
-     * if no file is selected, exit early
-     * @type {FileList}
-     */
-    const files = e.target?.files;
-    if (!files[0]) {
-        return;
-    }
-
-    // resume the audio context so audio processing can begin
-    await context.resume();
-
-    // read the uploaded file into an ArrayBuffer
-    const fontBuffer = await files[0].arrayBuffer();
-
-    // create an instance of the synthesizer and load it with the sound bank
-    const synth = new SpessaSynthProcessor(44100);
-    synth.soundBankManager.addSoundBank(
-        SoundBankLoader.fromArrayBuffer(fontBuffer),
-        "main"
-    );
-
-    // initialize the sequencer for MIDI playback
-    const seq = new SpessaSynthSequencer(synth);
-
-    // initialize the audio effects and connect them to the destination
-    const chorusProcessor = new ChorusProcessor(context);
-    const reverbProcessor = new ReverbProcessor(context);
-    reverbProcessor.connect(context.destination);
-    chorusProcessor.connect(context.destination);
-
-    // THE MAIN AUDIO RENDERING LOOP IS HERE
-    setInterval(() => {
-        // get the synthesizer’s internal current time
-        const synTime = synth.currentSynthTime;
-
-        // if the synth time is significantly ahead of the context time, skip rendering
-        // (wait for the context to catch up)
-        if (synTime > context.currentTime + 0.1) {
+// Wait for the user to upload the sound bank
+document
+    .querySelector("#sound_bank_input")
+    .addEventListener("change", async (event) => {
+        /**
+         * If no file is selected, exit early
+         * @type {FileList}
+         */
+        const files = event.target?.files;
+        if (!files[0]) {
             return;
         }
 
-        // create empty stereo buffers for dry signal, reverb, and chorus outputs
-        const BUFFER_SIZE = 512;
-        const output = [
-            new Float32Array(BUFFER_SIZE),
-            new Float32Array(BUFFER_SIZE)
-        ];
-        const reverb = [
-            new Float32Array(BUFFER_SIZE),
-            new Float32Array(BUFFER_SIZE)
-        ];
-        const chorus = [
-            new Float32Array(BUFFER_SIZE),
-            new Float32Array(BUFFER_SIZE)
-        ];
+        // Resume the audio context so audio processing can begin
+        await context.resume();
 
-        // play back the MIDI file
-        seq.processTick();
+        // Read the uploaded file into an ArrayBuffer
+        const fontBuffer = await files[0].arrayBuffer();
 
-        // render the next chunk of audio into the provided buffers
-        synth.renderAudio(output, reverb, chorus);
+        // Create an instance of the synthesizer and load it with the sound bank
+        const synth = new SpessaSynthProcessor(44_100);
+        synth.soundBankManager.addSoundBank(
+            SoundBankLoader.fromArrayBuffer(fontBuffer),
+            "main"
+        );
 
-        // function to play a given stereo buffer to a specified output node
-        const playAudio = (arr, output) => {
-            // create an AudioBuffer to hold the sample data
-            const outBuffer = new AudioBuffer({
-                numberOfChannels: 2,
-                length: 512,
-                sampleRate: 44100
-            });
+        // Initialize the sequencer for MIDI playback
+        const seq = new SpessaSynthSequencer(synth);
 
-            // copy the left and right channel data into the audio buffer
-            outBuffer.copyToChannel(arr[0], 0);
-            outBuffer.copyToChannel(arr[1], 1);
+        // Initialize the audio effects and connect them to the destination
+        const chorusProcessor = new ChorusProcessor(context);
+        const reverbProcessor = new ReverbProcessor(context);
+        reverbProcessor.connect(context.destination);
+        chorusProcessor.connect(context.destination);
 
-            // create a source node from the buffer and connect it to the desired output
-            const source = new AudioBufferSourceNode(context, {
-                buffer: outBuffer
-            });
-            source.connect(output);
+        // THE MAIN AUDIO RENDERING LOOP IS HERE
+        setInterval(() => {
+            // Get the synthesizer’s internal current time
+            const synTime = synth.currentSynthTime;
 
-            // schedule the buffer to play at the synth’s current time
-            source.start(synTime);
-        };
+            // If the synth time is significantly ahead of the context time, skip rendering
+            // (wait for the context to catch up)
+            if (synTime > context.currentTime + 0.1) {
+                return;
+            }
 
-        // play the dry audio to the main output
-        playAudio(output, context.destination);
+            // Create empty stereo buffers for dry signal, reverb, and chorus outputs
+            const QUANTUM = 128;
+            const BUFFER_SIZE = 2048;
+            const output = [
+                new Float32Array(BUFFER_SIZE),
+                new Float32Array(BUFFER_SIZE)
+            ];
+            const reverb = [
+                new Float32Array(BUFFER_SIZE),
+                new Float32Array(BUFFER_SIZE)
+            ];
+            const chorus = [
+                new Float32Array(BUFFER_SIZE),
+                new Float32Array(BUFFER_SIZE)
+            ];
+            let rendered = 0;
+            while (rendered < BUFFER_SIZE) {
+                // Play back the MIDI file
+                seq.processTick();
 
-        // play the reverb signal through the reverb effect chain
-        playAudio(reverb, reverbProcessor.input);
+                // Render the next chunk of audio into the provided buffers
+                synth.renderAudio(output, reverb, chorus, rendered, QUANTUM);
+                rendered += QUANTUM;
+            }
 
-        // play the chorus signal through the chorus processor’s input
-        playAudio(chorus, chorusProcessor.input);
-    });
+            // Function to play a given stereo buffer to a specified output node
+            const playAudio = (array, output) => {
+                // Create an AudioBuffer to hold the sample data
+                const outBuffer = new AudioBuffer({
+                    numberOfChannels: 2,
+                    length: BUFFER_SIZE,
+                    sampleRate: 44_100
+                });
 
-    // list all the voices currently playing
-    const list = document.getElementById("voice_list");
-    /**
-     * @type {HTMLPreElement[]}
-     * create and store a <pre> element for each of the 16 MIDI channels
-     * each one will be used to display information about active voices on a given channel
-     */
-    const voiceListElements = [];
-    for (let i = 0; i < 16; i++) {
-        const el = document.createElement("pre");
-        voiceListElements.push(el);
-        list.appendChild(el);
-    }
-    // set up an interval to regularly update the voice display for each channel
-    setInterval(() => {
-        // loop through each MIDI channel in the synth
-        synth.midiChannels.forEach((c, chanNum) => {
-            // get the corresponding element for this channel
-            const channelList = voiceListElements[chanNum];
+                // Copy the left and right channel data into the audio buffer
+                outBuffer.copyToChannel(array[0], 0);
+                outBuffer.copyToChannel(array[1], 1);
 
-            // start building the display string with the channel number
-            let text = `Channel ${chanNum + 1}:\n`;
+                // Create a source node from the buffer and connect it to the desired output
+                const source = new AudioBufferSourceNode(context, {
+                    buffer: outBuffer
+                });
+                source.connect(output);
 
-            // append a line for each currently active voice with its MIDI note
-            c.voices.forEach((v) => {
-                text += `note: ${v.midiNote}\n`;
-            });
+                // Schedule the buffer to play at the synth’s current time
+                source.start(synTime);
+            };
 
-            // update the DOM with the new voice info
-            channelList.textContent = text;
+            // Play the dry audio to the main output
+            playAudio(output, context.destination);
+
+            // Play the reverb signal through the reverb effect chain
+            playAudio(reverb, reverbProcessor.input);
+
+            // Play the chorus signal through the chorus processor’s input
+            playAudio(chorus, chorusProcessor.input);
         });
-    }, 100);
 
-    // set up the MIDI player
-    document.getElementById("midi_input").onchange = async (e) => {
-        // verify if the file is really there
-        if (!e.target?.files[0]) {
-            return;
+        // List all the voices currently playing
+        const list = document.querySelector("#voice_list");
+        /**
+         * @type {HTMLPreElement[]}
+         * create and store a <pre> element for each of the 16 MIDI channels
+         * each one will be used to display information about active voices on a given channel
+         */
+        const voiceListElements = [];
+        for (let index = 0; index < 16; index++) {
+            const element = document.createElement("pre");
+            voiceListElements.push(element);
+            list.append(element);
         }
-        // parse and play the file
-        const file = e.target.files[0];
-        const midi = BasicMIDI.fromArrayBuffer(await file.arrayBuffer());
-        seq.loadNewSongList([midi]);
-        seq.play();
-    };
-};
+        // Set up an interval to regularly update the voice display for each channel
+        setInterval(() => {
+            // Note: this code is working directly with the synth engine.
+            // Advanced users only.
+            const core = synth.midiChannels[0].synthCore;
+
+            // Start building the display string with the channel number
+            const textData = voiceListElements.map(
+                (_, chanNumber) => `Channel ${chanNumber + 1}:\n`
+            );
+            for (const voice of core.voices) {
+                if (!voice.isActive) continue;
+
+                // Get the corresponding element for this channel
+
+                // Append a line for each currently active voice with its MIDI note
+                textData[voice.channel] += `note: ${voice.midiNote}\n`;
+            }
+
+            for (const [
+                index,
+                voiceListElement
+            ] of voiceListElements.entries()) {
+                voiceListElement.textContent = textData[index];
+            }
+        }, 100);
+
+        // Set up the MIDI player
+        document
+            .querySelector("#midi_input")
+            .addEventListener("change", async (event) => {
+                // Verify if the file is really there
+                if (!event.target?.files[0]) {
+                    return;
+                }
+                // Parse and play the file
+                const file = event.target.files[0];
+                const midi = BasicMIDI.fromArrayBuffer(
+                    await file.arrayBuffer()
+                );
+                seq.loadNewSongList([midi]);
+                seq.play();
+            });
+    });
