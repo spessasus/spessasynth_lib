@@ -23,6 +23,9 @@ export type PostMessageSynthCore = (
     transfer?: Transferable[]
 ) => unknown;
 
+// Seconds
+export const SEQUENCER_SYNC_INTERVAL = 1;
+
 /**
  * The interface for the audio processing code that uses spessasynth_core and runs on a separate thread.
  */
@@ -30,6 +33,7 @@ export abstract class BasicSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
     public readonly sequencers = new Array<SpessaSynthSequencer>();
     protected readonly post: PostMessageSynthCore;
+    protected lastSequencerSync = 0;
     /**
      * Indicates if the processor is alive.
      * @protected

@@ -52,7 +52,8 @@ export interface SequencerMessageData {
 export type SequencerReturnMessage =
     | (SequencerEvent & { id: number })
     | { type: "getMIDI"; data: BasicMIDI; id: number }
-    | { type: "midiError"; data: Error; id: number };
+    | { type: "midiError"; data: Error; id: number }
+    | { type: "sync"; data: number; id: number };
 
 /**
  * Sequencer.js

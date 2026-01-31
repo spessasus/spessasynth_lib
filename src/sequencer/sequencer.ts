@@ -369,6 +369,12 @@ export class Sequencer {
                 break;
             }
 
+            case "sync": {
+                if (Math.abs(m.data - this.currentTime) > 0.05)
+                    this.recalculateStartTime(m.data);
+                break;
+            }
+
             case "timeChange": {
                 // Message data is absolute time
                 const time = m.data.newTime;

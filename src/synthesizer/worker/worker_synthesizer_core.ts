@@ -7,7 +7,8 @@ import type {
 import { renderAudioWorker } from "./render_audio_worker.ts";
 import {
     BasicSynthesizerCore,
-    type PostMessageSynthCore
+    type PostMessageSynthCore,
+    SEQUENCER_SYNC_INTERVAL
 } from "../basic/basic_synthesizer_core.ts";
 import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
 import { writeRMIDIWorker } from "./write_rmi_worker.ts";
@@ -55,7 +56,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         );
 
         this.workletMessagePort = workletMessagePort;
-        this.workletMessagePort.onmessage = this.renderAndSendChunk.bind(this);
+        this.workletMessagePort.onmessage = this.process.bind(this);
         this.compressionFunction = compressionFunction;
         void this.synthesizer.processorInitialized.then(() => {
             this.postReady("sf3Decoder", null);
@@ -174,7 +175,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     protected startAudioLoop() {
         this.alive = true;
-        this.renderAndSendChunk();
+        this.process();
     }
 
     protected destroy() {
@@ -184,7 +185,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         super.destroy();
     }
 
-    protected renderAndSendChunk() {
+    protected process() {
         if (!this.alive) {
             return;
         }
@@ -220,5 +221,21 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         }
         this.synthesizer.renderAudioSplit(rev, chr, dry);
         this.workletMessagePort.postMessage(data, [data.buffer]);
+
+        const t = this.synthesizer.currentSynthTime;
+        if (t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL) {
+            for (let id = 0; id < this.sequencers.length; id++) {
+                this.post({
+                    type: "sequencerReturn",
+                    data: {
+                        type: "sync",
+                        data: this.sequencers[id].currentTime,
+                        id
+                    },
+                    currentTime: t
+                });
+            }
+            this.lastSequencerSync = t;
+        }
     }
 }

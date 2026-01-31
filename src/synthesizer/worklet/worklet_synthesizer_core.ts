@@ -13,7 +13,10 @@ import type { SequencerOptions } from "../../sequencer/types.ts";
 import { consoleColors } from "../../utils/other.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
-import { BasicSynthesizerCore } from "../basic/basic_synthesizer_core.ts";
+import {
+    BasicSynthesizerCore,
+    SEQUENCER_SYNC_INTERVAL
+} from "../basic/basic_synthesizer_core.ts";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     protected alive = true;
@@ -99,6 +102,21 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 outputs[1], // Chorus
                 outputs.slice(2)
             );
+        }
+        const t = this.synthesizer.currentSynthTime;
+        if (t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL) {
+            for (let id = 0; id < this.sequencers.length; id++) {
+                this.post({
+                    type: "sequencerReturn",
+                    data: {
+                        type: "sync",
+                        data: this.sequencers[id].currentTime,
+                        id
+                    },
+                    currentTime: t
+                });
+            }
+            this.lastSequencerSync = t;
         }
         return true;
     }
