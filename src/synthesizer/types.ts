@@ -267,8 +267,7 @@ export interface SynthesizerReturn {
     startOfflineRender: null;
     synthesizerSnapshot: SynthesizerSnapshot;
     renderAudio: {
-        reverb: [Float32Array, Float32Array];
-        chorus: [Float32Array, Float32Array];
+        effects: [Float32Array, Float32Array];
         dry: [Float32Array, Float32Array][];
     };
     workerSynthWriteFile: {

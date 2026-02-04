@@ -42,7 +42,10 @@ export abstract class BasicSynthesizerCore {
 
     protected constructor(
         sampleRate: number,
-        options: SynthProcessorOptions,
+        options: Omit<
+            SynthProcessorOptions,
+            "reverbProcessor" | "chorusProcessor"
+        >,
         postMessage: PostMessageSynthCore
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);

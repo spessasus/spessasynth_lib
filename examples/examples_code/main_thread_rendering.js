@@ -4,7 +4,6 @@ import {
     SpessaSynthProcessor,
     SpessaSynthSequencer
 } from "spessasynth_core";
-import { ChorusProcessor, ReverbProcessor } from "../../src/index.ts"; // This demo shows how to render in the main thread in real time
 
 // This demo shows how to render in the main thread in real time
 // Use firefox for this, chromium poorly handles audio buffers being used like this
@@ -44,12 +43,6 @@ document
         // Initialize the sequencer for MIDI playback
         const seq = new SpessaSynthSequencer(synth);
 
-        // Initialize the audio effects and connect them to the destination
-        const chorusProcessor = new ChorusProcessor(context);
-        const reverbProcessor = new ReverbProcessor(context);
-        reverbProcessor.connect(context.destination);
-        chorusProcessor.connect(context.destination);
-
         // THE MAIN AUDIO RENDERING LOOP IS HERE
         setInterval(() => {
             // Get the synthesizer’s internal current time
@@ -64,59 +57,38 @@ document
             // Create empty stereo buffers for dry signal, reverb, and chorus outputs
             const QUANTUM = 128;
             const BUFFER_SIZE = 2048;
-            const output = [
-                new Float32Array(BUFFER_SIZE),
-                new Float32Array(BUFFER_SIZE)
-            ];
-            const reverb = [
-                new Float32Array(BUFFER_SIZE),
-                new Float32Array(BUFFER_SIZE)
-            ];
-            const chorus = [
-                new Float32Array(BUFFER_SIZE),
-                new Float32Array(BUFFER_SIZE)
-            ];
+            const outputL = new Float32Array(BUFFER_SIZE);
+            const outputR = new Float32Array(BUFFER_SIZE);
+
             let rendered = 0;
             while (rendered < BUFFER_SIZE) {
                 // Play back the MIDI file
                 seq.processTick();
 
                 // Render the next chunk of audio into the provided buffers
-                synth.renderAudio(output, reverb, chorus, rendered, QUANTUM);
+                synth.process(outputL, outputR, rendered, QUANTUM);
                 rendered += QUANTUM;
             }
 
-            // Function to play a given stereo buffer to a specified output node
-            const playAudio = (array, output) => {
-                // Create an AudioBuffer to hold the sample data
-                const outBuffer = new AudioBuffer({
-                    numberOfChannels: 2,
-                    length: BUFFER_SIZE,
-                    sampleRate: 44_100
-                });
+            // Create an AudioBuffer to hold the sample data
+            const outBuffer = new AudioBuffer({
+                numberOfChannels: 2,
+                length: BUFFER_SIZE,
+                sampleRate: 44_100
+            });
 
-                // Copy the left and right channel data into the audio buffer
-                outBuffer.copyToChannel(array[0], 0);
-                outBuffer.copyToChannel(array[1], 1);
+            // Copy the left and right channel data into the audio buffer
+            outBuffer.copyToChannel(outputL, 0);
+            outBuffer.copyToChannel(outputR, 1);
 
-                // Create a source node from the buffer and connect it to the desired output
-                const source = new AudioBufferSourceNode(context, {
-                    buffer: outBuffer
-                });
-                source.connect(output);
+            // Create a source node from the buffer and connect it to the desired output
+            const source = new AudioBufferSourceNode(context, {
+                buffer: outBuffer
+            });
+            source.connect(context.destination);
 
-                // Schedule the buffer to play at the synth’s current time
-                source.start(synTime);
-            };
-
-            // Play the dry audio to the main output
-            playAudio(output, context.destination);
-
-            // Play the reverb signal through the reverb effect chain
-            playAudio(reverb, reverbProcessor.input);
-
-            // Play the chorus signal through the chorus processor’s input
-            playAudio(chorus, chorusProcessor.input);
+            // Schedule the buffer to play at the synth’s current time
+            source.start(synTime);
         });
 
         // List all the voices currently playing

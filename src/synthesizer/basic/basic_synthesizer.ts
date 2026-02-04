@@ -17,7 +17,6 @@ import {
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
 import type { SynthConfig } from "../audio_effects/types.ts";
 import { ChorusProcessor } from "../audio_effects/chorus.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -73,15 +72,15 @@ export abstract class BasicSynthesizer {
      */
     public readonly isReady: Promise<unknown>;
     /**
-     * Synthesizer's reverb processor.
-     * Undefined if reverb is disabled.
+     * Legacy parameter.
+     * @deprecated
      */
-    public readonly reverbProcessor?: ReverbProcessor;
+    public readonly reverbProcessor?: ReverbProcessor = undefined;
     /**
-     * Synthesizer's chorus processor.
-     * Undefined if chorus is disabled.
+     * Legacy parameter.
+     * @deprecated
      */
-    public readonly chorusProcessor?: ChorusProcessor;
+    public readonly chorusProcessor?: ChorusProcessor = undefined;
     /**
      * INTERNAL USE ONLY!
      * @internal
@@ -142,31 +141,17 @@ export abstract class BasicSynthesizer {
         this.worklet = worklet;
         this.post = postFunction;
 
+        // Used in child classes
+        void config;
+
         this.isReady = new Promise((resolve) =>
             this.awaitWorkerResponse("sf3Decoder", resolve)
         );
-
-        // Initialize effects configuration
-        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (
             e: MessageEvent<BasicSynthesizerReturnMessage>
         ) => this.handleMessage(e.data);
-
-        // Connect worklet outputs
-        if (synthConfig.initializeReverbProcessor) {
-            this.reverbProcessor = new ReverbProcessor(this.context);
-            this.isReady = Promise.all([
-                this.isReady,
-                this.reverbProcessor.isReady
-            ]);
-            this.worklet.connect(this.reverbProcessor.input, 0);
-        }
-        if (synthConfig.initializeChorusProcessor) {
-            this.chorusProcessor = new ChorusProcessor(this.context);
-            this.worklet.connect(this.chorusProcessor.input, 1);
-        }
 
         // Create initial channels
         for (let i = 0; i < this.channelsAmount; i++) {
@@ -238,10 +223,8 @@ export abstract class BasicSynthesizer {
      * @param destinationNode The node to connect to.
      */
     public connect(destinationNode: AudioNode) {
-        this.reverbProcessor?.connect(destinationNode);
-        this.chorusProcessor?.connect(destinationNode);
-        //Connect all other worklet outputs
-        for (let i = 2; i < this.channelsAmount + 2; i++) {
+        // Connect all other worklet outputs (effects + 16 channels)
+        for (let i = 0; i < 17; i++) {
             this.worklet.connect(destinationNode, i);
         }
         return destinationNode;
@@ -254,15 +237,11 @@ export abstract class BasicSynthesizer {
      */
     public disconnect(destinationNode?: AudioNode) {
         if (!destinationNode) {
-            this.reverbProcessor?.disconnect();
-            this.chorusProcessor?.disconnect();
             this.worklet.disconnect();
             return undefined;
         }
-        this.reverbProcessor?.disconnect(destinationNode);
-        this.chorusProcessor?.disconnect(destinationNode);
         // Disconnect all other worklet outputs
-        for (let i = 2; i < this.channelsAmount + 2; i++) {
+        for (let i = 0; i < 17; i++) {
             this.worklet.disconnect(destinationNode, i);
         }
         return destinationNode;
@@ -339,9 +318,7 @@ export abstract class BasicSynthesizer {
                 const snapshot = new LibSynthesizerSnapshot(
                     s.channelSnapshots,
                     s.masterParameters,
-                    s.keyMappings,
-                    this.chorusProcessor?.config,
-                    this.reverbProcessor?.config
+                    s.keyMappings
                 );
                 resolve(snapshot);
             });
@@ -391,8 +368,8 @@ export abstract class BasicSynthesizer {
             outputNumber < this._outputsAmount;
             outputNumber++
         ) {
-            // + 2 because chorus and reverb come first!
-            this.worklet.connect(audioNodes[outputNumber], outputNumber + 2);
+            // + 1 because effects come first!
+            this.worklet.connect(audioNodes[outputNumber], outputNumber + 1);
         }
     }
 

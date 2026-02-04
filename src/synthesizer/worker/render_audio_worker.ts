@@ -55,8 +55,7 @@ const BLOCK_SIZE = 128;
 type StereoAudioChunk = [Float32Array, Float32Array];
 
 interface ReturnedChunks {
-    reverb: StereoAudioChunk;
-    chorus: StereoAudioChunk;
+    effects: StereoAudioChunk;
     dry: StereoAudioChunk[];
 }
 
@@ -111,19 +110,13 @@ export function renderAudioWorker(
     rendererSeq.play();
 
     // Allocate memory
-    // Reverb, chorus
-    const reverb: StereoAudioChunk = [
-        new Float32Array(sampleDuration),
-        new Float32Array(sampleDuration)
-    ];
-    const chorus: StereoAudioChunk = [
-        new Float32Array(sampleDuration),
-        new Float32Array(sampleDuration)
-    ];
+    // Effects
+    const wetL = new Float32Array(sampleDuration);
+    const wetR = new Float32Array(sampleDuration);
+    const effects: StereoAudioChunk = [wetL, wetR];
     // Final output
     const returnedChunks: ReturnedChunks = {
-        reverb,
-        chorus,
+        effects,
         dry: []
     };
     const sampleDurationNoLastQuantum = sampleDuration - BLOCK_SIZE;
@@ -142,10 +135,10 @@ export function renderAudioWorker(
             for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
                 if (index >= sampleDurationNoLastQuantum) {
                     rendererSeq.processTick();
-                    rendererSynth.renderAudioSplit(
-                        reverb,
-                        chorus,
+                    rendererSynth.processSplit(
                         dry,
+                        wetL,
+                        wetR,
                         index,
                         sampleDuration - index
                     );
@@ -153,32 +146,24 @@ export function renderAudioWorker(
                     return returnedChunks;
                 }
                 rendererSeq.processTick();
-                rendererSynth.renderAudioSplit(
-                    reverb,
-                    chorus,
-                    dry,
-                    index,
-                    BLOCK_SIZE
-                );
+                rendererSynth.processSplit(dry, wetL, wetR, index, BLOCK_SIZE);
                 index += BLOCK_SIZE;
             }
             this.postProgress("renderAudio", index / sampleDuration);
         }
     } else {
-        const dry: StereoAudioChunk = [
-            new Float32Array(sampleDuration),
-            new Float32Array(sampleDuration)
-        ];
+        const dryL = new Float32Array(sampleDuration);
+        const dryR = new Float32Array(sampleDuration);
+        const dry: StereoAudioChunk = [dryL, dryR];
         returnedChunks.dry.push(dry);
         let index = 0;
         while (true) {
             for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
                 if (index >= sampleDurationNoLastQuantum) {
                     rendererSeq.processTick();
-                    rendererSynth.renderAudio(
-                        dry,
-                        reverb,
-                        chorus,
+                    rendererSynth.process(
+                        dryL,
+                        dryR,
                         index,
                         sampleDuration - index
                     );
@@ -186,13 +171,8 @@ export function renderAudioWorker(
                     return returnedChunks;
                 }
                 rendererSeq.processTick();
-                rendererSynth.renderAudio(
-                    dry,
-                    reverb,
-                    chorus,
-                    index,
-                    BLOCK_SIZE
-                );
+
+                rendererSynth.process(dryL, dryR, index, BLOCK_SIZE);
                 index += BLOCK_SIZE;
             }
             this.postProgress("renderAudio", index / sampleDuration);

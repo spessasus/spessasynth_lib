@@ -21,12 +21,12 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // Ensure default values for options
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
 
-        let outputChannelCount = new Array<number>(18).fill(2);
-        let numberOfOutputs = 18;
+        let outputChannelCount = new Array<number>(17).fill(2);
+        let numberOfOutputs = 17;
 
         if (synthConfig.oneOutput) {
-            // One output with 36 channels
-            outputChannelCount = [36];
+            // One output with 34 channels
+            outputChannelCount = [34];
             numberOfOutputs = 1;
         }
 
@@ -88,8 +88,6 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * Destroys the synthesizer instance.
      */
     public destroy() {
-        this.reverbProcessor?.disconnect();
-        this.chorusProcessor?.delete();
         // noinspection JSCheckFunctionSignatures
         this.post({
             channelNumber: 0,
@@ -100,11 +98,5 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // @ts-expect-error destruction!
         // noinspection JSConstantReassignment
         delete this.worklet;
-        // @ts-expect-error destruction!
-        // noinspection JSConstantReassignment
-        delete this.reverbProcessor;
-        // @ts-expect-error destruction!
-        // noinspection JSConstantReassignment
-        delete this.chorusProcessor;
     }
 }

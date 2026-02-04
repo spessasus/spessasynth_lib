@@ -75,7 +75,7 @@ class PlaybackProcessor extends AudioWorkletProcessor
         }
         let offset = 0;
         // decode the data nicely
-        for (let i = 0; i < 18; i++)
+        for (let i = 0; i < 17; i++)
         {
             outputs[i][0].set(data.subarray(offset, offset + BLOCK_SIZE));
             offset += BLOCK_SIZE;
