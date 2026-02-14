@@ -44,7 +44,7 @@ export abstract class BasicSynthesizerCore {
         sampleRate: number,
         options: Omit<
             SynthProcessorOptions,
-            "reverbProcessor" | "chorusProcessor"
+            "reverbProcessor" | "chorusProcessor" | "delayProcessor"
         >,
         postMessage: PostMessageSynthCore
     ) {
