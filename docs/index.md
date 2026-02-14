@@ -16,6 +16,11 @@ _If you're looking for the SpessaSynth web app, it can be found [here](https://s
 
     [The migration guide for 4.0 is available here.](extra/4-0-migration-guide.md)
 
+!!! WARNING
+
+    Audio effects are getting integrated into `spessasynth_core` in 4.2.0.
+    Read more [here](https://github.com/spessasus/spessasynth_core/pull/58)
+
 ## spessasynth_lib documentation
 
 - [Getting started with spessasynth_lib](getting-started/index.md)
