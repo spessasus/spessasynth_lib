@@ -203,10 +203,12 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         byteOffset += byteStep;
         const dry: AudioChunks = [];
         for (let i = 0; i < 16; i++) {
-            byteOffset += byteStep;
             const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
+
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+            byteOffset += byteStep;
+
             dry.push([dryL, dryR]);
         }
         for (const seq of this.sequencers) {
