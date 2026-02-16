@@ -1,6 +1,6 @@
 import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import type { SynthConfig } from "../audio_effects/types.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
+import type { SynthConfig } from "../basic/types.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import {
     getPlaybackWorkletURL,

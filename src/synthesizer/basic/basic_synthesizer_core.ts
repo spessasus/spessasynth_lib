@@ -188,31 +188,6 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "setChannelVibrato": {
-                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                    for (const chan of this.synthesizer.midiChannels) {
-                        if (m.data.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                            chan.disableAndLockGSNRPN();
-                        } else {
-                            chan.setVibrato(
-                                m.data.depth,
-                                m.data.rate,
-                                m.data.delay
-                            );
-                        }
-                    }
-                } else if (m.data.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                    channelObject?.disableAndLockGSNRPN();
-                } else {
-                    channelObject?.setVibrato(
-                        m.data.depth,
-                        m.data.rate,
-                        m.data.delay
-                    );
-                }
-                break;
-            }
-
             case "stopAll": {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
                     this.synthesizer.stopAllChannels(m.data === 1);

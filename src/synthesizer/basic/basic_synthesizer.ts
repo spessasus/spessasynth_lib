@@ -15,8 +15,7 @@ import {
     type SynthMethodOptions
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
-import type { SynthConfig } from "../audio_effects/types.ts";
-import { ChorusProcessor } from "../audio_effects/chorus.ts";
+import type { SynthConfig } from "./types.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -25,7 +24,6 @@ import type {
 } from "../types.ts";
 import { consoleColors } from "../../utils/other.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { ReverbProcessor } from "../audio_effects/reverb.ts";
 import { LibSynthesizerSnapshot } from "./snapshot.ts";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
@@ -71,16 +69,18 @@ export abstract class BasicSynthesizer {
      * Resolves when the synthesizer is ready.
      */
     public readonly isReady: Promise<unknown>;
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Legacy parameter.
      * @deprecated
      */
-    public readonly reverbProcessor?: ReverbProcessor = undefined;
+    public readonly reverbProcessor = undefined;
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Legacy parameter.
      * @deprecated
      */
-    public readonly chorusProcessor?: ChorusProcessor = undefined;
+    public readonly chorusProcessor = undefined;
     /**
      * INTERNAL USE ONLY!
      * @internal
@@ -339,19 +339,15 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Sets custom vibrato for the channel.
-     * @param channel The channel number.
-     * @param value The vibrato parameters.
+     * DEPRECATED, please don't use it!
+     * @deprecated
      */
     public setVibrato(
         channel: number,
         value: { delay: number; depth: number; rate: number }
     ) {
-        this.post({
-            channelNumber: channel,
-            type: "setChannelVibrato",
-            data: value
-        });
+        void channel;
+        void value;
     }
 
     /**
@@ -395,15 +391,10 @@ export abstract class BasicSynthesizer {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Disables the GS NRPN parameters like vibrato or drum key tuning.
+     * @deprecated Deprecated! Please use master parameters
      */
     public disableGSNPRNParams() {
-        // Rate -1 disables, see worklet_message.js line 9
-        // Channel -1 is all
-        this.setVibrato(ALL_CHANNELS_OR_DIFFERENT_ACTION, {
-            depth: 0,
-            rate: -1,
-            delay: 0
-        });
+        this.setMasterParameter("nprnParamLock", true);
     }
 
     /**
