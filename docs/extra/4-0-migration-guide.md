@@ -8,7 +8,7 @@ This page documents all the breaking changes in spessasynth_lib.
 
 !!! Tip
 
-    Please report any innacurate or missing changes.
+    Please report any inaccurate or missing changes.
 
 ## Breaking changes
 

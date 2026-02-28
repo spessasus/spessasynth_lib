@@ -13,7 +13,7 @@ const sequencer = new Sequencer(synth, options);
     - `skipToFirstNoteOn` - a `boolean` indicating if the sequencer should skip to the first note on. Defaults to `true`.
     - `initialPlaybackRate` - a `number` with the initial playback rate, other than the default 1.0.
 
-!!! TIP
+!!! Tip
 
     As of `v4.1.0` you can connect more than 1 Sequencer to any synthesizer!
 
@@ -23,7 +23,7 @@ const sequencer = new Sequencer(synth, options);
 
 The data of the current sequence.
 A [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) (the song data).
-Undefined if the data is currently loading of if no song is playing.
+Undefined if the data is currently loading or if no song is playing.
 
 Note that the `embeddedSoundBank` property and `events` in the tracks are both empty for performance reasons.
 
@@ -34,7 +34,7 @@ Note that the `embeddedSoundBank` property and `events` in the tracks are both e
 !!! Danger
 
     The sequencer doesn't instantly get the new MIDI information.
-    Make sure to use `addOnSongChangeEvent` instead of waiting or assuming that the data is available instantly.
+    Make sure to use `eventHandler.addEvent("songChange", id, callback)` instead of waiting or assuming that the data is available instantly.
     Also keep in mind that The sequencer _preloads_ the samples for the MIDI, which might take a bit!
 
 ### songListData
@@ -65,7 +65,7 @@ The `MIDIOutput` to play to. If it is undefined, then spessasynth's synthesizer 
 ### songIndex
 
 The current index (0-based) of the song that's playing.
-I can be changed via this property.
+It can be changed via this property.
 
 ### currentTempo
 
@@ -108,6 +108,7 @@ Randomization can occur again after the last song is reached.
 ### currentTime
 
 The current playback time of the song in seconds.
+Can be set to seek to a specific position in the song.
 
 ### currentHighResolutionTime
 
@@ -169,4 +170,19 @@ Pause the playback of the sequence.
 
 ### play
 
-Start playing/resume the sequence.
+Start playing or resume the sequence.
+
+### eventHandler.addEvent (song change and other events)
+
+Use the event handler to react to song changes, tempo changes, and other sequencer events.
+Works like the [synthesizer event handler](../synthesizer/synth-event-handler.md).
+
+**Example - wait for song data to be ready:**
+
+```js
+sequencer.eventHandler.addEvent("songChange", "my-listener", (midiData) => {
+    console.log("Song loaded:", midiData?.getName());
+});
+```
+
+See [spessasynth_core's sequencer event types](https://spessasus.github.io/spessasynth_core/spessa-synth-sequencer/event-types/) for details.

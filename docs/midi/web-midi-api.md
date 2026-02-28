@@ -11,7 +11,7 @@ Initializes the connection to physical MIDI Devices.
 MIDIDeviceHandler.createMIDIDeviceHandler();
 ```
 
-The returned value is a `MIDIDeviceHandler`. An error is throws if the MIDI Devices fail to initialize.
+The returned value is a `MIDIDeviceHandler`. An error is thrown if the MIDI Devices fail to initialize.
 
 !!! Info
 
@@ -77,7 +77,7 @@ output.connect(seq);
 
 ### disconnect
 
-Disconnects sequencer from the output, making it play to the attached Synthesizer instead.
+Disconnects the sequencer from the output, making it play to the attached Synthesizer instead.
 
 ```ts
 output.disconnect(seq);

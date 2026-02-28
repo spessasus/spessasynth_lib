@@ -126,7 +126,7 @@ Mirror the WebAudio API methods. Connect or disconnect synthesizer from the give
 Sets the SpessaSynth's log level in the processor.
 
 ```js
-synth.setLogLeveL(enableInfo, enableWarning, enableGroup);
+synth.setLogLevel(enableInfo, enableWarning, enableGroup);
 ```
 
 - enableInfo - Enable info (verbose)
@@ -206,7 +206,7 @@ synth.connectIndividualOutputs(audioNodes);
 
 ```js
 // create 16 analyzers and connect them
-const analyzers = Array(16).map(() => context.createAnalyser());
+const analyzers = Array.from({ length: 16 }, () => context.createAnalyser());
 synth.connectIndividualOutputs(analyzers);
 ```
 
@@ -218,7 +218,7 @@ Disconnects individual channel outputs from given target nodes.
 synth.disconnectIndividualOutputs(audioNodes);
 ```
 
-- audioNodes - `audioNode[]` - an array of exactly 16 `AudioNodes` to disconnect each channel from.
+- audioNodes - `AudioNode[]` - an array of exactly 16 `AudioNodes` to disconnect each channel from.
   The first node disconnects the first channel and so on.
 
 **Example:**
@@ -278,8 +278,8 @@ Stop the given note.
 synth.noteOff(channel, midiNote, (force = false), eventOptions);
 ```
 
-- channel - the MIDI channel to use. It Usually ranges from 0 to 15, but it depends on the channel count.
-- midiNote - the note to play. Ranges from 0 to 127.
+- channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+- midiNote - the note to stop. Ranges from 0 to 127.
 - force - instantly kills the note if true.
 - eventOptions - refer to [event options](#event-options). It can be undefined.
 
@@ -287,7 +287,7 @@ synth.noteOff(channel, midiNote, (force = false), eventOptions);
 
 ```js
 // stop the note 78 (F) on channel 15
-synt.noteOff(15, 77);
+synth.noteOff(15, 77);
 ```
 
 ### stopAll
@@ -399,7 +399,7 @@ synth.polyPressure(channel, midiNote, pressure, eventOptions);
 
 ```js
 // set channel 11 pressure on note 60 (C) to 127 (max)
-synth.polylPressure(11, 60, 127);
+synth.polyPressure(11, 60, 127);
 ```
 
 ### pitchWheel
@@ -436,12 +436,12 @@ synth.pitchWheelRange(channel, range);
 
 ```js
 // set the pitch bend range on channel 0 to +-12 semitones (one octave)
-synth.pitchBendRange(0, 12);
+synth.pitchWheelRange(0, 12);
 ```
 
-!!! TIP
+!!! Tip
 
-    The pitch bend range can be decimal, for example, 0.5 means += half a semitone.
+    The pitch bend range can be decimal, for example, 0.5 means +- half a semitone.
 
 ### programChange
 
@@ -524,7 +524,7 @@ synth.systemExclusive(data, (channelOffset = 0), eventOptions);
   send a system exclusive for channel 0 and specify the channel offset to be 16.
 - eventOptions - refer to [event options](#event-options). It can be undefined.
 
-!!! TIP
+!!! Tip
 
     Refer to [MIDI Implementation](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives) for the list of supported System Exclusives.
 

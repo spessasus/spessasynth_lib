@@ -65,7 +65,7 @@ Optional, the `SynthesizerSnapshot` to apply before starting the render.
 
 #### loopCount
 
-The amount times to loop the song. A number.
+The amount of times to loop the song. A number.
 
 #### soundBankList
 

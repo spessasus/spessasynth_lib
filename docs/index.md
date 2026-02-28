@@ -10,13 +10,13 @@ You've reached the central documentation for the spessasynth_lib library, a powe
 
 _If you're looking for the SpessaSynth web app, it can be found [here](https://spessasus.github.io/SpessaSynth)._
 
-!!! DANGER
+!!! Danger
 
     SpessaSynth 3.27 and below is no longer supported!
 
     [The migration guide for 4.0 is available here.](extra/4-0-migration-guide.md)
 
-!!! WARNING
+!!! Warning
 
     Audio effects are getting integrated into `spessasynth_core` in 4.2.0.
     Read more [here](https://github.com/spessasus/spessasynth_core/pull/58)
@@ -28,11 +28,11 @@ _If you're looking for the SpessaSynth web app, it can be found [here](https://s
 - [WorkerSynthesizer](synthesizer/worker-synthesizer.md) - Responsible for generating sound using Web Workers.
 - [Sequencer](sequencer/index.md) - Responsible for playing the parsed MIDI sequence.
 - [Writing Wave files](writing-files/writing-wav-files.md) - How to write WAV files from `AudioBuffer`.
-- [NPM Exports](extra/all-npm-exports.md) - a listing of all the NPN exports in the `spessasynth_lib` NPM package.
+- [NPM Exports](extra/all-npm-exports.md) - a listing of all the NPM exports in the `spessasynth_lib` NPM package.
 
 !!! Warning
 
-    This wiki only describes the WebAudio API wrappers that spesasynth_lib itself provides.
+    This wiki only describes the WebAudio API wrappers that `spessasynth_lib` itself provides.
     Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
 
     If what you're looking for isn't in this wiki, it's probably there.
@@ -44,6 +44,6 @@ _If you're looking for the SpessaSynth web app, it can be found [here](https://s
 - [SF2 RMIDI Extension Specification](https://github.com/spessasus/sf2-rmidi-specification) - The specification for the SF2 RMIDI format that spessasynth supports.
 - [Multi-Port files explained](https://spessasus.github.io/spessasynth_core/extra/about-multi-port/) - Explanation of the Multi-Port MIDI feature.
 
-!!! TIP
+!!! Tip
 
     If you encounter any errors in this documentation, please **open an issue!**

@@ -11,7 +11,7 @@
 
 ## The problem
 
-the `addModule` method uses URL _relative to the page URL_, so I (the creator) can't simply just do:
+the `addModule` method uses a URL _relative to the page URL_, so I (the creator) can't simply just do:
 
 ```ts
 async function addWorkletHelper(context) {
@@ -27,15 +27,14 @@ This forces us to import the worklet manually.
 
 ## The Solution
 
-Copy the `spessasynth_processor.min.js` from `spessasynth_lib/synthetizer` to your destination, for example `src` folder.
+Copy the `spessasynth_processor.min.js` from `node_modules/spessasynth_lib/dist/` to your destination, for example a `public` or `src` folder.
+See [working with browsers](../extra/working-with-browsers.md#copying-the-processor) for an automation example.
 
 ```ts
 await context.audioWorklet.addModule(
-    new ULR("./spessasynth_processor.min.js", import.meta.url)
+    new URL("./spessasynth_processor.min.js", import.meta.url)
 );
 ```
-
-I suggest creating an automation script, such as the one shown [here](../extra/working-with-browsers.md#automation).
 
 !!! Tip
 

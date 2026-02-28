@@ -27,7 +27,7 @@ const file = audioBufferToWav(
     - `artist` - the song's artist
     - `album` - the song's album
     - `genre` - the song's genre
-- `loop` - optional `Object` that will write loop points to the file (using the `cue ` chunk)
+- `loop` - optional `Object` that will write loop points to the file (using the `cue` chunk)
     - `start` - start time in seconds
     - `end` - end time in seconds
 - `channelCount` - optional `number` that limits the channel count to a given number. Otherwise, all channels from `channelOffset` to the last channel are used.

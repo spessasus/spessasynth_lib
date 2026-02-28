@@ -26,10 +26,9 @@ What the script does:
 3. Initializes an `AudioContext` and adds the worklet
 4. Initializes `WorkletSynthesizer` instance
 5. Adds a sound bank to the synthesizer
-6. Adds an `EventListener` for the file input:
-    - Initializes `WorkletSynthesizer` instance
-    - Adds a sound bank to the synthesizer
-    - Initializes a `Sequencer` instance and connects it to the `WorkletSynthesizer` instance we created earlier
-    - Starts the playback via `sequencer.play();`
+6. Initializes a `Sequencer` instance and connects it to the `WorkletSynthesizer`
+7. Adds an `EventListener` for the file input:
+    - Loads the selected MIDI file into the song list
+    - Starts the playback via `sequencer.play()`
 
 It's that simple!

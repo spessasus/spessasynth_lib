@@ -22,7 +22,7 @@ This synthesizer uses a single AudioWorklet to provide real-time playback.
 
 This newer synthesizer uses a Worker communicating with an AudioWorklet through a MessageChannel to provide real-time playback.
 
-## Advantages
+### Advantages
 
 - Separate thread: The worker thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
 - Integrated worklet: there's no need to copy any js files as the worklet is embedded into the code.
@@ -31,7 +31,7 @@ This newer synthesizer uses a Worker communicating with an AudioWorklet through 
 - Not affected by the [Chromium SF3 audio bug](https://github.com/spessasus/spessasynth_lib/issues/8).
 - Direct SF/MIDI/audio export right in the worker, without transferring any large ArrayBuffers or freezing the main thread.
 
-## Disadvantages
+### Disadvantages
 
 - Less stable audio engine: The audio processing is separated into two threads, increasing the potential stutters.
 - Less accurate real-time inputs: calling note-on, note-off, etc. in real-time is less precise than with the Worklet.

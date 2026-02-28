@@ -1,6 +1,6 @@
 ## The Sound Bank Manager
 
-The sound bank manager allows for handling multiple sound bank with a single synthesizer instance.
+The sound bank manager allows for handling multiple sound banks with a single synthesizer instance.
 
 It is accessible via the `synth.soundBankManager` property.
 

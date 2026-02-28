@@ -114,7 +114,7 @@ WorkerSynthesizer.registerPlaybackWorklet(context, (maxQueueSize = 20));
 ```
 
 - context - the context to register the worklet for.
-- maxQueueSize - te maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency. Defaults to 20.
+- maxQueueSize - the maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency. Defaults to 20.
 
 !!! Tip
 
