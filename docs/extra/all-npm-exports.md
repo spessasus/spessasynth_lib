@@ -10,13 +10,13 @@ This is a (non-exhaustive) list of exports in the NPM package.
 
 - `Sequencer` - the Sequencer module for playing back MIDI files.
 - `WorkletSynthesizer` - the synthesizer module for synthesizing audio with AudioWorklets.
-- `WorkerSynthesizer` - the sSynthesizer module for synthesizing audio with Web Workers.
+- `WorkerSynthesizer` - the synthesizer module for synthesizing audio with Web Workers.
 - `DEFAULT_SYNTH_CONFIG` - the default synthesizer configuration.
 
 ### Audio Effects
 
 - `ChorusProcessor` - the chorus effect processor. It can be used without a synthesizer.
-- `getReverbProcessor` - the reverb effect processor. It can be used without a synthesizer.
+- `ReverbProcessor` - the reverb effect processor. It can be used without a synthesizer.
 
 ### MIDI
 

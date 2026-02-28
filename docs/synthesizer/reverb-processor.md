@@ -29,6 +29,8 @@ The impulse response for the reverb, an `AudioBuffer`. Pass undefined to use def
 
 The reverb configuration object, described above.
 
+## Methods
+
 ### update
 
 Updates the reverb with a given config.
@@ -41,8 +43,13 @@ reverbProcessor.update(config);
 
 ### delete
 
-Disconnects and deletes the reverb effect.
+Disconnects and removes the reverb effect. Call this when you are done with the processor to clean up.
+
+```ts
+reverbProcessor.delete();
+```
 
 ### connect, disconnect
 
 Mirror the regular WebAudio API connecting and disconnecting functions.
+Connect nodes to the processor's `input` property, or use `reverbProcessor.connect(destinationNode)` to route the output.

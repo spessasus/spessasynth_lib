@@ -73,7 +73,7 @@ esbuild main.js --bundle --minify --sourcemap=linked --format=esm --platform=bro
 
 This will produce an output file called `main.min.js` and `main.min.js.map` for debugging. Make sure to exclude the latter from production builds!
 
-### Linking to HTMl
+### Linking to HTML
 
 Link the minified file to your HTML script.
 

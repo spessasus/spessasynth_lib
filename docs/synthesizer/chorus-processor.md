@@ -55,6 +55,8 @@ How much will oscillator alter the delay in delay nodes, in seconds.
 
 The chorus configuration object, described above.
 
+## Methods
+
 ### update
 
 Updates the chorus with a given config.
@@ -67,8 +69,14 @@ chorusProcessor.update(config);
 
 ### delete
 
-Disconnects and deletes the chorus effect.
+Disconnects and removes the chorus effect. Call this when you are done with the processor to clean up.
+
+```ts
+chorusProcessor.delete();
+```
 
 ### connect, disconnect
 
 Mirror the regular WebAudio API connecting and disconnecting functions.
+Connect nodes to the processor's `input` property,
+or use `chorusProcessor.connect(destinationNode)` to route the output.

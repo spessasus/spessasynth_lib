@@ -1,6 +1,6 @@
 # Getting Started with spessasynth_lib
 
-!!! TIP
+!!! Tip
 
     If you encounter any errors in this documentation, please **open an issue!**
 
@@ -60,7 +60,7 @@ That's it! Now you can move onto learning how a [simple MIDI player](simple-exam
 
 !!! Warning
 
-    This wiki only describes the WebAudio API wrappers that spesasynth_lib itself provides.
+    This wiki only describes the WebAudio API wrappers that `spessasynth_lib` itself provides.
     Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
 
     If what you're looking for isn't in this wiki, it's probably there.

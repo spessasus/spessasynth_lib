@@ -12,7 +12,7 @@
     It is recommended to use a simple playback Audio Worklet such as [this one](https://github.com/spessasus/SpessaFont/blob/1b6e034cfefa2f964efc7cba5838a42ee26fcb0f/public/audio_worklet.js).
 
 Sometimes, it is necessary for the script to have direct access to the synthesizer's audio engine for various reasons.
-While one can use `spesasynth_core` directly, this will require implementing the audio effects manually.
+While one can use `spessasynth_core` directly, this will require implementing the audio effects manually.
 
 This page is intended to show how to use both `spessasynth_core` and `spessasynth_lib` to maintain full feature set of the `Synthesizer` class,
 while rendering in the main thread and having the full access to the audio engine.

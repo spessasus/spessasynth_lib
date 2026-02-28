@@ -15,14 +15,11 @@ It is accessible via the `synth.eventHandler` property.
 synth.eventHandler.addEvent(name, id, callback);
 ```
 
-- name - the type of the event. refer to the table below.
-- id - unique id for the event listener. Can be anything, as long as it's unique.
-- callback.
-  a function that gets called on the event.
-  Callback takes an `object` argument.
-  The properties depend on the
-  event type.
-  Refer to the table below.
+- name - the type of the event. Refer to the [event types table](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/).
+- id - a unique string identifier for this listener. Required; use it to remove the listener later or to overwrite an existing one with the same id.
+- callback - a function that gets called on the event.
+  It receives an `object` argument; the properties depend on the event type.
+  Refer to the [event types table](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/).
 
 **Example:**
 
