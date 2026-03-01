@@ -69,6 +69,9 @@ export function renderAudioWorker(
     });
     const rendererSeq = new SpessaSynthSequencer(rendererSynth);
 
+    // No cap
+    rendererSynth.setMasterParameter("autoAllocateVoices", true);
+
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
         rendererSynth.soundBankManager.addSoundBank(
