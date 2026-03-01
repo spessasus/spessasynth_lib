@@ -18,22 +18,6 @@ Below is the `SynthConfig` configuration object that can be passed to both synth
 Indicates if the [one output mode](#one-output-mode) should be enabled.
 A boolean.
 
-### initializeChorusProcessor
-
-If the chorus processor should be initialized during creation.
-Note that setting this to false will not initialize a chorus processor.
-If you want to enable it at some point, set this to true and set the chorus gain to 0.
-
-A boolean.
-
-### initializeReverbProcessor
-
-If the reverb processor should be initialized during creation.
-Note that setting this to false will not allow it to be used later.
-If you want to enable it at some point, set this to true and set the reverb gain to 0.
-
-A boolean.
-
 ### enableEventSystem
 
 If the event system should be enabled. This can only be set once.
@@ -109,14 +93,6 @@ A promise that gets resolved when the synthesizer gets fully initialized.
 !!! Warning
 
     Remember to wait for this promise before playing anything or rendering audio!
-
-### reverbProcessor
-
-If the [reverb processor](reverb-processor.md) was enabled in the configuration, it will be here, otherwise undefined.
-
-### chorusProcessor
-
-If the [chorus processor](chorus-processor.md) was enabled in the configuration, it will be here, otherwise undefined.
 
 ### channelsAmount
 
@@ -215,34 +191,6 @@ with `chorusConfig` and `reverbConfig` of this synthesizer.
 
 Add a new MIDI channel. Invokes a `newChannel` event.
 
-### setVibrato
-
-Sets custom vibrato for the channel.
-
-```js
-synth.setVibrato(channel, value);
-```
-
-- channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
-- value - the vibrato value. Three properties:
-    - delay - in seconds.
-    - depth - in cents.
-    - rate - in Hertz.
-
-**Example:**
-
-```js
-synth.setVibrato(0, {
-    rate: 7.6,
-    depth: 19.7,
-    delay: 1.5
-});
-```
-
-!!! Warning
-
-    This will be removed in v4.2!
-
 ### connectIndividualOutputs
 
 Connects individual channel outputs to given target nodes.
@@ -279,15 +227,6 @@ synth.disconnectIndividualOutputs(audioNodes);
 // disconnect the analyzers from earlier
 synth.disconnectIndividualOutputs(analyzers);
 ```
-
-### disableGSNRParams
-
-Disables GS NRPN (Non-Registered Parameter Number) messages from being recognized.
-Currently, the custom vibrato and Time-Variant Filter.
-
-!!! Warning
-
-    This will be removed in v4.2!
 
 ### sendMessage
 
@@ -654,6 +593,52 @@ synth.setDrums(10, true);
 Yes please!
 
 Cranks the reverb up to the max and returns a string that says: `That's the spirit!`
+
+## Deprecated methods and parameters
+
+!!! Warning
+
+    These are deprecated and may be removed without further notice!
+
+### setVibrato
+
+Sets custom vibrato for the channel. _Deprecated, does nothing!_
+
+```js
+synth.setVibrato(channel, value);
+```
+
+- channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+- value - the vibrato value. Three properties:
+    - delay - in seconds.
+    - depth - in cents.
+    - rate - in Hertz.
+
+**Example:**
+
+```js
+synth.setVibrato(0, {
+    rate: 7.6,
+    depth: 19.7,
+    delay: 1.5
+});
+```
+
+### disableGSNRParams
+
+Deprecated, please use master parameters.
+Disables GS NRPN (Non-Registered Parameter Number) messages from being recognized.
+Currently, the custom vibrato and Time-Variant Filter.
+
+### reverbProcessor
+
+Will be undefined!
+If the reverb processor was enabled in the configuration, it will be here, otherwise undefined.
+
+### chorusProcessor
+
+Will be undefined!
+If the chorus processor was enabled in the configuration, it will be here, otherwise undefined.
 
 ## One output mode
 

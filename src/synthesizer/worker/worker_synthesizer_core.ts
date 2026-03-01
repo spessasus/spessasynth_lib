@@ -77,8 +77,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     m.data.options
                 );
                 const transferable: Transferable[] = [];
-                for (const r of rendered.reverb) transferable.push(r.buffer);
-                for (const c of rendered.chorus) transferable.push(c.buffer);
+                for (const r of rendered.effects) transferable.push(r.buffer);
                 for (const d of rendered.dry)
                     transferable.push(...d.map((c) => c.buffer));
                 this.postReady("renderAudio", rendered, transferable);
@@ -190,36 +189,32 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             return;
         }
         // Data is encoded into a single f32 array as follows
-        // RevL, revR
-        // ChrL, chrR,
+        // WetL, WetR,
         // Dry1L, dry1R
         // DryNL, dryNR
         // Dry16L, dry16R
         // To improve performance
         const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
-        const data = new Float32Array(BLOCK_SIZE * 36);
+        const data = new Float32Array(BLOCK_SIZE * 34);
         let byteOffset = 0;
-        const revR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const revL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-        const rev = [revL, revR];
+        const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const chrL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-        byteOffset += byteStep;
-        const chrR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-        const chr = [chrL, chrR];
         const dry: AudioChunks = [];
         for (let i = 0; i < 16; i++) {
-            byteOffset += byteStep;
             const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
+
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+            byteOffset += byteStep;
+
             dry.push([dryL, dryR]);
         }
         for (const seq of this.sequencers) {
             seq.processTick();
         }
-        this.synthesizer.renderAudioSplit(rev, chr, dry);
+        this.synthesizer.processSplit(dry, wetL, wetR);
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
         const t = this.synthesizer.currentSynthTime;

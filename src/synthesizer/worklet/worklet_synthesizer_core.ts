@@ -85,22 +85,19 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             for (let i = 0; i < 32; i += 2) {
                 channelMap.push([out[i], out[i + 1]]);
             }
-            this.synthesizer.renderAudioSplit(
-                [],
-                [], // Effects are disabled
-                channelMap
-            );
+            this.synthesizer.enableEffects = false;
+            // Effects are disabled
+            this.synthesizer.processSplit(channelMap, out[0], out[0]);
         } else {
-            // 18 outputs, each a stereo one
-            // 0: reverb
-            // 1: chorus
+            // 17 outputs, each a stereo one
+            // 0: Effects
             // 2: channel 1
             // 3: channel 2
             // And so on
-            this.synthesizer.renderAudioSplit(
-                outputs[0], // Reverb
-                outputs[1], // Chorus
-                outputs.slice(2)
+            this.synthesizer.processSplit(
+                outputs.slice(1),
+                outputs[0][0],
+                outputs[0][1]
             );
         }
         const t = this.synthesizer.currentSynthTime;
