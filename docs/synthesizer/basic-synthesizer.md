@@ -180,12 +180,16 @@ synth.setMasterParameter("masterGain", 2);
 
 Get a current [`SynthesizerSnapshot`](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/synthesizer-snapshot/) of the `SpessaSynthProcessor` of the synthesizer.
 
-The returned value is a `LibSynthesizerSnapshot` - an extension of `SynthesizerSnapshot`
-with `chorusConfig` and `reverbConfig` of this synthesizer.
+The returned value is a `SynthesizerSnapshot` instance - the snapshot of the synthesizer in the audio/worker thread.
 
 !!! Info
 
     This method is *asynchronous.*
+
+!!! Warning
+
+    The `LibSynthesizerSnapshot` interface is now identical to `SynthesizerSnapshot`
+    from `spessasynth_core`, and therefore deprecated!
 
 ### addNewChannel
 

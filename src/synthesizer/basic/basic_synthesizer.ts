@@ -315,11 +315,7 @@ export abstract class BasicSynthesizer {
     public async getSnapshot(): Promise<LibSynthesizerSnapshot> {
         return new Promise((resolve) => {
             this.awaitWorkerResponse("synthesizerSnapshot", (s) => {
-                const snapshot = new LibSynthesizerSnapshot(
-                    s.channelSnapshots,
-                    s.masterParameters,
-                    s.keyMappings
-                );
+                const snapshot = LibSynthesizerSnapshot.copyFrom(s);
                 resolve(snapshot);
             });
             this.post({
