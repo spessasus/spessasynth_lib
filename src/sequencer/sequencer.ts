@@ -394,7 +394,7 @@ export class Sequencer {
 
             case "midiError": {
                 this.callEventInternal("midiError", m.data);
-                throw new Error(`MIDI parsing error:  ${m.data}`);
+                break;
             }
 
             case "getMIDI": {
