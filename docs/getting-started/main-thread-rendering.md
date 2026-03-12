@@ -26,8 +26,7 @@ A simple audio loop that achieves this is as follows:
 1. Create the `Float32Array` buffers for the dry, chorus and reverb outputs.
 2. Perform any custom tasks needed and then render the audio
 3. Send the processed audio to playback nodes, like a custom audio worklet or `AudioBufferSourceNode`s
-4. The node/s play back to the target node and the effect processors (three `BufferSource`s for three nodes)
-5. The effects are connected to the target node as well, so they process the audio as needed
+4. The node plays back to the target node (a simple `BufferSource`)
 
 ## Showing channel status example
 

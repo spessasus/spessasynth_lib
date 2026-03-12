@@ -7,9 +7,7 @@ export { WorkletSynthesizer } from "./synthesizer/worklet/worklet_synthesizer.js
 export { WorkerSynthesizer } from "./synthesizer/worker/worker_synthesizer.ts";
 export { WorkerSynthesizerCore } from "./synthesizer/worker/worker_synthesizer_core.ts";
 export { Sequencer } from "./sequencer/sequencer.js";
-export { ChorusProcessor } from "./synthesizer/audio_effects/chorus.js";
-export { ReverbProcessor } from "./synthesizer/audio_effects/reverb.ts";
 export { audioBufferToWav } from "./utils/buffer_to_wav.js";
 export { MIDIDeviceHandler } from "./external_midi/midi_handler.js";
 export { WebMIDILinkHandler } from "./external_midi/web_midi_link.js";
-export { DEFAULT_SYNTH_CONFIG } from "./synthesizer/audio_effects/effects_config.js";
+export { DEFAULT_SYNTH_CONFIG } from "./synthesizer/basic/synth_config.ts";

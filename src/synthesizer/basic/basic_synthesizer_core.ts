@@ -42,7 +42,10 @@ export abstract class BasicSynthesizerCore {
 
     protected constructor(
         sampleRate: number,
-        options: SynthProcessorOptions,
+        options: Omit<
+            SynthProcessorOptions,
+            "reverbProcessor" | "chorusProcessor" | "delayProcessor"
+        >,
         postMessage: PostMessageSynthCore
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
@@ -181,31 +184,6 @@ export abstract class BasicSynthesizerCore {
                     this.synthesizer.resetAllControllers();
                 } else {
                     channelObject?.resetControllers();
-                }
-                break;
-            }
-
-            case "setChannelVibrato": {
-                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                    for (const chan of this.synthesizer.midiChannels) {
-                        if (m.data.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                            chan.disableAndLockGSNRPN();
-                        } else {
-                            chan.setVibrato(
-                                m.data.depth,
-                                m.data.rate,
-                                m.data.delay
-                            );
-                        }
-                    }
-                } else if (m.data.rate === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                    channelObject?.disableAndLockGSNRPN();
-                } else {
-                    channelObject?.setVibrato(
-                        m.data.depth,
-                        m.data.rate,
-                        m.data.delay
-                    );
                 }
                 break;
             }

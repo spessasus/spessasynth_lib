@@ -168,12 +168,6 @@ interface BasicSynthesizerMessageData {
     };
     // Note: if channel is -1 then reset all channels
     ccReset: null;
-    // Note: if channel is -1 then stop all channels note 2: if rate is -1, it means locking
-    setChannelVibrato: {
-        rate: number;
-        depth: number;
-        delay: number;
-    };
     // Force: (0 false, 1 true) note: if channel is -1 then stop all channels
     stopAll: number;
     // Is muted?
@@ -267,8 +261,7 @@ export interface SynthesizerReturn {
     startOfflineRender: null;
     synthesizerSnapshot: SynthesizerSnapshot;
     renderAudio: {
-        reverb: [Float32Array, Float32Array];
-        chorus: [Float32Array, Float32Array];
+        effects: [Float32Array, Float32Array];
         dry: [Float32Array, Float32Array][];
     };
     workerSynthWriteFile: {

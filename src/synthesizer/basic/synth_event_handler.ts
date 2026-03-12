@@ -63,7 +63,8 @@ export class SynthEventHandler {
         channelPropertyChange: new Map<
             string,
             ProcessorEventCallback<"channelPropertyChange">
-        >() // Called when a channel property changes
+        >(), // Called when a channel property changes
+        effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
     };
 
     /**

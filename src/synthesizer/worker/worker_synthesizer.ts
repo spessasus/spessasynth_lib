@@ -1,6 +1,6 @@
 import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import type { SynthConfig } from "../audio_effects/types.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../audio_effects/effects_config.ts";
+import type { SynthConfig } from "../basic/types.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import {
     getPlaybackWorkletURL,
@@ -20,8 +20,6 @@ import {
     DEFAULT_WORKER_RENDER_AUDIO_OPTIONS,
     type WorkerRenderAudioOptions
 } from "./render_audio_worker.ts";
-import { ChorusProcessor } from "../audio_effects/chorus.ts";
-import { ReverbProcessor } from "../audio_effects/reverb.ts";
 
 const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
     trim: true,
@@ -288,9 +286,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         }
         return new Promise((resolve) => {
             // First pass: Worker renders the dry audio
-            this.awaitWorkerResponse("renderAudio", async (data) => {
+            this.awaitWorkerResponse("renderAudio", (data) => {
                 this.revokeProgressTracker("renderAudio");
-                const bufferLength = data.reverb[0].length;
+                const bufferLength = data.dry[0][0].length;
                 // Convert to audio buffers
                 const dryChannels = data.dry.map((dryPair) => {
                     const buffer = new AudioBuffer({
@@ -308,90 +306,24 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     );
                     return buffer;
                 });
-
-                // No effects, just return the dry buffers
-                if (!options.enableEffects) {
-                    resolve(dryChannels);
-                    return;
-                }
-                // Effects enabled: render them in the second pass
-                const reverb = new AudioBuffer({
-                    sampleRate,
-                    numberOfChannels: 2,
-                    length: bufferLength
-                });
-                reverb.copyToChannel(
-                    data.reverb[0] as Float32Array<ArrayBuffer>,
-                    0
-                );
-                reverb.copyToChannel(
-                    data.reverb[1] as Float32Array<ArrayBuffer>,
-                    1
-                );
-                const chorus = new AudioBuffer({
-                    sampleRate,
-                    numberOfChannels: 2,
-                    length: bufferLength
-                });
-                chorus.copyToChannel(
-                    data.chorus[0] as Float32Array<ArrayBuffer>,
-                    0
-                );
-                chorus.copyToChannel(
-                    data.chorus[1] as Float32Array<ArrayBuffer>,
-                    1
-                );
-
-                // Effects can only be enabled for a single dry channel
-                const dry = dryChannels[0];
-
-                // Prepare the context
-                const offline = new OfflineAudioContext({
-                    sampleRate,
-                    numberOfChannels: 2,
-                    length: bufferLength
-                });
-
-                // Connect the playback buffers
-                const dryPlayer = offline.createBufferSource();
-                dryPlayer.buffer = dry;
-                dryPlayer.connect(offline.destination);
-                dryPlayer.start();
-
-                // Chorus
-                const chorusProcessor = new ChorusProcessor(
-                    offline,
-                    this?.chorusProcessor?.config
-                );
-                const chorusPlayer = offline.createBufferSource();
-                chorusPlayer.buffer = chorus;
-                chorusPlayer.connect(chorusProcessor.input);
-                chorusProcessor.connect(offline.destination);
-                chorusPlayer.start();
-
-                // Reverb
-                const reverbProcessor = new ReverbProcessor(
-                    offline,
-                    this.reverbProcessor?.config
-                );
-                await reverbProcessor.isReady;
-                const reverbPlayer = offline.createBufferSource();
-                reverbPlayer.connect(reverbProcessor.input);
-                reverbProcessor.connect(offline.destination);
-                reverbPlayer.buffer = reverb;
-                reverbPlayer.start();
-
-                const realDuration = bufferLength / sampleRate;
-                const updateInterval = setInterval(() => {
-                    options?.progressCallback?.(
-                        offline.currentTime / realDuration,
+                if (options.enableEffects) {
+                    // Append effects
+                    const buffer = new AudioBuffer({
+                        sampleRate,
+                        numberOfChannels: 2,
+                        length: bufferLength
+                    });
+                    buffer.copyToChannel(
+                        data.effects[0] as Float32Array<ArrayBuffer>,
+                        0
+                    );
+                    buffer.copyToChannel(
+                        data.effects[1] as Float32Array<ArrayBuffer>,
                         1
                     );
-                });
-                // Second pass: effects
-                const rendered = await offline.startRendering();
-                clearInterval(updateInterval);
-                resolve([rendered]);
+                    dryChannels.push(buffer);
+                }
+                resolve(dryChannels);
                 return;
             });
             // Assign progress tracker and render
