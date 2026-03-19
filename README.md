@@ -45,7 +45,6 @@ It allows you to:
 - **[Detailed documentation:](https://spessasus.github.io/spessasynth_lib/)** _With [examples!](https://spessasus.github.io/spessasynth_lib/getting-started/#examples)_
 - **Easy to Use:** _Basic setup is just [two lines of code!](https://spessasus.github.io/spessasynth_lib/getting-started/#minimal-setup)_
 - **No external dependencies:** _Just spessasynth_core!_
-- **Reverb and chorus support:** [customizable](https://spessasus.github.io/spessasynth_lib/synthesizer/#effects-configuration-object) and can be used standalone!
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)!
 - **AudioWorklet synthesizer:**
     - Runs in a **separate thread** for maximum performance!
