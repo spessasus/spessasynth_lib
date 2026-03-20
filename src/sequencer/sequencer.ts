@@ -16,14 +16,10 @@ import type {
     WorkletSequencerEventType
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
-import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
+import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts"; // noinspection JSUnusedGlobalSymbols
 
 // noinspection JSUnusedGlobalSymbols
 export class Sequencer {
-    /**
-     * The current MIDI data, with the exclusion of the embedded sound bank and event data.
-     */
-    public midiData?: MIDIData;
     /**
      * The current MIDI data for all songs, like the midiData property.
      */
@@ -41,12 +37,14 @@ export class Sequencer {
      */
     public readonly synth: BasicSynthesizer;
     /**
+     * The current MIDI data, with the exclusion of the embedded sound bank and event data.
+     */
+    public midiData?: MIDIData;
+    /**
      * The MIDI port to play to.
      */
     private midiOut?: { send: (data: number[]) => unknown };
-
     private isLoading = false;
-
     /**
      * Indicates if the sequencer is paused.
      * Paused if a number, undefined if playing.
@@ -58,7 +56,6 @@ export class Sequencer {
      * Absolute playback startTime, bases on the synth's time.
      */
     private absoluteStartTime: number;
-
     /**
      * For sending the messages to the correct SpessaSynthSequencer in core
      */
@@ -96,10 +93,21 @@ export class Sequencer {
         );
     }
 
+    private _shuffledSongIndexes: number[] = [];
+
+    /**
+     * The shuffled song indexes.
+     * This is used when shuffleMode is enabled.
+     */
+    public get shuffledSongIndexes() {
+        return this._shuffledSongIndexes;
+    }
+
     private _songIndex = 0;
 
     /**
      * The current song number in the playlist.
+     * If shuffle Mode is enabled, this is the index of the shuffled song list.
      */
     public get songIndex() {
         return this._songIndex;
@@ -107,6 +115,7 @@ export class Sequencer {
 
     /**
      * The current song number in the playlist.
+     * If shuffle Mode is enabled, this is the index of the shuffled song list.
      */
     public set songIndex(value: number) {
         /**
@@ -210,14 +219,20 @@ export class Sequencer {
     private _shuffleSongs = false;
 
     /**
-     * Indicates if the song order is random.
+     * Controls if the sequencer should shuffle the songs in the song list.
+     * If true, the sequencer will play the songs in a random order.
+     *
+     * Songs are shuffled on a `loadNewSongList` call.
      */
     public get shuffleSongs() {
         return this._shuffleSongs;
     }
 
     /**
-     * Indicates if the song order is random.
+     * Controls if the sequencer should shuffle the songs in the song list.
+     * If true, the sequencer will play the songs in a random order.
+     *
+     * Songs are shuffled on a `loadNewSongList` call.
      */
     public set shuffleSongs(value: boolean) {
         this._shuffleSongs = value;
@@ -361,7 +376,10 @@ export class Sequencer {
 
             case "songChange": {
                 this._songIndex = m.data.songIndex;
-                const songChangeData = this.songListData[this._songIndex];
+                const idx = this._shuffleSongs
+                    ? this._shuffledSongIndexes[this._songIndex]
+                    : this._songIndex;
+                const songChangeData = this.songListData[idx];
                 this.midiData = songChangeData;
                 this.isLoading = false;
                 this.absoluteStartTime = 0;
@@ -485,7 +503,7 @@ export class Sequencer {
                 this.songListData = m.data.newSongList.map(
                     (m) => new MIDIData(m)
                 );
-                this.midiData = this.songListData[this._songIndex];
+                this._shuffledSongIndexes = m.data.shuffledSongIndexes;
                 break;
             }
 

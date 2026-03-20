@@ -50,7 +50,11 @@ export interface SequencerMessageData {
 }
 
 export type SequencerReturnMessage =
-    | (SequencerEvent & { id: number })
+    | (Exclude<SequencerEvent, { type: "songListChange" }> & { id: number })
+    | (Extract<SequencerEvent, { type: "songListChange" }> & {
+          data: { shuffledSongIndexes: number[] };
+          id: number;
+      })
     | { type: "getMIDI"; data: BasicMIDI; id: number }
     | { type: "midiError"; data: Error; id: number }
     | { type: "sync"; data: number; id: number };

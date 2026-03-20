@@ -77,7 +77,10 @@ export abstract class BasicSynthesizerCore {
                     type: "sequencerReturn",
                     data: {
                         type: e.type,
-                        data: { newSongList: midiDatas },
+                        data: {
+                            newSongList: midiDatas,
+                            shuffledSongIndexes: sequencer.shuffledSongIndexes
+                        },
                         id: sequencerID
                     },
                     currentTime: this.synthesizer.currentSynthTime
@@ -141,7 +144,7 @@ export abstract class BasicSynthesizerCore {
         delete this.synthesizer;
         // @ts-expect-error JS Deletion
         // noinspection JSConstantReassignment
-        delete this.sequencer;
+        delete this.sequencers;
     }
 
     protected handleMessage(m: BasicSynthesizerMessage) {

@@ -42,6 +42,12 @@ Note that the `embeddedSoundBank` property and `events` in the tracks are both e
 The data of all the sequences, stored like the `midiData` property, but for all songs (an array).
 Allows creating playlists with the decoded titles and metadata.
 
+### shuffledSongIndexes
+
+The shuffled song indexes.
+This is used when shuffle mode is enabled.
+An array of numbers.
+
 ### eventHandler
 
 Allows setting up custom event listeners for the sequencer.
@@ -100,10 +106,10 @@ Controls how fast the song plays (1 is normal, 0.5 is half speed etc.)
 
 ### shuffleSongs
 
-Boolean that controls if the song order is random.
-Note that setting this to on will change the current song.
-The order is randomized once, not every time the song changes, providing consistent order.
-Randomization can occur again after the last song is reached.
+Controls if the sequencer should shuffle the songs in the song list.
+If true, the sequencer will play the songs in a random order.
+
+Songs are shuffled on a `loadNewSongList` call.
 
 ### currentTime
 
