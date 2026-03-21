@@ -3,7 +3,7 @@
 <img src='https://raw.githubusercontent.com/spessasus/SpessaSynth/refs/heads/master/src/website/spessasynth_logo_rounded.png' width='300' alt='SpessaSynth logo'>
 </p>
 
-_A powerful SF2/DLS/MIDI TypeScript/JavaScript library for the browsers, based on spessasynth_core.
+_A powerful multipurpose SF2/DLS/MIDI TypeScript/JavaScript library for the browsers, based on spessasynth_core.
 This is a WebAudioAPI wrapper for the [spessasynth_core](https://github.com/spessasus/spessasynth_core) library._
 
 It allows you to:
@@ -91,9 +91,15 @@ document.getElementById("button").onclick = async () => {
 };
 ```
 
-# License
+## License
 
 Copyright © 2026 Spessasus
 Licensed under the Apache-2.0 License.
 
+#### Legal
+
+This project is in no way endorsed or otherwise affiliated with the MIDI Manufacturers Association,
+Roland Corporation, Yamaha Corporation, Creative Technology Ltd. or E-mu Systems, Inc.,
+or any other organization mentioned.
 SoundFont® is a registered trademark of Creative Technology Ltd.
+All other trademarks are the property of their respective owners.

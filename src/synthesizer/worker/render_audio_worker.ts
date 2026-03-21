@@ -64,14 +64,10 @@ export function renderAudioWorker(
     sampleRate: number,
     options: WorkerRenderAudioOptions
 ): ReturnedChunks {
+    // Initialize synthesizer
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
         enableEventSystem: false
     });
-    const rendererSeq = new SpessaSynthSequencer(rendererSynth);
-
-    // No cap
-    rendererSynth.setMasterParameter("autoAllocateVoices", true);
-
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
         rendererSynth.soundBankManager.addSoundBank(
@@ -102,13 +98,20 @@ export function renderAudioWorker(
     // Total duration in samples
     const sampleDuration = sampleRate * duration;
 
-    // Initialize
+    // Initialize sequencer
+    const rendererSeq = new SpessaSynthSequencer(rendererSynth);
     rendererSeq.loopCount = options.loopCount;
     if (options.preserveSynthParams) {
+        // Apply snapshot if needed
         rendererSeq.playbackRate = seq.playbackRate;
         const snapshot = this.synthesizer.getSnapshot();
         rendererSynth.applySynthesizerSnapshot(snapshot);
     }
+
+    // Apply no voice cap (applying snapshot resets master parameters)
+    rendererSynth.setMasterParameter("autoAllocateVoices", true);
+
+    // Begin playing
     rendererSeq.loadNewSongList([parsedMid]);
     rendererSeq.play();
 

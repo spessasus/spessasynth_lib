@@ -63,6 +63,10 @@ The MIDI to render, a [`BasicMIDI`](https://spessasus.github.io/spessasynth_core
 
 Optional, the `SynthesizerSnapshot` to apply before starting the render.
 
+!!! Warning
+
+    The master parameters will be replaced with the `SynthesizerSnapshot` ones.
+
 #### loopCount
 
 The amount of times to loop the song. A number.
