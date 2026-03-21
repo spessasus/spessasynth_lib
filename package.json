@@ -15,7 +15,7 @@
         "debug": "tsx build_scripts/debug_enable.ts",
         "release": "tsx build_scripts/debug_disable.ts",
         "prepack": "npm run build:npm",
-        "prepublishOnly": "npm run release && npm run build",
+        "prepublishOnly": "npm run release",
         "prepare": "husky install"
     },
     "repository": {
