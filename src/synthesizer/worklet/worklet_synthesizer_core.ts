@@ -101,7 +101,10 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             );
         }
         const t = this.synthesizer.currentSynthTime;
-        if (t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL) {
+        if (
+            this.enableEventSystem &&
+            t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
+        ) {
             for (let id = 0; id < this.sequencers.length; id++) {
                 this.post({
                     type: "sequencerReturn",
@@ -127,11 +130,12 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     }
 
     private startOfflineRender(config: OfflineRenderWorkletData) {
+        // Create a new sequencer if there are none
+        // (common use case, example  offline_audio.js)
+        if (this.sequencers.length === 0) this.createNewSequencer();
+
         // Use the first sequencer
         const sq = this.sequencers[0];
-        if (!sq) {
-            return;
-        }
 
         // Load the bank list
         for (const [i, b] of config.soundBankList.entries()) {

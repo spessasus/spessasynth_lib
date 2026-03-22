@@ -878,7 +878,7 @@ export abstract class BasicSynthesizer {
             }
 
             case "sequencerReturn": {
-                this.sequencers[m.data.id](m.data);
+                this.sequencers[m.data.id]?.(m.data);
                 break;
             }
 

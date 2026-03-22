@@ -218,7 +218,10 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
         const t = this.synthesizer.currentSynthTime;
-        if (t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL) {
+        if (
+            this.enableEventSystem &&
+            t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
+        ) {
             for (let id = 0; id < this.sequencers.length; id++) {
                 this.post({
                     type: "sequencerReturn",

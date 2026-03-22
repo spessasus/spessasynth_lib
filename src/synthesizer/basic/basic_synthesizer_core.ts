@@ -39,6 +39,7 @@ export abstract class BasicSynthesizerCore {
      * @protected
      */
     protected alive = false;
+    protected readonly enableEventSystem;
 
     protected constructor(
         sampleRate: number,
@@ -49,6 +50,7 @@ export abstract class BasicSynthesizerCore {
         postMessage: PostMessageSynthCore
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
+        this.enableEventSystem = options.enableEventSystem;
         this.post = postMessage;
 
         // Prepare synthesizer connections
@@ -68,6 +70,7 @@ export abstract class BasicSynthesizerCore {
 
         // Prepare sequencer connections
         sequencer.onEventCall = (e) => {
+            if (!this.enableEventSystem) return; // Processor already respects enabling/disabling event system
             if (e.type === "songListChange") {
                 const songs = e.data.newSongList;
                 const midiDatas = songs.map((s) => {
