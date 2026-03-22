@@ -49,6 +49,9 @@ ehthumbs_vista.db
 # Eslint cache
 .eslintcache
 
+# Cache
+.cache
+
 # Dump file
 *.stackdump
 

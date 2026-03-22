@@ -347,7 +347,29 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Connects the individual audio outputs to the given audio nodes. In the app, it's used by the renderer.
+     * Connects a given channel output to the given audio node.
+     * Note that this output is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
+     * @param targetNode The node to connect to.
+     * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
+     * @returns The target node.
+     */
+    public connectChannel(targetNode: AudioNode, channelNumber: number) {
+        this.worklet.connect(targetNode, (channelNumber % 16) + 1);
+        return targetNode;
+    }
+
+    /**
+     * Disconnects a given channel output to the given audio node.
+     * @param targetNode The node to disconnect from.
+     * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
+     */
+    public disconnectChannel(targetNode: AudioNode, channelNumber: number) {
+        this.worklet.disconnect(targetNode, (channelNumber % 16) + 1);
+    }
+
+    /**
+     * Connects the individual audio outputs to the given audio nodes.
+     * Note that these outputs is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
      * @param audioNodes Exactly 16 outputs.
      */
     public connectIndividualOutputs(audioNodes: AudioNode[]) {
@@ -355,18 +377,14 @@ export abstract class BasicSynthesizer {
             throw new Error(`input nodes amount differs from the system's outputs amount!
             Expected ${this._outputsAmount} got ${audioNodes.length}`);
         }
-        for (
-            let outputNumber = 0;
-            outputNumber < this._outputsAmount;
-            outputNumber++
-        ) {
+        for (let channel = 0; channel < this._outputsAmount; channel++) {
             // + 1 because effects come first!
-            this.worklet.connect(audioNodes[outputNumber], outputNumber + 1);
+            this.connectChannel(audioNodes[channel], channel);
         }
     }
 
     /**
-     * Disconnects the individual audio outputs to the given audio nodes. In the app, it's used by the renderer.
+     * Disconnects the individual audio outputs from the given audio nodes.
      * @param audioNodes Exactly 16 outputs.
      */
     public disconnectIndividualOutputs(audioNodes: AudioNode[]) {
@@ -374,13 +392,9 @@ export abstract class BasicSynthesizer {
             throw new Error(`input nodes amount differs from the system's outputs amount!
             Expected ${this._outputsAmount} got ${audioNodes.length}`);
         }
-        for (
-            let outputNumber = 0;
-            outputNumber < this._outputsAmount;
-            outputNumber++
-        ) {
-            // + 2 because chorus and reverb come first!
-            this.worklet.disconnect(audioNodes[outputNumber], outputNumber + 2);
+        for (let channel = 0; channel < this._outputsAmount; channel++) {
+            // + 1 because effects come first!
+            this.disconnectChannel(audioNodes[channel], channel);
         }
     }
 
@@ -404,7 +418,7 @@ export abstract class BasicSynthesizer {
         channelOffset = 0,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        this._sendInternal(message, channelOffset, false, eventOptions);
+        this._sendInternal(message, channelOffset, eventOptions);
     }
 
     /**
@@ -435,13 +449,11 @@ export abstract class BasicSynthesizer {
      * Stops playing a note.
      * @param channel Usually 0-15: the channel of the note.
      * @param midiNote {number} 0-127 the key number of the note.
-     * @param force Instantly kills the note if true.
      * @param eventOptions Additional options for this command.
      */
     public noteOff(
         channel: number,
         midiNote: number,
-        force = false,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         midiNote %= 128;
@@ -451,7 +463,6 @@ export abstract class BasicSynthesizer {
         this._sendInternal(
             [midiMessageTypes.noteOff | ch, midiNote],
             offset,
-            force,
             eventOptions
         );
     }
@@ -473,14 +484,12 @@ export abstract class BasicSynthesizer {
      * @param channel Usually 0-15: the channel to change the controller.
      * @param controllerNumber 0-127 the MIDI CC number.
      * @param controllerValue 0-127 the controller value.
-     * @param force Forces the controller-change message, even if it's locked or gm system is set and the cc is bank select.
      * @param eventOptions Additional options for this command.
      */
     public controllerChange(
         channel: number,
         controllerNumber: MIDIController,
         controllerValue: number,
-        force = false,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         if (controllerNumber > 127 || controllerNumber < 0) {
@@ -498,7 +507,6 @@ export abstract class BasicSynthesizer {
                 controllerValue
             ],
             offset,
-            force,
             eventOptions
         );
     }
@@ -608,18 +616,25 @@ export abstract class BasicSynthesizer {
      * Sets the channel's pitch wheel range, in semitones.
      * @param channel Usually 0-15: the channel to change.
      * @param range The bend range in semitones.
+     * @param eventOptions Additional options for this command.
      */
-    public pitchWheelRange(channel: number, range: number) {
+    public pitchWheelRange(
+        channel: number,
+        range: number,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    ) {
         // Set range
         this.controllerChange(
             channel,
             midiControllers.registeredParameterMSB,
-            0
+            0,
+            eventOptions
         );
         this.controllerChange(
             channel,
             midiControllers.registeredParameterLSB,
-            0
+            0,
+            eventOptions
         );
         this.controllerChange(channel, midiControllers.dataEntryMSB, range);
 
@@ -627,29 +642,41 @@ export abstract class BasicSynthesizer {
         this.controllerChange(
             channel,
             midiControllers.registeredParameterMSB,
-            127
+            127,
+            eventOptions
         );
         this.controllerChange(
             channel,
             midiControllers.registeredParameterLSB,
-            127
+            127,
+            eventOptions
         );
-        this.controllerChange(channel, midiControllers.dataEntryMSB, 0);
+        this.controllerChange(
+            channel,
+            midiControllers.dataEntryMSB,
+            0,
+            eventOptions
+        );
     }
 
     /**
      * Changes the program for a given channel
      * @param channel Usually 0-15: the channel to change.
      * @param programNumber 0-127 the MIDI patch number.
-     * defaults to false
+     * @param eventOptions Additional options for this command.
      */
-    public programChange(channel: number, programNumber: number) {
+    public programChange(
+        channel: number,
+        programNumber: number,
+        eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
+    ) {
         const ch = channel % 16;
         const offset = channel - ch;
         programNumber %= 128;
         this.sendMessage(
             [midiMessageTypes.programChange | ch, programNumber],
-            offset
+            offset,
+            eventOptions
         );
     }
 
@@ -699,7 +726,6 @@ export abstract class BasicSynthesizer {
         this._sendInternal(
             [midiMessageTypes.systemExclusive, ...Array.from(messageData)],
             channelOffset,
-            false,
             eventOptions
         );
     }
@@ -824,7 +850,6 @@ export abstract class BasicSynthesizer {
     protected _sendInternal(
         message: Iterable<number>,
         channelOffset: number,
-        force = false,
         eventOptions: Partial<SynthMethodOptions>
     ) {
         const options = fillWithDefaults(
@@ -837,10 +862,8 @@ export abstract class BasicSynthesizer {
             data: {
                 messageData: new Uint8Array(message),
                 channelOffset,
-                force,
                 options
             }
-            //[new Uint8Array(message), offset, force, opts]
         });
     }
 

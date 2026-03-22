@@ -163,7 +163,6 @@ interface BasicSynthesizerMessageData {
     midiMessage: {
         messageData: Uint8Array;
         channelOffset: number;
-        force: boolean;
         options: SynthMethodOptions;
     };
     // Note: if channel is -1 then reset all channels

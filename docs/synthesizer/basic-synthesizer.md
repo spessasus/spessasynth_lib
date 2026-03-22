@@ -195,9 +195,50 @@ The returned value is a `SynthesizerSnapshot` instance - the snapshot of the syn
 
 Add a new MIDI channel. Invokes a `newChannel` event.
 
+### connectChannel
+
+Connects a given channel output to the given audio node.
+Note that this output is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
+
+```js
+synth.connectChannel(targetNode, channelNumber);
+```
+
+- targetNode - `AudioNode` - The node to connect to.
+- channelNumber - `number` - The channel number to connect to, will be rolled over if value is greater than 15.
+
+This method returns the target node so you can chain the `.connect` calls.
+
+**Example:**
+
+```js
+// Create an analyzer for channel 1
+const analyzer = context.createAnalyser();
+synth.connectChannel(analyzer, 0);
+```
+
+### disconnectChannel
+
+Disconnects a given channel output from the given audio node.
+
+```js
+synth.disconnectChannel(targetNode, channelNumber);
+```
+
+- targetNode - `AudioNode` - The node to connect to.
+- channelNumber - `number` - The channel number to connect to, will be rolled over if value is greater than 15.
+
+**Example:**
+
+```js
+// Disconnect the analyzer from earlier
+synth.disconnectChannel(analyzer, 0);
+```
+
 ### connectIndividualOutputs
 
-Connects individual channel outputs to given target nodes.
+Connects the individual audio outputs to the given audio nodes.
+Note that these outputs is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
 
 ```js
 synth.connectIndividualOutputs(audioNodes);
@@ -209,14 +250,14 @@ synth.connectIndividualOutputs(audioNodes);
 **Example:**
 
 ```js
-// create 16 analyzers and connect them
+// Create 16 analyzers and connect them
 const analyzers = Array.from({ length: 16 }, () => context.createAnalyser());
 synth.connectIndividualOutputs(analyzers);
 ```
 
 ### disconnectIndividualOutputs
 
-Disconnects individual channel outputs from given target nodes.
+Disconnects individual channel outputs from given audio nodes.
 
 ```js
 synth.disconnectIndividualOutputs(audioNodes);
@@ -228,7 +269,7 @@ synth.disconnectIndividualOutputs(audioNodes);
 **Example:**
 
 ```js
-// disconnect the analyzers from earlier
+// Disconnect the analyzers from earlier
 synth.disconnectIndividualOutputs(analyzers);
 ```
 
@@ -279,12 +320,11 @@ synth.noteOn(0, 64, 120);
 Stop the given note.
 
 ```js
-synth.noteOff(channel, midiNote, (force = false), eventOptions);
+synth.noteOff(channel, midiNote, eventOptions);
 ```
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
 - midiNote - the note to stop. Ranges from 0 to 127.
-- force - instantly kills the note if true.
 - eventOptions - refer to [event options](#event-options). It can be undefined.
 
 **Example:**
@@ -313,7 +353,6 @@ synth.controllerChange(
     channel,
     controllerNumber,
     controllerValue,
-    (force = false),
     eventOptions
 );
 ```
@@ -324,7 +363,6 @@ synth.controllerChange(
   to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives#default-supported-controllers) for the list of controllers
   supported by default.
 - controllerValue - the value to set the given controller to. Ranges from 0 to 127.
-- force - forces the controller-change message, even if it's locked or `GM` system is set and the controller is Bank Select (disabled in `GM` mode).
 - eventOptions - refer to [event options](#event-options). It can be undefined.
 
 **Example:**
@@ -435,6 +473,7 @@ synth.pitchWheelRange(channel, range);
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
 - range - the pitch bend range, in full semitones.
+- eventOptions - refer to [event options](#event-options). It can be undefined.
 
 **Example:**
 

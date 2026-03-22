@@ -167,7 +167,6 @@ export abstract class BasicSynthesizerCore {
                 this.synthesizer.processMessage(
                     m.data.messageData,
                     m.data.channelOffset,
-                    m.data.force,
                     m.data.options
                 );
                 break;
