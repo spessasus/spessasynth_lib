@@ -71,7 +71,7 @@ document.querySelector("#render").addEventListener("click", async () => {
 
     // Here we disable the event system to as it's unnecessary
     const synth = new WorkletSynthesizer(context, {
-        enableEffectsSystem: false
+        enableEventSystem: false
     });
     synth.connect(context.destination);
 
