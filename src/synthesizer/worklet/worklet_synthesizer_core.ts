@@ -160,8 +160,8 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             consoleColors.info
         );
         sq.loopCount = config.loopCount;
-        // Set voice cap to pretty much unlimited
-        this.synthesizer.setMasterParameter("voiceCap", 10_000);
+        // Set voice cap to unlimited
+        this.synthesizer.setMasterParameter("autoAllocateVoices", true);
 
         /**
          * Set options
