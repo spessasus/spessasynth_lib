@@ -43,14 +43,11 @@ export abstract class BasicSynthesizerCore {
 
     protected constructor(
         sampleRate: number,
-        options: Omit<
-            SynthProcessorOptions,
-            "reverbProcessor" | "chorusProcessor" | "delayProcessor"
-        >,
+        options: Partial<SynthProcessorOptions>,
         postMessage: PostMessageSynthCore
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.enableEventSystem = options.enableEventSystem;
+        this.enableEventSystem = options.enableEventSystem ?? false;
         this.post = postMessage;
 
         // Prepare synthesizer connections
