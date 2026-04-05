@@ -493,8 +493,6 @@ export class Sequencer {
 
             case "loopCountChange": {
                 this._loopCount = m.data.newCount;
-                if (this._loopCount === 0) {
-                }
                 break;
             }
 
