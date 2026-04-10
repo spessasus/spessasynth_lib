@@ -5,11 +5,6 @@ import type { PassedProcessorParameters } from "./synthesizer/types.ts";
 import { WorkletSynthesizerCore } from "./synthesizer/worklet/worklet_synthesizer_core.ts";
 
 class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
-    public readonly process: (
-        inputs: Float32Array[][],
-        outputs: Float32Array[][],
-        parameters: Record<string, Float32Array>
-    ) => boolean;
     private readonly core: WorkletSynthesizerCore;
 
     public constructor(options: {
@@ -22,7 +17,11 @@ class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
             this.port,
             options.processorOptions
         );
-        this.process = this.core.process.bind(this.core);
+    }
+
+    // Don't bind, do it like this for it to work with chrome 109
+    public process(inputs: Float32Array[][], outputs: Float32Array[][]) {
+        return this.core.process(inputs, outputs);
     }
 }
 
