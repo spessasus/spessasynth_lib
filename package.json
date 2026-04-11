@@ -3,9 +3,9 @@
     "version": "4.2.11",
     "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
     "type": "module",
-    "main": "dist/index.mjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.mts",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
     "scripts": {
         "build": "npm run test:types && npm run build:fast",
         "build:fast": "npm run build:npm && npm run build:pages",

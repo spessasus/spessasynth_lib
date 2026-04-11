@@ -19,7 +19,8 @@ try {
         format: "esm",
         dts: true,
         sourcemap: true,
-        outDir: "dist"
+        outDir: "dist",
+        platform: "browser"
     });
 
     // Worklet
