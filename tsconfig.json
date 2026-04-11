@@ -6,7 +6,6 @@
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
         "module": "es2022",
         "skipLibCheck": true,
-        "allowJs": true,
         /* Bundler mode */
         "moduleResolution": "bundler",
         "moduleDetection": "force",
@@ -26,9 +25,9 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
         "noEmit": true,
-        "allowImportingTsExtensions": true
+        "allowImportingTsExtensions": true,
+        "types": ["node", "audioworklet"]
     },
-    "types": ["@types/audioworklet"],
     "include": ["src", "examples", "build_scripts"],
     "exclude": ["node_modules", "dist", "gh-pages"]
 }

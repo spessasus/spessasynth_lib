@@ -49,7 +49,8 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         } catch (error) {
             console.error(error);
             throw new Error(
-                "Could not create the AudioWorkletNode. Did you forget to addModule()?"
+                "Could not create the AudioWorkletNode. Did you forget to addModule()?",
+                { cause: error }
             );
         }
         super(

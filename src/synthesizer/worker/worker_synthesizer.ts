@@ -108,7 +108,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         } catch (error) {
             console.error(error);
             throw new Error(
-                "Could not create the AudioWorkletNode. Did you forget to registerPlaybackWorklet()?"
+                "Could not create the AudioWorkletNode. Did you forget to registerPlaybackWorklet()?",
+                { cause: error }
             );
         }
         super(

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { NPM_DIST_DIR } from "./util.ts";
 import esbuild from "esbuild";
-import * as tsup from "tsup";
+import * as tsdown from "tsdown";
 
 console.log("Building NPM package...");
 const dirname = import.meta.dirname;
@@ -14,7 +14,7 @@ const OUTPUT_PATH = path.join(
 );
 try {
     // Main bundle
-    await tsup.build({
+    await tsdown.build({
         entry: ["src/index.ts"],
         format: "esm",
         dts: true,
