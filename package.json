@@ -1,6 +1,6 @@
 {
     "name": "spessasynth_lib",
-    "version": "4.2.13",
+    "version": "4.2.14",
     "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
     "type": "module",
     "main": "dist/index.js",
@@ -65,14 +65,14 @@
         "eslint": "^10.2.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-unicorn": "^64.0.0",
-        "globals": "^17.4.0",
+        "globals": "^17.5.0",
         "husky": "^9.1.7",
         "lint-staged": "^16.4.0",
-        "prettier": "^3.8.2",
-        "tsdown": "^0.21.7",
+        "prettier": "^3.8.3",
+        "tsdown": "^0.21.9",
         "tsx": "^4.21.0",
-        "typescript": "^6.0.2",
-        "typescript-eslint": "^8.58.1"
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.58.2"
     },
     "lint-staged": {
         "*.{ts,js}": [
