@@ -23,6 +23,7 @@ It allows you to:
 ### Made with spessasynth_lib
 
 - [SpessaSynth - Online SF2/DLS MIDI Player](https://spessasus.github.io/SpessaSynth)
+- [signal - Online MIDI Editor](https://signalmidi.app/)
 
 ### [Documentation](https://spessasus.github.io/spessasynth_lib)
 
