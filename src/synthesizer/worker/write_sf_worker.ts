@@ -14,18 +14,6 @@ export async function writeSF2Worker(
 }> {
     let sf = this.getBank(opts);
 
-    if (opts.compress && !this.compressionFunction) {
-        const e = new Error(
-            `Compression enabled but no compression has been provided to WorkerSynthesizerCore.`
-        );
-        this.post({
-            type: "soundBankError",
-            data: e,
-            currentTime: this.synthesizer.currentSynthTime
-        });
-        throw e;
-    }
-
     const sq = this.sequencers[opts.sequencerID];
 
     // Trim
@@ -52,17 +40,53 @@ export async function writeSF2Worker(
             );
     }
 
-    const b = await sf.writeSF2({
-        ...opts,
-        progressFunction: (sampleName, sampleIndex, sampleCount) => {
-            this.postProgress("workerSynthWriteFile", {
-                sampleCount,
-                sampleIndex,
-                sampleName
+    switch (opts.compressionAction) {
+        case "keep":
+        default: {
+            // No action
+            break;
+        }
+
+        case "compress": {
+            if (!compressionFunction) {
+                const e = new Error(
+                    `Compression enabled but no compression function has been provided to WorkerSynthesizerCore.`
+                );
+                this.post({
+                    type: "soundBankError",
+                    data: e,
+                    currentTime: this.synthesizer.currentSynthTime
+                });
+                throw e;
+            }
+            await sf.setSampleFormat({
+                compressionFunction,
+                format: "compressed",
+                progressFunction: (progress) => {
+                    this.postProgress("workerSynthWriteFile", progress);
+                    return new Promise<void>((r) => r());
+                }
             });
+            break;
+        }
+
+        case "decompress": {
+            await sf.setSampleFormat({
+                format: "pcm",
+                progressFunction: (progress) => {
+                    this.postProgress("workerSynthWriteFile", progress);
+                    return new Promise<void>((r) => r());
+                }
+            });
+        }
+    }
+
+    const b = sf.writeSF2({
+        ...opts,
+        progressFunction: (progress) => {
+            this.postProgress("workerSynthWriteFile", progress);
             return new Promise<void>((r) => r());
-        },
-        compressionFunction
+        }
     });
     return {
         binary: b,
@@ -70,13 +94,10 @@ export async function writeSF2Worker(
     };
 }
 
-export async function writeDLSWorker(
+export function writeDLSWorker(
     this: WorkerSynthesizerCore,
     opts: WorkerDLSWriteOptions
-): Promise<{
-    binary: ArrayBuffer;
-    bank: BasicSoundBank;
-}> {
+) {
     let sf = this.getBank(opts);
     const sq = this.sequencers[opts.sequencerID];
 
@@ -92,14 +113,10 @@ export async function writeDLSWorker(
         sf = sfCopy;
     }
 
-    const b = await sf.writeDLS({
+    const b = sf.writeDLS({
         ...opts,
-        progressFunction: (sampleName, sampleIndex, sampleCount) => {
-            this.postProgress("workerSynthWriteFile", {
-                sampleCount,
-                sampleIndex,
-                sampleName
-            });
+        progressFunction: (progress) => {
+            this.postProgress("workerSynthWriteFile", progress);
             return new Promise<void>((r) => r());
         }
     });

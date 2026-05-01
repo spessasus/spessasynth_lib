@@ -90,6 +90,8 @@ export type BasicSynthesizerMessage = {
     };
 }[keyof BasicSynthesizerMessageData];
 
+type CompressionActionType = "keep" | "compress" | "decompress";
+
 export interface WorkerBankWriteOptions {
     /**
      * Trim the sound bank to only include samples used in the current MIDI file.
@@ -117,9 +119,17 @@ export type WorkerDLSWriteOptions = Omit<DLSWriteOptions, "progressFunction"> &
 
 export type WorkerSoundFont2WriteOptions = Omit<
     SoundFont2WriteOptions,
-    "compressionFunction" | "progressFunction"
+    "progressFunction"
 > &
     WorkerBankWriteOptions & {
+        /**
+         * If the samples should be changed. The values are:
+         * - `keep` - keep samples as-is.
+         * - `compress` - compress the samples with your compression function provided to the `WorkerSynthesizer` and change SF2 to SF3.
+         * - `decompress` - decompress the compressed samples and change SF3 to SF2.
+         */
+        compressionAction: CompressionActionType;
+
         /**
          * The compression quality to call your provided compressionFunction with, if compressing.
          */
@@ -247,11 +257,10 @@ export type BasicSynthesizerReturnMessage = {
 
 export interface SynthesizerProgress {
     renderAudio: number;
-    workerSynthWriteFile: {
-        sampleName: string;
-        sampleIndex: number;
-        sampleCount: number;
-    };
+    /**
+     * Progress amount (0-1)
+     */
+    workerSynthWriteFile: number;
 }
 
 export interface SynthesizerReturn {

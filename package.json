@@ -82,6 +82,6 @@
         "*.{html,json,md,yml,yaml,css}": "prettier --write"
     },
     "dependencies": {
-        "spessasynth_core": "latest"
+        "spessasynth_core": "file:../spessasynth_core"
     }
 }

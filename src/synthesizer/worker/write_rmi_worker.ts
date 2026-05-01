@@ -18,7 +18,7 @@ export async function writeRMIDIWorker(
         sfBin = bin.binary;
         sf = bin.bank;
     } else {
-        const bin = await writeDLSWorker.call(this, opts);
+        const bin = writeDLSWorker.call(this, opts);
         sfBin = bin.binary;
         sf = bin.bank;
     }

@@ -837,7 +837,6 @@ export abstract class BasicSynthesizer {
         if (this.renderingProgressTracker.get(type)) {
             throw new Error("Something is already being rendered!");
         }
-        // @ts-expect-error I can't use generics with map
         this.renderingProgressTracker.set(type, progressFunction);
     }
 
@@ -894,10 +893,7 @@ export abstract class BasicSynthesizer {
             }
 
             case "renderingProgress": {
-                this.renderingProgressTracker.get(m.data.type)?.(
-                    // @ts-expect-error I can't use generics with map
-                    m.data.data
-                );
+                this.renderingProgressTracker.get(m.data.type)?.(m.data.data);
             }
         }
     }

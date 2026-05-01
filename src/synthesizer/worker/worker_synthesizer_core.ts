@@ -122,17 +122,16 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
             case "writeDLS": {
                 this.stopAudioLoop();
-                void writeDLSWorker.call(this, m.data).then((data) => {
-                    this.postReady(
-                        "workerSynthWriteFile",
-                        {
-                            binary: data.binary,
-                            fileName: data.bank.soundBankInfo.name + ".dls"
-                        },
-                        [data.binary]
-                    );
-                    this.startAudioLoop();
-                });
+                const data = writeDLSWorker.call(this, m.data);
+                this.postReady(
+                    "workerSynthWriteFile",
+                    {
+                        binary: data.binary,
+                        fileName: data.bank.soundBankInfo.name + ".dls"
+                    },
+                    [data.binary]
+                );
+                this.startAudioLoop();
                 break;
             }
 

@@ -32,9 +32,9 @@ const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {
     ...DEFAULT_BANK_WRITE_OPTIONS,
     writeDefaultModulators: true,
     writeExtendedLimits: true,
-    compress: false,
+    compressionAction: "keep",
     compressionQuality: 1,
-    decompress: false
+    software: "SpessaSynth"
 };
 
 const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
@@ -47,7 +47,8 @@ const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
 };
 
 const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {
-    ...DEFAULT_BANK_WRITE_OPTIONS
+    ...DEFAULT_BANK_WRITE_OPTIONS,
+    software: "SpessaSynth"
 };
 
 type WorkerSynthWriteOptions<K> = K & {
