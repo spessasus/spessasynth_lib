@@ -121,7 +121,7 @@ export class Sequencer {
         /**
          * Sets the song index in the playlist.
          */
-        const clamped = Math.max(0, value % this._songsAmount);
+        const clamped = Math.max(0, value % this._songCount);
         if (clamped === this._songIndex) {
             return;
         }
@@ -149,11 +149,11 @@ export class Sequencer {
         return this.midiData?.duration ?? 0;
     }
 
-    private _songsAmount = 0;
+    private _songCount = 0;
 
     // The amount of songs in the list.
-    public get songsAmount() {
-        return this._songsAmount;
+    public get songCount() {
+        return this._songCount;
     }
 
     private _skipToFirstNoteOn: boolean;
@@ -328,7 +328,7 @@ export class Sequencer {
         this.midiData = undefined;
         this.sendMessage("loadNewSongList", midiBuffers);
         this._songIndex = 0;
-        this._songsAmount = midiBuffers.length;
+        this._songCount = midiBuffers.length;
     }
 
     /**

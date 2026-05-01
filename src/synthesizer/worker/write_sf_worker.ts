@@ -55,7 +55,7 @@ export async function writeSF2Worker(
                 this.post({
                     type: "soundBankError",
                     data: e,
-                    currentTime: this.synthesizer.currentSynthTime
+                    currentTime: this.synthesizer.currentTime
                 });
                 throw e;
             }

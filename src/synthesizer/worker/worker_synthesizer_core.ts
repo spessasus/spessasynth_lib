@@ -156,7 +156,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             this.post({
                 type: "soundBankError",
                 data: e,
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
             throw e;
         }
@@ -216,7 +216,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         this.synthesizer.processSplit(dry, wetL, wetR);
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
-        const t = this.synthesizer.currentSynthTime;
+        const t = this.synthesizer.currentTime;
         if (
             this.enableEventSystem &&
             t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL

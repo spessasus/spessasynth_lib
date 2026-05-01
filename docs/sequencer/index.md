@@ -85,7 +85,7 @@ The current tempo of the sequence, in BPM.
 
 Length of the current track in seconds.
 
-### songsAmount
+### songCount
 
 The number of songs in the playlist.
 

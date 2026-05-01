@@ -55,7 +55,7 @@ export abstract class BasicSynthesizerCore {
             this.post({
                 type: "eventCall",
                 data: event,
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
         };
     }
@@ -83,14 +83,14 @@ export abstract class BasicSynthesizerCore {
                         },
                         id: sequencerID
                     },
-                    currentTime: this.synthesizer.currentSynthTime
+                    currentTime: this.synthesizer.currentTime
                 });
                 return;
             }
             this.post({
                 type: "sequencerReturn",
                 data: { ...e, id: sequencerID },
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
         };
     }
@@ -112,7 +112,7 @@ export abstract class BasicSynthesizerCore {
                         data: SynthesizerReturn[K];
                     };
                 }[keyof SynthesizerReturn],
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             },
             transferable
         );
@@ -133,7 +133,7 @@ export abstract class BasicSynthesizerCore {
                     data: SynthesizerProgress[K];
                 };
             }[keyof SynthesizerProgress],
-            currentTime: this.synthesizer.currentSynthTime
+            currentTime: this.synthesizer.currentTime
         });
     }
 
@@ -273,7 +273,7 @@ export abstract class BasicSynthesizerCore {
                                     data: error as Error,
                                     id: m.data.id
                                 },
-                                currentTime: this.synthesizer.currentSynthTime
+                                currentTime: this.synthesizer.currentTime
                             });
                         }
                         break;
@@ -342,7 +342,7 @@ export abstract class BasicSynthesizerCore {
                                 data: seq.midiData,
                                 id: m.data.id
                             },
-                            currentTime: this.synthesizer.currentSynthTime
+                            currentTime: this.synthesizer.currentTime
                         });
                         break;
                     }
@@ -389,7 +389,7 @@ export abstract class BasicSynthesizerCore {
                     this.post({
                         type: "soundBankError",
                         data: error as Error,
-                        currentTime: this.synthesizer.currentSynthTime
+                        currentTime: this.synthesizer.currentTime
                     });
                 }
                 break;

@@ -94,11 +94,11 @@ A promise that gets resolved when the synthesizer gets fully initialized.
 
     Remember to wait for this promise before playing anything or rendering audio!
 
-### channelsAmount
+### channelCount
 
 The current amount of MIDI channels the synthesizer has.
 
-### voicesAmount
+### voiceCount
 
 The current amount of voices (notes) being synthesized. A real-time value.
 
@@ -544,7 +544,7 @@ synth.muteChannel(channel, isMuted);
 
 ```js
 // set solo on channel 4
-for (const i = 0; i < synth.channelsAmount; i++) {
+for (const i = 0; i < synth.channelCount; i++) {
     if (i === 3) {
         synth.muteChannel(i, false);
     } else {

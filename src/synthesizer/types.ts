@@ -54,7 +54,7 @@ export interface OfflineRenderWorkletData {
     /**
      * The options to pass to the sequencer.
      */
-    sequencerOptions: Partial<SequencerOptions>;
+    sequencerOptions?: Partial<SequencerOptions>;
 }
 
 export interface WorkletSBKManagerData {

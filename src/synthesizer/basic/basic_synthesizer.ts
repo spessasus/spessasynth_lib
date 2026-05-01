@@ -95,11 +95,11 @@ export abstract class BasicSynthesizer {
      * what does that mean?
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
      */
-    protected readonly _outputsAmount = 16;
+    protected readonly _outputCount = 16;
     /**
      * The current amount of MIDI channels the synthesizer has.
      */
-    public channelsAmount = this._outputsAmount;
+    public channelCount = this._outputCount;
     protected readonly masterParameters: MasterParameterType = {
         ...DEFAULT_MASTER_PARAMETERS
     };
@@ -154,7 +154,7 @@ export abstract class BasicSynthesizer {
         ) => this.handleMessage(e.data);
 
         // Create initial channels
-        for (let i = 0; i < this.channelsAmount; i++) {
+        for (let i = 0; i < this.channelCount; i++) {
             this.addNewChannelInternal(false);
         }
         this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
@@ -164,7 +164,7 @@ export abstract class BasicSynthesizer {
             "newChannel",
             `synth-new-channel-${Math.random()}`,
             () => {
-                this.channelsAmount++;
+                this.channelCount++;
             }
         );
         this.eventHandler.addEvent(
@@ -190,8 +190,8 @@ export abstract class BasicSynthesizer {
             (e) => {
                 this.channelProperties[e.channel] = e.property;
 
-                this._voicesAmount = this.channelProperties.reduce(
-                    (sum, voices) => sum + voices.voicesAmount,
+                this._voiceCount = this.channelProperties.reduce(
+                    (sum, voices) => sum + voices.voiceCount,
                     0
                 );
             }
@@ -201,14 +201,14 @@ export abstract class BasicSynthesizer {
     /**
      * Current voice amount
      */
-    protected _voicesAmount = 0;
+    protected _voiceCount = 0;
 
     // noinspection JSUnusedGlobalSymbols
     /**
      * The current number of voices playing.
      */
-    public get voicesAmount() {
-        return this._voicesAmount;
+    public get voiceCount() {
+        return this._voiceCount;
     }
 
     /**
@@ -373,11 +373,11 @@ export abstract class BasicSynthesizer {
      * @param audioNodes Exactly 16 outputs.
      */
     public connectIndividualOutputs(audioNodes: AudioNode[]) {
-        if (audioNodes.length !== this._outputsAmount) {
+        if (audioNodes.length !== this._outputCount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
-            Expected ${this._outputsAmount} got ${audioNodes.length}`);
+            Expected ${this._outputCount} got ${audioNodes.length}`);
         }
-        for (let channel = 0; channel < this._outputsAmount; channel++) {
+        for (let channel = 0; channel < this._outputCount; channel++) {
             // + 1 because effects come first!
             this.connectChannel(audioNodes[channel], channel);
         }
@@ -388,11 +388,11 @@ export abstract class BasicSynthesizer {
      * @param audioNodes Exactly 16 outputs.
      */
     public disconnectIndividualOutputs(audioNodes: AudioNode[]) {
-        if (audioNodes.length !== this._outputsAmount) {
+        if (audioNodes.length !== this._outputCount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
-            Expected ${this._outputsAmount} got ${audioNodes.length}`);
+            Expected ${this._outputCount} got ${audioNodes.length}`);
         }
-        for (let channel = 0; channel < this._outputsAmount; channel++) {
+        for (let channel = 0; channel < this._outputCount; channel++) {
             // + 1 because effects come first!
             this.disconnectChannel(audioNodes[channel], channel);
         }
@@ -792,7 +792,7 @@ export abstract class BasicSynthesizer {
      * Yes please!
      */
     public reverbateEverythingBecauseWhyNot(): "That's the spirit!" {
-        for (let i = 0; i < this.channelsAmount; i++) {
+        for (let i = 0; i < this.channelCount; i++) {
             this.controllerChange(i, midiControllers.reverbDepth, 127);
             this.lockController(i, midiControllers.reverbDepth, true);
         }
@@ -900,11 +900,11 @@ export abstract class BasicSynthesizer {
 
     protected addNewChannelInternal(post: boolean) {
         this.channelProperties.push({
-            voicesAmount: 0,
+            voiceCount: 0,
             pitchWheel: 0,
             pitchWheelRange: 0,
             isMuted: false,
-            isDrum: this.channelsAmount % 16 === DEFAULT_PERCUSSION,
+            isDrum: this.channelCount % 16 === DEFAULT_PERCUSSION,
             isEFX: false,
             transposition: 0
         });

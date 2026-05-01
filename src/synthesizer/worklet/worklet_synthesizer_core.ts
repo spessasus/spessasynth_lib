@@ -100,7 +100,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 outputs[0][1]
             );
         }
-        const t = this.synthesizer.currentSynthTime;
+        const t = this.synthesizer.currentTime;
         if (
             this.enableEventSystem &&
             t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
@@ -149,7 +149,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 this.post({
                     type: "soundBankError",
                     data: error as Error,
-                    currentTime: this.synthesizer.currentSynthTime
+                    currentTime: this.synthesizer.currentTime
                 });
             }
         }
@@ -190,7 +190,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                     data: error as Error,
                     id: 0
                 },
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
         }
         this.postReady("startOfflineRender", null);
