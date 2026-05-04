@@ -25,7 +25,7 @@ export async function writeSF2Worker(
         }
         // Copy
         const sfCopy = BasicSoundBank.copyFrom(sf);
-        sfCopy.trimSoundBank(sq.midiData);
+        sfCopy.trim(sq.midiData.getUsedProgramsAndKeys(sfCopy));
         sf = sfCopy;
     }
 
@@ -109,7 +109,7 @@ export function writeDLSWorker(
             );
         }
         const sfCopy = BasicSoundBank.copyFrom(sf);
-        sfCopy.trimSoundBank(sq.midiData);
+        sfCopy.trim(sq.midiData.getUsedProgramsAndKeys(sfCopy));
         sf = sfCopy;
     }
 
