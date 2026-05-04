@@ -24,6 +24,7 @@ export async function writeRMIDIWorker(
     }
 
     const mid = BasicMIDI.copyFrom(sq.midiData);
+    if (opts.applySnapshot) mid.applySnapshot(this.synthesizer.getSnapshot());
     return mid.writeRMIDI(sfBin, {
         soundBank: sf,
         ...opts

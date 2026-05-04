@@ -39,6 +39,7 @@ const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {
 
 const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
     ...DEFAULT_BANK_WRITE_OPTIONS,
+    applySnapshot: false,
     bankOffset: 0,
     correctBankOffset: true,
     metadata: {},

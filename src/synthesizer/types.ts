@@ -142,8 +142,12 @@ export type WorkerSampleEncodingFunction = (
     quality: number
 ) => Promise<Uint8Array>;
 
-export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> &
-    (
+export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> & {
+    /**
+     * If a snapshot of the current `SpessaSynthProcessor` should be applied to the MIDI file.
+     */
+    applySnapshot: boolean;
+} & (
         | ({
               format: "sf2";
           } & WorkerSoundFont2WriteOptions)
