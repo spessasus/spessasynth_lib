@@ -191,9 +191,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
-                resolve(data)
-            );
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
+                this.revokeProgressTracker("workerSynthWriteFile");
+                resolve(data);
+            });
             this.post({
                 type: "writeDLS",
                 data: postOptions,
@@ -224,9 +225,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
-                resolve(data)
-            );
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
+                this.revokeProgressTracker("workerSynthWriteFile");
+                resolve(data);
+            });
             this.post({
                 type: "writeSF2",
                 data: postOptions,
@@ -257,9 +259,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
-                resolve(data.binary)
-            );
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
+                this.revokeProgressTracker("workerSynthWriteFile");
+                resolve(data.binary);
+            });
             this.post({
                 type: "writeRMIDI",
                 data: postOptions,
