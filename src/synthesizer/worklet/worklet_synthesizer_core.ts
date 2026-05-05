@@ -118,6 +118,22 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             }
             this.lastSequencerSync = t;
         }
+
+        // Update voice count
+        const c = this.synthesizer.midiChannels;
+        const cv = this.voiceCounts;
+        let updateChannels = false;
+        for (let i = 0; i < c.length; i++) {
+            updateChannels ||= c[i].voiceCount !== cv[i];
+            cv[i] = c[i].voiceCount;
+        }
+        if (updateChannels)
+            this.post({
+                type: "voiceCountChange",
+                currentTime: t,
+                data: cv
+            });
+
         return true;
     }
 

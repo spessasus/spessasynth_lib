@@ -1,9 +1,11 @@
 import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.ts";
 import { SoundBankManager } from "./sound_bank_manager.ts";
-import { SynthEventHandler } from "./synth_event_handler.ts";
+import {
+    type ProcessorEventCallback,
+    SynthEventHandler
+} from "./synth_event_handler.ts";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    type ChannelProperty,
     DEFAULT_MASTER_PARAMETERS,
     DEFAULT_PERCUSSION,
     type MasterParameterType,
@@ -12,10 +14,11 @@ import {
     midiMessageTypes,
     type PresetList,
     SpessaSynthCoreUtils as util,
-    type SynthMethodOptions
+    type SynthMethodOptions,
+    type SynthProcessorEventData
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
-import type { SynthConfig } from "./types.ts";
+import type { ChannelProperty, SynthConfig } from "./types.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -29,6 +32,9 @@ import { LibSynthesizerSnapshot } from "./snapshot.ts";
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
 };
+
+const SPESSASYNTH_LIB_HANDLER = (event: string) =>
+    `SPESSASYNTH_LIB_HANDLE_${event}_${Math.random()}`;
 
 // The "remote controller" of a given processor and abstraction for both synth engines.
 export abstract class BasicSynthesizer {
@@ -160,42 +166,54 @@ export abstract class BasicSynthesizer {
         this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
 
         // Attach event handlers
-        this.eventHandler.addEvent(
-            "newChannel",
-            `synth-new-channel-${Math.random()}`,
-            () => {
-                this.channelCount++;
-            }
-        );
-        this.eventHandler.addEvent(
+        this.registerInternalEvent("newChannel", () => {
+            this.channelCount++;
+            this.addNewChannelInternal(false);
+        });
+        this.registerInternalEvent(
             "presetListChange",
-            `synth-preset-list-change-${Math.random()}`,
-            (e) => {
-                this.presetList = [...e];
-            }
+            (e) => (this.presetList = [...e])
         );
-        this.eventHandler.addEvent(
+        this.registerInternalEvent(
             "masterParameterChange",
-            `synth-master-parameter-change-${Math.random()}`,
             <P extends keyof MasterParameterType>(e: {
                 parameter: P;
                 value: MasterParameterType[P];
-            }) => {
-                this.masterParameters[e.parameter] = e.value;
-            }
+            }) => (this.masterParameters[e.parameter] = e.value)
         );
-        this.eventHandler.addEvent(
-            "channelPropertyChange",
-            `synth-channel-property-change-${Math.random()}`,
-            (e) => {
-                this.channelProperties[e.channel] = e.property;
-
-                this._voiceCount = this.channelProperties.reduce(
-                    (sum, voices) => sum + voices.voiceCount,
-                    0
-                );
+        this.registerInternalEvent("effectChange", (e) => {
+            if (e.effect === "insertion") {
+                if (e.parameter === -1)
+                    this.channelProperties[e.value].isEFX = true;
+                else if (e.parameter === -2)
+                    this.channelProperties[e.value].isEFX = false;
             }
+        });
+        this.registerInternalEvent(
+            "muteChannel",
+            (e) => (this.channelProperties[e.channel].isMuted = e.isMuted)
         );
+        this.registerInternalEvent(
+            "programChange",
+            (e) => (this.channelProperties[e.channel].isDrum = e.isDrum)
+        );
+        this.registerInternalEvent(
+            "pitchWheel",
+            (e) => (this.channelProperties[e.channel].pitchWheel = e.pitch)
+        );
+        this.registerInternalEvent(
+            "pitchWheelRange",
+            (e) => (this.channelProperties[e.channel].pitchWheelRange = e.range)
+        );
+        this.registerInternalEvent("allControllerReset", () => {
+            for (let i = 0; i < this.channelCount; i++) {
+                const p = this.channelProperties[i];
+                p.isDrum = i % 16 === 9;
+                p.isEFX = false;
+                p.pitchWheel = 8192;
+                p.pitchWheelRange = 2;
+            }
+        });
     }
 
     /**
@@ -881,6 +899,14 @@ export abstract class BasicSynthesizer {
                 break;
             }
 
+            case "voiceCountChange": {
+                for (let i = 0; i < m.data.length; i++) {
+                    this.channelProperties[i].voiceCount = m.data[i];
+                    this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+                }
+                break;
+            }
+
             case "isFullyInitialized": {
                 this.workletResponds(m.data.type, m.data.data);
                 break;
@@ -901,16 +927,14 @@ export abstract class BasicSynthesizer {
     protected addNewChannelInternal(post: boolean) {
         this.channelProperties.push({
             voiceCount: 0,
-            pitchWheel: 0,
-            pitchWheelRange: 0,
+            pitchWheel: 8192,
+            pitchWheelRange: 2,
             isMuted: false,
             isDrum: this.channelCount % 16 === DEFAULT_PERCUSSION,
-            isEFX: false,
-            transposition: 0
+            isEFX: false
         });
-        if (!post) {
-            return;
-        }
+        if (!post) return;
+
         this.post({
             channelNumber: 0,
             type: "addNewChannel",
@@ -924,5 +948,16 @@ export abstract class BasicSynthesizer {
     ) {
         this.resolveMap.get(type)?.(data);
         this.resolveMap.delete(type);
+    }
+
+    private registerInternalEvent<T extends keyof SynthProcessorEventData>(
+        event: T,
+        callback: ProcessorEventCallback<T>
+    ) {
+        this.eventHandler.addEvent(
+            event,
+            SPESSASYNTH_LIB_HANDLER(event),
+            callback
+        );
     }
 }

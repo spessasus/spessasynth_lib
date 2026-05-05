@@ -243,6 +243,7 @@ interface BasicSynthesizerReturnMessageData {
     }[keyof SynthesizerReturn];
     // An error message related to the sound bank. It contains a string description of the error.
     soundBankError: Error;
+    voiceCountChange: number[];
     renderingProgress: {
         [K in keyof SynthesizerProgress]: {
             type: K;

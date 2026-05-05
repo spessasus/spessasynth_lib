@@ -43,3 +43,31 @@ export interface AudioNodeCreators {
         }
     ) => AudioWorkletNode;
 }
+
+export interface ChannelProperty {
+    /**
+     * The channel's current voice count.
+     */
+    voiceCount: number;
+    /**
+     * The channel's current pitch wheel 0 - 16384.
+     */
+    pitchWheel: number;
+    /**
+     * The pitch wheel's range, in semitones.
+     */
+    pitchWheelRange: number;
+    /**
+     * Indicates whether the channel is muted.
+     */
+    isMuted: boolean;
+    /**
+     * Indicates whether the channel is a drum channel.
+     */
+    isDrum: boolean;
+    /**
+     * Indicates whether the channel uses an insertion effect.
+     * This means that there will be no separate dry output for processSplit().
+     */
+    isEFX: boolean;
+}

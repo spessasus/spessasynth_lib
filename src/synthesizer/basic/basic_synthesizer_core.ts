@@ -35,6 +35,11 @@ export abstract class BasicSynthesizerCore {
     protected readonly post: PostMessageSynthCore;
     protected lastSequencerSync = 0;
     /**
+     * For syncing voice counts, implemented separately in the `process()` method.
+     * @protected
+     */
+    protected readonly voiceCounts = new Array<number>(16).fill(0);
+    /**
      * Indicates if the processor is alive.
      * @protected
      */
@@ -52,6 +57,11 @@ export abstract class BasicSynthesizerCore {
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
+            if (event.type === "newChannel") {
+                const l = this.synthesizer.midiChannels.length;
+                for (let i = this.voiceCounts.length; i < l; i++)
+                    this.voiceCounts.push(0);
+            }
             this.post({
                 type: "eventCall",
                 data: event,
