@@ -214,7 +214,7 @@ export abstract class BasicSynthesizerCore {
 
             case "lockController": {
                 channelObject?.lockController(
-                    m.data.controllerNumber,
+                    m.data.controller,
                     m.data.isLocked
                 );
                 break;

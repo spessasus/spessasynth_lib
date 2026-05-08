@@ -351,16 +351,11 @@ synth.stopAll((force = false));
 Set a given MIDI controller to a given value.
 
 ```js
-synth.controllerChange(
-    channel,
-    controllerNumber,
-    controllerValue,
-    eventOptions
-);
+synth.controllerChange(channel, controller, controllerValue, eventOptions);
 ```
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
-- controllerNumber - the MIDI CC number of the controller to change.
+- controller - the MIDI CC number of the controller to change.
   Refer
   to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives#default-supported-controllers) for the list of controllers
   supported by default.
@@ -387,11 +382,11 @@ Reset all controllers to their default values. (for every channel)
 Cause the given midi channel to ignore controller messages for the given controller number.
 
 ```js
-synth.lockController(channel, controllerNumber, isLocked);
+synth.lockController(channel, controller, isLocked);
 ```
 
 - channel - the channel to lock. It usually ranges from 0 to 15, but it depends on the channel count.
-- controllerNumber - the MIDI CC to lock. Ranges from 0 to 146. See the tip below to see why.
+- controller - the MIDI CC to lock. Ranges from 0 to 146. See the tip below to see why.
 - isLocked - boolean, if true then locked, if false then unlocked.
 
 **Example:**

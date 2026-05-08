@@ -188,7 +188,7 @@ interface BasicSynthesizerMessageData {
     // Is drums?
     setDrums: boolean;
     lockController: {
-        controllerNumber: MIDIController;
+        controller: MIDIController;
         isLocked: boolean;
     };
     sequencerSpecific: SequencerMessage;

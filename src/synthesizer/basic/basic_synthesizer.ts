@@ -13,7 +13,7 @@ import {
     MIDIControllers,
     type MIDIGlobalParameter,
     MIDIMessageTypes,
-    type PresetList,
+    type MIDIPatchFull,
     SpessaSynthLog,
     type SynthesizerSnapshot,
     type SynthMethodOptions,
@@ -66,7 +66,7 @@ export abstract class BasicSynthesizer {
     /**
      * The current preset list.
      */
-    public presetList: PresetList = [];
+    public presetList: MIDIPatchFull[] = [];
 
     /**
      * INTERNAL USE ONLY!
@@ -491,30 +491,26 @@ export abstract class BasicSynthesizer {
     /**
      * Changes the given controller
      * @param channel Usually 0-15: the channel to change the controller.
-     * @param controllerNumber 0-127 the MIDI CC number.
-     * @param controllerValue 0-127 the controller value.
+     * @param controller 0-127 the MIDI CC number.
+     * @param value 0-127 the controller value.
      * @param eventOptions Additional options for this command.
      */
     public controllerChange(
         channel: number,
-        controllerNumber: MIDIController,
-        controllerValue: number,
+        controller: MIDIController,
+        value: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        if (controllerNumber > 127 || controllerNumber < 0) {
-            throw new Error(`Invalid controller number: ${controllerNumber}`);
+        if (controller > 127 || controller < 0) {
+            throw new Error(`Invalid controller number: ${controller}`);
         }
-        controllerValue = Math.floor(controllerValue) % 128;
-        controllerNumber = Math.floor(controllerNumber) % 128;
+        value = Math.floor(value) % 128;
+        controller = Math.floor(controller) % 128;
         // Controller change has its own message for the force property
         const ch = channel % 16;
         const offset = channel - ch;
         this._sendInternal(
-            [
-                MIDIMessageTypes.controllerChange | ch,
-                controllerNumber,
-                controllerValue
-            ],
+            [MIDIMessageTypes.controllerChange | ch, controller, value],
             offset,
             eventOptions
         );

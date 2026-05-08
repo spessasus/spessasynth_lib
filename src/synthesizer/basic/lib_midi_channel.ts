@@ -4,7 +4,7 @@ import {
     DEFAULT_MIDI_CHANNEL_PARAMETERS,
     type MIDIChannelParameter,
     type MIDIController,
-    type PresetListEntry
+    type MIDIPatchFull
 } from "spessasynth_core";
 import { type BasicSynthesizer } from "./basic_synthesizer.ts";
 
@@ -29,7 +29,7 @@ export class LibMIDIChannel {
         this.synth = synth;
     }
 
-    private _patch: PresetListEntry = {
+    private _patch: MIDIPatchFull = {
         bankMSB: 0,
         bankLSB: 0,
         program: 0,
@@ -42,7 +42,7 @@ export class LibMIDIChannel {
      * The currently selected MIDI patch of the channel.
      * Note that the exact matching preset may not be available, but this represents exactly what MIDI asks for.
      */
-    public get patch(): Readonly<PresetListEntry> {
+    public get patch(): Readonly<MIDIPatchFull> {
         return this._patch;
     }
 
@@ -50,7 +50,7 @@ export class LibMIDIChannel {
      * @internal
      * @param patch
      */
-    public set patch(patch: PresetListEntry) {
+    public set patch(patch: MIDIPatchFull) {
         this._patch = patch;
     }
 
@@ -109,15 +109,15 @@ export class LibMIDIChannel {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Causes the given midi channel to ignore controller messages for the given controller number.
-     * @param controllerNumber 0-127 MIDI CC number.
+     * @param controller 0-127 MIDI CC number.
      * @param isLocked True if locked, false if unlocked.
      */
-    public lockController(controllerNumber: MIDIController, isLocked: boolean) {
+    public lockController(controller: MIDIController, isLocked: boolean) {
         this.synth.post({
             channelNumber: this.channel,
             type: "lockController",
             data: {
-                controllerNumber,
+                controller,
                 isLocked
             }
         });

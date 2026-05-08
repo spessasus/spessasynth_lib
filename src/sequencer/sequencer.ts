@@ -1,5 +1,6 @@
 import {
     BasicMIDI,
+    MIDIControllers,
     MIDIMessageTypes,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
@@ -339,7 +340,6 @@ export class Sequencer {
         this.resetMIDIOutput();
         this.midiOut = output;
         this.sendMessage("changeMIDIMessageSending", output !== undefined);
-        this.currentTime -= 0.1;
     }
 
     /**
@@ -519,10 +519,18 @@ export class Sequencer {
             return;
         }
         for (let i = 0; i < 16; i++) {
-            this.midiOut.send([MIDIMessageTypes.controllerChange | i, 120, 0]); // All notes off
-            this.midiOut.send([MIDIMessageTypes.controllerChange | i, 123, 0]); // All sound off
+            this.midiOut.send([
+                MIDIMessageTypes.controllerChange | i,
+                MIDIControllers.allNotesOff,
+                0
+            ]); // All notes off
+            this.midiOut.send([
+                MIDIMessageTypes.controllerChange | i,
+                MIDIControllers.resetAllControllers,
+                0
+            ]); // Reset all controllers
         }
-        this.midiOut.send([MIDIMessageTypes.reset]); // Reset
+        this.midiOut.send([MIDIMessageTypes.systemExclusive]); // Reset
     }
 
     private recalculateStartTime(time: number) {
