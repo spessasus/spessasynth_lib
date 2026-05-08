@@ -48,8 +48,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         super(
             synthesizerConfiguration.sampleRate,
             {
-                enableEventSystem: true,
-                enableEffects: true,
+                effectsEnabled: true,
+                eventsEnabled: true,
                 initialTime: synthesizerConfiguration.initialTime
             },
             mainThreadCallback as PostMessageSynthCore
@@ -218,7 +218,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
         const t = this.synthesizer.currentTime;
         if (
-            this.enableEventSystem &&
+            this.eventsEnabled &&
             t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
         ) {
             for (let id = 0; id < this.sequencers.length; id++) {

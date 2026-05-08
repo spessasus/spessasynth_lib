@@ -18,7 +18,7 @@ Below is the `SynthConfig` configuration object that can be passed to both synth
 Indicates if the [one output mode](#one-output-mode) should be enabled.
 A boolean.
 
-### enableEventSystem
+### eventsEnabled
 
 If the event system should be enabled. This can only be set once.
 
@@ -51,7 +51,7 @@ An example function that creates the standard worklet node looks like this:
 
     The synthesizer internally sends commands to the `SynthesizerCore` where all the processing happens. (This can be a worklet or a worker depending on your synthesizer of choice.)
     Keep that in mind as not all methods will immediately report values!
-    (E.g. `noteOn` won't instantly increase the voice count in `channelProperties`)
+    (E.g. `noteOn` won't instantly increase the voice count in `midiChannels`)
 
 ## Properties
 
@@ -71,41 +71,11 @@ The synthesizer's [event handler](synth-event-handler.md).
 
 The synthesizer's `BaseAudioContext` instance.
 
-### channelProperties
+### midiChannels
 
-The current channel properties of all channels, an array.
+The synthesizer's (virtual) [MIDI channels](midi-channel.md).
 
-The type is defined below:
-
-```ts
-export interface ChannelProperty {
-    /**
-     * The channel's current voice count.
-     */
-    voiceCount: number;
-    /**
-     * The channel's current pitch wheel 0 - 16384.
-     */
-    pitchWheel: number;
-    /**
-     * The pitch wheel's range, in semitones.
-     */
-    pitchWheelRange: number;
-    /**
-     * Indicates whether the channel is muted.
-     */
-    isMuted: boolean;
-    /**
-     * Indicates whether the channel is a drum channel.
-     */
-    isDrum: boolean;
-    /**
-     * Indicates whether the channel uses an insertion effect.
-     * This means that there will be no separate dry output for processSplit().
-     */
-    isEFX: boolean;
-}
-```
+An array of [`LibMIDIChannel`](midi-channel.md)
 
 ### presetList
 

@@ -1,7 +1,6 @@
 import {
-    ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
-    midiMessageTypes,
+    MIDIMessageTypes,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
 import { songChangeType } from "./enums.js";
@@ -16,7 +15,8 @@ import type {
     WorkletSequencerEventType
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
-import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts"; // noinspection JSUnusedGlobalSymbols
+import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_config.ts"; // noinspection JSUnusedGlobalSymbols
 
 // noinspection JSUnusedGlobalSymbols
 export class Sequencer {
@@ -425,29 +425,26 @@ export class Sequencer {
             case "metaEvent": {
                 const event = m.data.event;
                 switch (event.statusByte) {
-                    case midiMessageTypes.setTempo: {
+                    case MIDIMessageTypes.setTempo: {
                         this._currentTempo =
                             60_000_000 /
-                            SpessaSynthCoreUtils.readBytesAsUintBigEndian(
-                                event.data,
-                                3
-                            );
+                            SpessaSynthCoreUtils.readBigEndian(event.data, 3);
                         break;
                     }
 
-                    case midiMessageTypes.text:
-                    case midiMessageTypes.lyric:
-                    case midiMessageTypes.copyright:
-                    case midiMessageTypes.trackName:
-                    case midiMessageTypes.marker:
-                    case midiMessageTypes.cuePoint:
-                    case midiMessageTypes.instrumentName:
-                    case midiMessageTypes.programName: {
+                    case MIDIMessageTypes.text:
+                    case MIDIMessageTypes.lyric:
+                    case MIDIMessageTypes.copyright:
+                    case MIDIMessageTypes.trackName:
+                    case MIDIMessageTypes.marker:
+                    case MIDIMessageTypes.cuePoint:
+                    case MIDIMessageTypes.instrumentName:
+                    case MIDIMessageTypes.programName: {
                         if (!this.midiData) {
                             break;
                         }
                         let lyricsIndex = -1;
-                        if (event.statusByte === midiMessageTypes.lyric) {
+                        if (event.statusByte === MIDIMessageTypes.lyric) {
                             lyricsIndex = Math.min(
                                 this.midiData.lyrics.findIndex(
                                     (l) => l.ticks === event.ticks
@@ -467,8 +464,8 @@ export class Sequencer {
                         // If it's a karaoke file
                         if (
                             this.midiData.isKaraokeFile &&
-                            (event.statusByte === midiMessageTypes.text ||
-                                event.statusByte === midiMessageTypes.lyric)
+                            (event.statusByte === MIDIMessageTypes.text ||
+                                event.statusByte === MIDIMessageTypes.lyric)
                         ) {
                             lyricsIndex = Math.min(
                                 this.midiData.lyrics.findIndex(
@@ -522,10 +519,10 @@ export class Sequencer {
             return;
         }
         for (let i = 0; i < 16; i++) {
-            this.midiOut.send([midiMessageTypes.controllerChange | i, 120, 0]); // All notes off
-            this.midiOut.send([midiMessageTypes.controllerChange | i, 123, 0]); // All sound off
+            this.midiOut.send([MIDIMessageTypes.controllerChange | i, 120, 0]); // All notes off
+            this.midiOut.send([MIDIMessageTypes.controllerChange | i, 123, 0]); // All sound off
         }
-        this.midiOut.send([midiMessageTypes.reset]); // Reset
+        this.midiOut.send([MIDIMessageTypes.reset]); // Reset
     }
 
     private recalculateStartTime(time: number) {

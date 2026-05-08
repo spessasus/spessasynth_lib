@@ -103,7 +103,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     numberOfOutputs: 18,
                     processorOptions: {
                         oneOutput: synthConfig.oneOutput,
-                        enableEventSystem: synthConfig.enableEventSystem
+                        eventsEnabled: synthConfig.eventsEnabled
                     }
                 }
             );

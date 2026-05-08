@@ -1,15 +1,15 @@
-import type {
-    BasicMIDI,
-    CustomController,
-    DLSWriteOptions,
-    KeyModifier,
-    MasterParameterType,
-    MIDIController,
-    RMIDIWriteOptions,
-    SoundFont2WriteOptions,
-    SynthesizerSnapshot,
-    SynthMethodOptions,
-    SynthProcessorEvent
+import {
+    type BasicMIDI,
+    type ChannelMasterParameter,
+    type DLSWriteOptions,
+    type GlobalMasterParameter,
+    type KeyModifier,
+    type MIDIController,
+    type RMIDIWriteOptions,
+    type SoundFont2WriteOptions,
+    type SynthesizerSnapshot,
+    type SynthMethodOptions,
+    type SynthProcessorEvent
 } from "spessasynth_core";
 import type {
     SequencerMessage,
@@ -22,7 +22,7 @@ export interface PassedProcessorParameters {
     /**
      * If the synthesizer should send events.
      */
-    enableEventSystem: boolean;
+    eventsEnabled: boolean;
     /**
      * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
      */
@@ -184,22 +184,11 @@ interface BasicSynthesizerMessageData {
     // Force: (0 false, 1 true) note: if channel is -1 then stop all channels
     stopAll: number;
     // Is muted?
-    muteChannel: boolean;
     addNewChannel: null;
-    customCcChange: {
-        ccNumber: CustomController;
-        ccValue: number;
-    };
-    // Semitones
-    transposeChannel: {
-        semitones: number;
-        force: boolean;
-    };
     // Is drums?
     setDrums: boolean;
-    // Note: if cc num is -1, then preset is locked
     lockController: {
-        controllerNumber: MIDIController | -1;
+        controllerNumber: MIDIController;
         isLocked: boolean;
     };
     sequencerSpecific: SequencerMessage;
@@ -211,12 +200,18 @@ interface BasicSynthesizerMessageData {
         enableGroup: boolean;
     };
 
-    setMasterParameter: {
-        [K in keyof MasterParameterType]: {
+    setChannelMasterParameter: {
+        [K in keyof ChannelMasterParameter]: {
             type: K;
-            data: MasterParameterType[K];
+            data: ChannelMasterParameter[K];
         };
-    }[keyof MasterParameterType];
+    }[keyof ChannelMasterParameter];
+    setGlobalMasterParameter: {
+        [K in keyof GlobalMasterParameter]: {
+            type: K;
+            data: GlobalMasterParameter[K];
+        };
+    }[keyof GlobalMasterParameter];
     soundBankManager: {
         [K in keyof WorkletSBKManagerData]: {
             type: K;

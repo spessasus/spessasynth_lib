@@ -25,11 +25,10 @@ export class SynthEventHandler {
     private readonly events: EventsMap = {
         noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // Called on a note off message
         noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // Called on a note on message
-        pitchWheel: new Map<string, ProcessorEventCallback<"pitchWheel">>(), // Called on a pitch-wheel change
-        pitchWheelRange: new Map<
+        perNotePitchWheel: new Map<
             string,
-            ProcessorEventCallback<"pitchWheelRange">
-        >(), // Called on a pitch-wheel range change
+            ProcessorEventCallback<"perNotePitchWheel">
+        >(), // Called on a pitch-wheel change for per-note pitch.
         controllerChange: new Map<
             string,
             ProcessorEventCallback<"controllerChange">
@@ -38,14 +37,9 @@ export class SynthEventHandler {
             string,
             ProcessorEventCallback<"programChange">
         >(), // Called on a program change
-        channelPressure: new Map<
-            string,
-            ProcessorEventCallback<"channelPressure">
-        >(), // Called on a channel pressure message
         polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // Called on a poly pressure message
         stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // Called when the synth receives stop all command
         newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // Called when a new channel is created
-        muteChannel: new Map<string, ProcessorEventCallback<"muteChannel">>(), // Called when a channel is muted/unmuted
         presetListChange: new Map<
             string,
             ProcessorEventCallback<"presetListChange">
@@ -59,10 +53,14 @@ export class SynthEventHandler {
             ProcessorEventCallback<"soundBankError">
         >(), // Called when a sound bank parsing error occurs
         synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // Called when there's a SysEx message to display some text
-        masterParameterChange: new Map<
+        midiGlobalChange: new Map<
             string,
-            ProcessorEventCallback<"masterParameterChange">
-        >(), // Called when a master parameter changes
+            ProcessorEventCallback<"midiGlobalChange">
+        >(), // Called when a MIDI global parameter changes
+        midiChannelChange: new Map<
+            string,
+            ProcessorEventCallback<"midiChannelChange">
+        >(), // Called when a MIDI channel parameter changes:
         effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
     };
 
