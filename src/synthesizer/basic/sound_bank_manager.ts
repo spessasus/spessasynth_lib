@@ -1,7 +1,4 @@
-import {
-    type SoundBankManagerListEntry,
-    SpessaSynthLog
-} from "spessasynth_core";
+import { type SoundBankManagerListEntry, SpessaLog } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
     WorkletSBKManagerData
@@ -87,11 +84,11 @@ export class SoundBankManager {
      */
     public async deleteSoundBank(id: string) {
         if (this.soundBankList.length < 2) {
-            SpessaSynthLog.warn("1 sound bank left. Aborting!");
+            SpessaLog.warn("1 sound bank left. Aborting!");
             return;
         }
         if (!this.soundBankList.some((s) => s.id === id)) {
-            SpessaSynthLog.warn(
+            SpessaLog.warn(
                 `No sound banks with id of "${id}" found. Aborting!`
             );
             return;

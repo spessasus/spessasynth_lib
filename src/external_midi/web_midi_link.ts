@@ -1,5 +1,5 @@
 import { ConsoleColors } from "../utils/other.js";
-import { SpessaSynthLog } from "spessasynth_core";
+import { SpessaLog } from "spessasynth_core";
 import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
 
 /**
@@ -30,7 +30,7 @@ export class WebMIDILinkHandler {
             synth.sendMessage(midiData);
         });
 
-        SpessaSynthLog.info(
+        SpessaLog.info(
             "%cWeb MIDI Link handler created!",
             ConsoleColors.recognized
         );

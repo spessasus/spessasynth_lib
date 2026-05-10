@@ -1,4 +1,4 @@
-import { SpessaSynthLog } from "spessasynth_core";
+import { SpessaLog } from "spessasynth_core";
 import { ConsoleColors } from "./utils/other.ts";
 import { WORKLET_PROCESSOR_NAME } from "./synthesizer/worklet/worklet_processor_name.ts";
 import type { PassedProcessorParameters } from "./synthesizer/types.ts";
@@ -26,7 +26,7 @@ class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor(WORKLET_PROCESSOR_NAME, WorkletSynthesizerProcessor);
-SpessaSynthLog.info(
+SpessaLog.info(
     "%cProcessor successfully registered!",
     ConsoleColors.recognized
 );

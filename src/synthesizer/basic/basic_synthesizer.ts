@@ -14,7 +14,7 @@ import {
     type MIDIGlobalParameter,
     MIDIMessageTypes,
     type MIDIPatchFull,
-    SpessaSynthLog,
+    SpessaLog,
     type SynthesizerSnapshot,
     type SynthMethodOptions,
     type SynthProcessorEventData
@@ -124,7 +124,7 @@ export abstract class BasicSynthesizer {
         ) => unknown,
         config: SynthConfig
     ) {
-        SpessaSynthLog.info(
+        SpessaLog.info(
             "%cInitializing SpessaSynth synthesizer...",
             ConsoleColors.info
         );
@@ -834,7 +834,7 @@ export abstract class BasicSynthesizer {
             }
 
             case "soundBankError": {
-                SpessaSynthLog.warn(m.data as unknown as string);
+                SpessaLog.warn(m.data as unknown as string);
                 this.eventHandler.callEventInternal("soundBankError", m.data);
                 break;
             }

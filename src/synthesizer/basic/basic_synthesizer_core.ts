@@ -2,7 +2,7 @@ import {
     BasicMIDI,
     MIDIChannel,
     SoundBankLoader,
-    SpessaSynthLog,
+    SpessaLog,
     SpessaSynthProcessor,
     SpessaSynthSequencer,
     type SynthProcessorOptions
@@ -163,7 +163,7 @@ export abstract class BasicSynthesizerCore {
         if (channel >= 0) {
             channelObject = this.synthesizer.midiChannels[channel];
             if (channelObject === undefined) {
-                SpessaSynthLog.warn(
+                SpessaLog.warn(
                     `Trying to access channel ${channel} which does not exist... ignoring!`
                 );
                 return;
@@ -420,7 +420,7 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "setLogLevel": {
-                SpessaSynthLog.setLogLevel(
+                SpessaLog.setLogLevel(
                     m.data.enableInfo,
                     m.data.enableWarning,
                     m.data.enableGroup
@@ -436,7 +436,7 @@ export abstract class BasicSynthesizerCore {
             }
 
             default: {
-                SpessaSynthLog.warn("Unrecognized event!", m);
+                SpessaLog.warn("Unrecognized event!", m);
                 break;
             }
         }

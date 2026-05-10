@@ -1,4 +1,4 @@
-import { SpessaSynthLog } from "spessasynth_core";
+import { SpessaLog } from "spessasynth_core";
 import { ConsoleColors } from "../utils/other.js";
 import type { Sequencer } from "../sequencer/sequencer";
 import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
@@ -142,17 +142,17 @@ export class MIDIDeviceHandler {
                     sysex: true,
                     software: true
                 });
-                SpessaSynthLog.info(
+                SpessaLog.info(
                     "%cMIDI handler created!",
                     ConsoleColors.recognized
                 );
                 return new MIDIDeviceHandler(response);
             } catch (error) {
-                SpessaSynthLog.warn(`Could not get MIDI Devices:`, error);
+                SpessaLog.warn(`Could not get MIDI Devices:`, error);
                 throw error;
             }
         } else {
-            SpessaSynthLog.warn(
+            SpessaLog.warn(
                 "Web MIDI API is not supported.",
                 ConsoleColors.unrecognized
             );

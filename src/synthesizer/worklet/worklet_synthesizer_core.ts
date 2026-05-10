@@ -1,5 +1,5 @@
 // A worklet processor for the WorkletSynthesizer
-import { BasicMIDI, SoundBankLoader, SpessaSynthLog } from "spessasynth_core";
+import { BasicMIDI, SoundBankLoader, SpessaLog } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
     OfflineRenderWorkletData,
@@ -171,7 +171,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         }
 
         // If sent, start rendering
-        SpessaSynthLog.info(
+        SpessaLog.info(
             "%cStarting to render the audio data!",
             ConsoleColors.info
         );
