@@ -25,10 +25,6 @@ export class SynthEventHandler {
     private readonly events: EventsMap = {
         noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // Called on a note off message
         noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // Called on a note on message
-        perNotePitchWheel: new Map<
-            string,
-            ProcessorEventCallback<"perNotePitchWheel">
-        >(), // Called on a pitch-wheel change for per-note pitch.
         controllerChange: new Map<
             string,
             ProcessorEventCallback<"controllerChange">
