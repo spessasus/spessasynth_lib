@@ -81,7 +81,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             for (let i = 0; i < 32; i += 2) {
                 channelMap.push([out[i], out[i + 1]]);
             }
-            this.synthesizer.setMasterParameter("effectsEnabled", false);
+            this.synthesizer.setSystemParameter("effectsEnabled", false);
             // Effects are disabled
             this.synthesizer.processSplit(channelMap, out[0], out[0]);
         } else {
@@ -177,7 +177,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         );
         sq.loopCount = config.loopCount;
         // Set voice cap to unlimited
-        this.synthesizer.setMasterParameter("autoAllocateVoices", true);
+        this.synthesizer.setSystemParameter("autoAllocateVoices", true);
 
         /**
          * Set options

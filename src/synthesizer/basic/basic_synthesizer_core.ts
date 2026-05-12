@@ -197,13 +197,13 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "setGlobalMasterParameter": {
-                this.synthesizer.setMasterParameter(m.data.type, m.data.data);
+            case "setGlobalSystemParameter": {
+                this.synthesizer.setSystemParameter(m.data.type, m.data.data);
                 break;
             }
 
-            case "setChannelMasterParameter": {
-                channelObject?.setMasterParameter(m.data.type, m.data.data);
+            case "setChannelSystemParameter": {
+                channelObject?.setSystemParameter(m.data.type, m.data.data);
                 break;
             }
 

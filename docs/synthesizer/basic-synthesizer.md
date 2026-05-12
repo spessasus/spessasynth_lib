@@ -160,12 +160,12 @@ The returned value depends on the type.
 console.log(synth.getMasterParameter("midiSystem"));
 ```
 
-### setMasterParameter
+### setSystemParameter
 
 Sets a [master parameter](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/master-parameter/) to a given value.
 
 ```js
-synth.setMasterParameter(type, value);
+synth.setSystemParameter(type, value);
 ```
 
 - type - the type to set.
@@ -175,7 +175,7 @@ synth.setMasterParameter(type, value);
 
 ```js
 // Set the master gain to 200%
-synth.setMasterParameter("masterGain", 2);
+synth.setSystemParameter("masterGain", 2);
 ```
 
 ### getSnapshot

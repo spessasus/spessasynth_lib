@@ -49,14 +49,14 @@ export class SynthEventHandler {
             ProcessorEventCallback<"soundBankError">
         >(), // Called when a sound bank parsing error occurs
         synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // Called when there's a SysEx message to display some text
-        midiGlobalChange: new Map<
+        globalMIDIParamChange: new Map<
             string,
-            ProcessorEventCallback<"midiGlobalChange">
+            ProcessorEventCallback<"globalMIDIParamChange">
         >(), // Called when a MIDI global parameter changes
-        midiChannelChange: new Map<
+        channelMIDIParamChange: new Map<
             string,
-            ProcessorEventCallback<"midiChannelChange">
-        >(), // Called when a MIDI channel parameter changes:
+            ProcessorEventCallback<"channelMIDIParamChange">
+        >(), // Called when a MIDI channel parameter changes
         effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
     };
 

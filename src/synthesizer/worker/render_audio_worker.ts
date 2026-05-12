@@ -108,8 +108,8 @@ export function renderAudioWorker(
         rendererSynth.applySnapshot(snapshot);
     }
 
-    // Apply no voice cap (applying snapshot resets master parameters)
-    rendererSynth.setMasterParameter("autoAllocateVoices", true);
+    // Apply no voice cap (applying snapshot resets system parameters)
+    rendererSynth.setSystemParameter("autoAllocateVoices", true);
 
     // Begin playing
     rendererSeq.loadNewSongList([parsedMid]);

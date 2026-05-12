@@ -1,8 +1,8 @@
 import {
     type BasicMIDI,
-    type ChannelMasterParameter,
+    type ChannelSystemParameter,
     type DLSWriteOptions,
-    type GlobalMasterParameter,
+    type GlobalSystemParameter,
     type KeyModifier,
     type MIDIController,
     type RMIDIWriteOptions,
@@ -200,18 +200,18 @@ interface BasicSynthesizerMessageData {
         enableGroup: boolean;
     };
 
-    setChannelMasterParameter: {
-        [K in keyof ChannelMasterParameter]: {
+    setChannelSystemParameter: {
+        [K in keyof ChannelSystemParameter]: {
             type: K;
-            data: ChannelMasterParameter[K];
+            data: ChannelSystemParameter[K];
         };
-    }[keyof ChannelMasterParameter];
-    setGlobalMasterParameter: {
-        [K in keyof GlobalMasterParameter]: {
+    }[keyof ChannelSystemParameter];
+    setGlobalSystemParameter: {
+        [K in keyof GlobalSystemParameter]: {
             type: K;
-            data: GlobalMasterParameter[K];
+            data: GlobalSystemParameter[K];
         };
-    }[keyof GlobalMasterParameter];
+    }[keyof GlobalSystemParameter];
     soundBankManager: {
         [K in keyof WorkletSBKManagerData]: {
             type: K;

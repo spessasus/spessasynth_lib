@@ -1,8 +1,8 @@
 import {
-    type ChannelMasterParameter,
-    DEFAULT_CHANNEL_MASTER_PARAMETERS,
-    DEFAULT_MIDI_CHANNEL_PARAMETERS,
-    type MIDIChannelParameter,
+    type ChannelMIDIParameter,
+    type ChannelSystemParameter,
+    DEFAULT_CHANNEL_MIDI_PARAMETERS,
+    DEFAULT_CHANNEL_SYSTEM_PARAMETERS,
     type MIDIController,
     type MIDIPatchFull
 } from "spessasynth_core";
@@ -15,8 +15,8 @@ export class LibMIDIChannel {
      */
     private readonly channel;
     private readonly synth: BasicSynthesizer;
-    private readonly _masterParameters: ChannelMasterParameter = {
-        ...DEFAULT_CHANNEL_MASTER_PARAMETERS
+    private readonly _systemParameters: ChannelSystemParameter = {
+        ...DEFAULT_CHANNEL_SYSTEM_PARAMETERS
     };
 
     /**
@@ -54,8 +54,8 @@ export class LibMIDIChannel {
         this._patch = patch;
     }
 
-    private _midiParameters: MIDIChannelParameter = {
-        ...DEFAULT_MIDI_CHANNEL_PARAMETERS
+    private _midiParameters: ChannelMIDIParameter = {
+        ...DEFAULT_CHANNEL_MIDI_PARAMETERS
     };
 
     // noinspection JSUnusedGlobalSymbols
@@ -63,17 +63,17 @@ export class LibMIDIChannel {
      * The channel MIDI parameters of this channel.
      * These are only editable via MIDI messages.
      */
-    public get midiParameters(): Readonly<MIDIChannelParameter> {
+    public get midiParameters(): Readonly<ChannelMIDIParameter> {
         return this._midiParameters;
     }
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The channel master parameters of this channel.
+     * The channel system parameters of this channel.
      * These are only editable via the API.
      */
-    public get masterParameters(): Readonly<ChannelMasterParameter> {
-        return this._masterParameters;
+    public get systemParameters(): Readonly<ChannelSystemParameter> {
+        return this._systemParameters;
     }
 
     private _voiceCount = 0;
@@ -125,27 +125,27 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets a master parameter of the channel.
-     * @param parameter The type of the master parameter to set.
-     * @param value The value to set for the master parameter.
+     * Sets a system parameter of the channel.
+     * @param parameter The type of the parameter to set.
+     * @param value The value to set for the parameter.
      */
-    public setMasterParameter<P extends keyof ChannelMasterParameter>(
+    public setSystemParameter<P extends keyof ChannelSystemParameter>(
         parameter: P,
-        value: ChannelMasterParameter[P]
+        value: ChannelSystemParameter[P]
     ) {
-        this._masterParameters[parameter] = value;
+        this._systemParameters[parameter] = value;
         this.synth.post({
-            type: "setChannelMasterParameter",
+            type: "setChannelSystemParameter",
             channelNumber: this.channel,
             data: {
                 type: parameter,
                 data: value
             } as {
-                [K in keyof ChannelMasterParameter]: {
+                [K in keyof ChannelSystemParameter]: {
                     type: K;
-                    data: ChannelMasterParameter[K];
+                    data: ChannelSystemParameter[K];
                 };
-            }[keyof ChannelMasterParameter]
+            }[keyof ChannelSystemParameter]
         });
     }
 
@@ -154,9 +154,9 @@ export class LibMIDIChannel {
      * @param parameter
      * @param value
      */
-    public setMIDIParameter<P extends keyof MIDIChannelParameter>(
+    public setMIDIParameter<P extends keyof ChannelMIDIParameter>(
         parameter: P,
-        value: MIDIChannelParameter[P]
+        value: ChannelMIDIParameter[P]
     ) {
         this._midiParameters[parameter] = value;
     }
@@ -166,7 +166,7 @@ export class LibMIDIChannel {
      */
     public reset() {
         this._midiParameters = {
-            ...DEFAULT_MIDI_CHANNEL_PARAMETERS
+            ...DEFAULT_CHANNEL_MIDI_PARAMETERS
         };
     }
 }

@@ -5,13 +5,13 @@ import {
     SynthEventHandler
 } from "./synth_event_handler.ts";
 import {
-    DEFAULT_GLOBAL_MASTER_PARAMETERS,
-    DEFAULT_MIDI_GLOBAL_PARAMETERS,
-    type GlobalMasterParameter,
-    type MIDIChannelParameter,
+    type ChannelMIDIParameter,
+    DEFAULT_GLOBAL_MIDI_PARAMETERS,
+    DEFAULT_GLOBAL_SYSTEM_PARAMETERS,
+    type GlobalMIDIParameter,
+    type GlobalSystemParameter,
     type MIDIController,
     MIDIControllers,
-    type MIDIGlobalParameter,
     MIDIMessageTypes,
     type MIDIPatchFull,
     SpessaLog,
@@ -93,8 +93,8 @@ export abstract class BasicSynthesizer {
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
      */
     protected readonly _outputCount = 16;
-    protected readonly _masterParameters: GlobalMasterParameter = {
-        ...DEFAULT_GLOBAL_MASTER_PARAMETERS
+    protected readonly _systemParameters: GlobalSystemParameter = {
+        ...DEFAULT_GLOBAL_SYSTEM_PARAMETERS
     };
     // Resolve map, waiting for the worklet to confirm the operation
     protected resolveMap = new Map<
@@ -156,18 +156,18 @@ export abstract class BasicSynthesizer {
             (e) => (this.presetList = [...e])
         );
         this.registerInternalEvent(
-            "midiGlobalChange",
-            <P extends keyof MIDIGlobalParameter>(e: {
+            "globalMIDIParamChange",
+            <P extends keyof GlobalMIDIParameter>(e: {
                 parameter: P;
-                value: MIDIGlobalParameter[P];
+                value: GlobalMIDIParameter[P];
             }) => (this._midiParameters[e.parameter] = e.value)
         );
         this.registerInternalEvent(
-            "midiChannelChange",
-            <P extends keyof MIDIChannelParameter>(e: {
+            "channelMIDIParamChange",
+            <P extends keyof ChannelMIDIParameter>(e: {
                 channel: number;
                 parameter: P;
-                value: MIDIChannelParameter[P];
+                value: ChannelMIDIParameter[P];
             }) =>
                 this.midiChannels[e.channel].setMIDIParameter(
                     e.parameter,
@@ -184,13 +184,13 @@ export abstract class BasicSynthesizer {
         this.registerInternalEvent("allControllerReset", () => {
             for (const c of this.midiChannels) c.reset();
             this._midiParameters = {
-                ...DEFAULT_MIDI_GLOBAL_PARAMETERS
+                ...DEFAULT_GLOBAL_MIDI_PARAMETERS
             };
         });
     }
 
-    protected _midiParameters: MIDIGlobalParameter = {
-        ...DEFAULT_MIDI_GLOBAL_PARAMETERS
+    protected _midiParameters: GlobalMIDIParameter = {
+        ...DEFAULT_GLOBAL_MIDI_PARAMETERS
     };
 
     // noinspection JSUnusedGlobalSymbols
@@ -198,7 +198,7 @@ export abstract class BasicSynthesizer {
      * The global MIDI parameters of the synthesizer.
      * These are only editable via MIDI messages.
      */
-    public get midiParameters(): Readonly<MIDIGlobalParameter> {
+    public get midiParameters(): Readonly<GlobalMIDIParameter> {
         return this._midiParameters;
     }
 
@@ -231,11 +231,11 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The global master parameters of the synthesizer.
+     * The global system parameters of the synthesizer.
      * These are only editable via the API.
      */
-    public get masterParameters(): Readonly<GlobalMasterParameter> {
-        return this._masterParameters;
+    public get systemParameters(): Readonly<GlobalSystemParameter> {
+        return this._systemParameters;
     }
 
     /**
@@ -291,30 +291,28 @@ export abstract class BasicSynthesizer {
     }
 
     // noinspection JSUnusedGlobalSymbols
-
-    // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets a master parameter to a given value.
+     * Sets a system parameter to a given value.
      * @param type The parameter to set.
      * @param value The value to set.
      */
-    public setMasterParameter<K extends keyof GlobalMasterParameter>(
+    public setSystemParameter<K extends keyof GlobalSystemParameter>(
         type: K,
-        value: GlobalMasterParameter[K]
+        value: GlobalSystemParameter[K]
     ) {
-        this._masterParameters[type] = value;
+        this._systemParameters[type] = value;
         this.post({
-            type: "setGlobalMasterParameter",
+            type: "setGlobalSystemParameter",
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             data: {
                 type,
                 data: value
             } as {
-                [K in keyof GlobalMasterParameter]: {
+                [K in keyof GlobalSystemParameter]: {
                     type: K;
-                    data: GlobalMasterParameter[K];
+                    data: GlobalSystemParameter[K];
                 };
-            }[keyof GlobalMasterParameter]
+            }[keyof GlobalSystemParameter]
         });
     }
 
@@ -341,18 +339,6 @@ export abstract class BasicSynthesizer {
      */
     public addNewChannel() {
         this.addNewChannelInternal(true);
-    }
-
-    /**
-     * DEPRECATED, please don't use it!
-     * @deprecated
-     */
-    public setVibrato(
-        channel: number,
-        value: { delay: number; depth: number; rate: number }
-    ) {
-        void channel;
-        void value;
     }
 
     /**
@@ -405,15 +391,6 @@ export abstract class BasicSynthesizer {
             // + 1 because effects come first!
             this.disconnectChannel(audioNodes[channel], channel);
         }
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Disables the GS NRPN parameters like vibrato or drum key tuning.
-     * @deprecated Deprecated! Please use master parameters
-     */
-    public disableGSNPRNParams() {
-        this.setMasterParameter("nrpnParamLock", true);
     }
 
     /**
