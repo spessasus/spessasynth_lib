@@ -40,8 +40,13 @@ So:
 ## Installation
 
 ```shell
-npm install --save spessasynth_lib
+npm install --save spessasynth_core spessasynth_lib
 ```
+
+!!! Warning
+
+    Consider installing `spessasynth_core` as shown above,
+    as it provides essential types for many of the API functions.
 
 ## Minimal setup
 
