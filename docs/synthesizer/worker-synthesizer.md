@@ -198,6 +198,7 @@ const file = await synth.writeRMIDI(options);
 
 - options - an optional configuration for writing the file. All properties are optional.
     - format - either `sf2` or `dls`. Depending on the format, the options in methods above apply.
+    - apply snapshot - boolean. If the current `SpessaSynthProcessor`s snapshot should be [applied](https://spessasus.github.io/spessasynth_core/midi/#applysnapshot) to the MIDI.
     - sequencerID - which sequencer to grab the MIDI from. Defaults to the first one (0).
     - all options in [`BasicMIDI.writeRMIDI`](https://spessasus.github.io/spessasynth_core/midi/#writermidi) except for `soundBank`.
 

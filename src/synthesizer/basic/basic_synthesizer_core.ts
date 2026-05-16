@@ -1,12 +1,10 @@
 import {
-    ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
+    MIDIChannel,
     SoundBankLoader,
-    SpessaSynthCoreUtils as util,
-    SpessaSynthLogging,
+    SpessaLog,
     SpessaSynthProcessor,
     SpessaSynthSequencer,
-    SynthesizerSnapshot,
     type SynthProcessorOptions
 } from "spessasynth_core";
 import type {
@@ -17,6 +15,7 @@ import type {
 } from "../types.ts";
 import { MIDIData } from "../../sequencer/midi_data.ts";
 import { songChangeType } from "../../sequencer/enums.ts";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
 
 export type PostMessageSynthCore = (
     data: BasicSynthesizerReturnMessage,
@@ -35,11 +34,16 @@ export abstract class BasicSynthesizerCore {
     protected readonly post: PostMessageSynthCore;
     protected lastSequencerSync = 0;
     /**
+     * For syncing voice counts, implemented separately in the `process()` method.
+     * @protected
+     */
+    protected readonly voiceCounts = new Array<number>(16).fill(0);
+    /**
      * Indicates if the processor is alive.
      * @protected
      */
     protected alive = false;
-    protected readonly enableEventSystem;
+    protected readonly eventsEnabled;
 
     protected constructor(
         sampleRate: number,
@@ -47,15 +51,20 @@ export abstract class BasicSynthesizerCore {
         postMessage: PostMessageSynthCore
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.enableEventSystem = options.enableEventSystem ?? false;
+        this.eventsEnabled = options.eventsEnabled ?? false;
         this.post = postMessage;
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
+            if (event.type === "newChannel") {
+                const l = this.synthesizer.midiChannels.length;
+                for (let i = this.voiceCounts.length; i < l; i++)
+                    this.voiceCounts.push(0);
+            }
             this.post({
                 type: "eventCall",
                 data: event,
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
         };
     }
@@ -67,7 +76,7 @@ export abstract class BasicSynthesizerCore {
 
         // Prepare sequencer connections
         sequencer.onEventCall = (e) => {
-            if (!this.enableEventSystem) return; // Processor already respects enabling/disabling event system
+            if (!this.eventsEnabled) return; // Processor already respects enabling/disabling event system
             if (e.type === "songListChange") {
                 const songs = e.data.newSongList;
                 const midiDatas = songs.map((s) => {
@@ -83,14 +92,14 @@ export abstract class BasicSynthesizerCore {
                         },
                         id: sequencerID
                     },
-                    currentTime: this.synthesizer.currentSynthTime
+                    currentTime: this.synthesizer.currentTime
                 });
                 return;
             }
             this.post({
                 type: "sequencerReturn",
                 data: { ...e, id: sequencerID },
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
         };
     }
@@ -112,7 +121,7 @@ export abstract class BasicSynthesizerCore {
                         data: SynthesizerReturn[K];
                     };
                 }[keyof SynthesizerReturn],
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             },
             transferable
         );
@@ -133,7 +142,7 @@ export abstract class BasicSynthesizerCore {
                     data: SynthesizerProgress[K];
                 };
             }[keyof SynthesizerProgress],
-            currentTime: this.synthesizer.currentSynthTime
+            currentTime: this.synthesizer.currentTime
         });
     }
 
@@ -150,13 +159,11 @@ export abstract class BasicSynthesizerCore {
     protected handleMessage(m: BasicSynthesizerMessage) {
         const channel = m.channelNumber;
 
-        let channelObject:
-            | (typeof this.synthesizer.midiChannels)[number]
-            | undefined = undefined;
+        let channelObject: MIDIChannel | undefined;
         if (channel >= 0) {
             channelObject = this.synthesizer.midiChannels[channel];
             if (channelObject === undefined) {
-                util.SpessaSynthWarn(
+                SpessaLog.warn(
                     `Trying to access channel ${channel} which does not exist... ignoring!`
                 );
                 return;
@@ -172,35 +179,16 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "customCcChange": {
-                // Custom controller change
-                channelObject?.setCustomController(
-                    m.data.ccNumber,
-                    m.data.ccValue
-                );
-                break;
-            }
-
             case "ccReset": {
-                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
-                    this.synthesizer.resetAllControllers();
-                } else {
-                    channelObject?.resetControllers();
-                }
+                this.synthesizer.resetAllControllers();
                 break;
             }
 
             case "stopAll": {
-                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION) {
+                if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION)
                     this.synthesizer.stopAllChannels(m.data === 1);
-                } else {
-                    channelObject?.stopAllNotes(m.data === 1);
-                }
-                break;
-            }
+                else channelObject?.stopAllNotes(m.data === 1);
 
-            case "muteChannel": {
-                channelObject?.muteChannel(m.data);
                 break;
             }
 
@@ -209,8 +197,13 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "setMasterParameter": {
-                this.synthesizer.setMasterParameter(m.data.type, m.data.data);
+            case "setGlobalSystemParameter": {
+                this.synthesizer.setSystemParameter(m.data.type, m.data.data);
+                break;
+            }
+
+            case "setChannelSystemParameter": {
+                channelObject?.setSystemParameter(m.data.type, m.data.data);
                 break;
             }
 
@@ -219,23 +212,11 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "transposeChannel": {
-                channelObject?.transposeChannel(m.data.semitones, m.data.force);
-                break;
-            }
-
             case "lockController": {
-                if (
-                    m.data.controllerNumber === ALL_CHANNELS_OR_DIFFERENT_ACTION
-                ) {
-                    channelObject?.setPresetLock(m.data.isLocked);
-                } else {
-                    if (!channelObject) {
-                        return;
-                    }
-                    channelObject.lockedControllers[m.data.controllerNumber] =
-                        m.data.isLocked;
-                }
+                channelObject?.lockController(
+                    m.data.controller,
+                    m.data.isLocked
+                );
                 break;
             }
 
@@ -273,7 +254,7 @@ export abstract class BasicSynthesizerCore {
                                     data: error as Error,
                                     id: m.data.id
                                 },
-                                currentTime: this.synthesizer.currentSynthTime
+                                currentTime: this.synthesizer.currentTime
                             });
                         }
                         break;
@@ -342,7 +323,7 @@ export abstract class BasicSynthesizerCore {
                                 data: seq.midiData,
                                 id: m.data.id
                             },
-                            currentTime: this.synthesizer.currentSynthTime
+                            currentTime: this.synthesizer.currentTime
                         });
                         break;
                     }
@@ -389,7 +370,7 @@ export abstract class BasicSynthesizerCore {
                     this.post({
                         type: "soundBankError",
                         data: error as Error,
-                        currentTime: this.synthesizer.currentSynthTime
+                        currentTime: this.synthesizer.currentTime
                     });
                 }
                 break;
@@ -428,7 +409,7 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "requestSynthesizerSnapshot": {
-                const snapshot = SynthesizerSnapshot.create(this.synthesizer);
+                const snapshot = this.synthesizer.getSnapshot();
                 this.postReady("synthesizerSnapshot", snapshot);
                 break;
             }
@@ -439,7 +420,7 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "setLogLevel": {
-                SpessaSynthLogging(
+                SpessaLog.setLogLevel(
                     m.data.enableInfo,
                     m.data.enableWarning,
                     m.data.enableGroup
@@ -455,7 +436,7 @@ export abstract class BasicSynthesizerCore {
             }
 
             default: {
-                util.SpessaSynthWarn("Unrecognized event!", m);
+                SpessaLog.warn("Unrecognized event!", m);
                 break;
             }
         }

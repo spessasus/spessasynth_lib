@@ -1,16 +1,12 @@
 // A worklet processor for the WorkletSynthesizer
-import {
-    BasicMIDI,
-    SoundBankLoader,
-    SpessaSynthCoreUtils as util
-} from "spessasynth_core";
+import { BasicMIDI, SoundBankLoader, SpessaLog } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
     OfflineRenderWorkletData,
     PassedProcessorParameters
 } from "../types.ts";
 import type { SequencerOptions } from "../../sequencer/types.ts";
-import { consoleColors } from "../../utils/other.ts";
+import { ConsoleColors } from "../../utils/other.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
 import {
@@ -35,8 +31,8 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         super(
             sampleRate,
             {
-                enableEffects: !opts.oneOutput, // One output mode disables effects
-                enableEventSystem: opts?.enableEventSystem, // Enable message port?
+                effectsEnabled: !opts.oneOutput, // One output mode disables effects
+                eventsEnabled: opts?.eventsEnabled, // Enable message port?
                 initialTime: currentTime
             },
             (data, transfer) => {
@@ -85,7 +81,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             for (let i = 0; i < 32; i += 2) {
                 channelMap.push([out[i], out[i + 1]]);
             }
-            this.synthesizer.enableEffects = false;
+            this.synthesizer.setSystemParameter("effectsEnabled", false);
             // Effects are disabled
             this.synthesizer.processSplit(channelMap, out[0], out[0]);
         } else {
@@ -100,9 +96,9 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 outputs[0][1]
             );
         }
-        const t = this.synthesizer.currentSynthTime;
+        const t = this.synthesizer.currentTime;
         if (
-            this.enableEventSystem &&
+            this.eventsEnabled &&
             t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
         ) {
             for (let id = 0; id < this.sequencers.length; id++) {
@@ -118,6 +114,22 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             }
             this.lastSequencerSync = t;
         }
+
+        // Update voice count
+        const c = this.synthesizer.midiChannels;
+        const cv = this.voiceCounts;
+        let updateChannels = false;
+        for (let i = 0; i < c.length; i++) {
+            updateChannels ||= c[i].voiceCount !== cv[i];
+            cv[i] = c[i].voiceCount;
+        }
+        if (updateChannels)
+            this.post({
+                type: "voiceCountChange",
+                currentTime: t,
+                data: cv
+            });
+
         return true;
     }
 
@@ -149,23 +161,23 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 this.post({
                     type: "soundBankError",
                     data: error as Error,
-                    currentTime: this.synthesizer.currentSynthTime
+                    currentTime: this.synthesizer.currentTime
                 });
             }
         }
 
         if (config.snapshot !== undefined) {
-            this.synthesizer.applySynthesizerSnapshot(config.snapshot);
+            this.synthesizer.applySnapshot(config.snapshot);
         }
 
         // If sent, start rendering
-        util.SpessaSynthInfo(
-            "%cRendering enabled! Starting render.",
-            consoleColors.info
+        SpessaLog.info(
+            "%cStarting to render the audio data!",
+            ConsoleColors.info
         );
         sq.loopCount = config.loopCount;
         // Set voice cap to unlimited
-        this.synthesizer.setMasterParameter("autoAllocateVoices", true);
+        this.synthesizer.setSystemParameter("autoAllocateVoices", true);
 
         /**
          * Set options
@@ -190,7 +202,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                     data: error as Error,
                     id: 0
                 },
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
         }
         this.postReady("startOfflineRender", null);

@@ -18,7 +18,7 @@ Below is the `SynthConfig` configuration object that can be passed to both synth
 Indicates if the [one output mode](#one-output-mode) should be enabled.
 A boolean.
 
-### enableEventSystem
+### eventsEnabled
 
 If the event system should be enabled. This can only be set once.
 
@@ -51,7 +51,7 @@ An example function that creates the standard worklet node looks like this:
 
     The synthesizer internally sends commands to the `SynthesizerCore` where all the processing happens. (This can be a worklet or a worker depending on your synthesizer of choice.)
     Keep that in mind as not all methods will immediately report values!
-    (E.g. `noteOn` won't instantly increase the voice count in `channelProperties`)
+    (E.g. `noteOn` won't instantly increase the voice count in `midiChannels`)
 
 ## Properties
 
@@ -71,9 +71,11 @@ The synthesizer's [event handler](synth-event-handler.md).
 
 The synthesizer's `BaseAudioContext` instance.
 
-### channelProperties
+### midiChannels
 
-The current [channel properties](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/#tchannelpropertychange) of all channels, an array.
+The synthesizer's (virtual) [MIDI channels](midi-channel.md).
+
+An array of [`LibMIDIChannel`](midi-channel.md)
 
 ### presetList
 
@@ -94,11 +96,11 @@ A promise that gets resolved when the synthesizer gets fully initialized.
 
     Remember to wait for this promise before playing anything or rendering audio!
 
-### channelsAmount
+### channelCount
 
 The current amount of MIDI channels the synthesizer has.
 
-### voicesAmount
+### voiceCount
 
 The current amount of voices (notes) being synthesized. A real-time value.
 
@@ -158,12 +160,12 @@ The returned value depends on the type.
 console.log(synth.getMasterParameter("midiSystem"));
 ```
 
-### setMasterParameter
+### setSystemParameter
 
 Sets a [master parameter](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/master-parameter/) to a given value.
 
 ```js
-synth.setMasterParameter(type, value);
+synth.setSystemParameter(type, value);
 ```
 
 - type - the type to set.
@@ -173,7 +175,7 @@ synth.setMasterParameter(type, value);
 
 ```js
 // Set the master gain to 200%
-synth.setMasterParameter("masterGain", 2);
+synth.setSystemParameter("masterGain", 2);
 ```
 
 ### getSnapshot
@@ -349,16 +351,11 @@ synth.stopAll((force = false));
 Set a given MIDI controller to a given value.
 
 ```js
-synth.controllerChange(
-    channel,
-    controllerNumber,
-    controllerValue,
-    eventOptions
-);
+synth.controllerChange(channel, controller, controllerValue, eventOptions);
 ```
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
-- controllerNumber - the MIDI CC number of the controller to change.
+- controller - the MIDI CC number of the controller to change.
   Refer
   to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives#default-supported-controllers) for the list of controllers
   supported by default.
@@ -385,11 +382,11 @@ Reset all controllers to their default values. (for every channel)
 Cause the given midi channel to ignore controller messages for the given controller number.
 
 ```js
-synth.lockController(channel, controllerNumber, isLocked);
+synth.lockController(channel, controller, isLocked);
 ```
 
 - channel - the channel to lock. It usually ranges from 0 to 15, but it depends on the channel count.
-- controllerNumber - the MIDI CC to lock. Ranges from 0 to 146. See the tip below to see why.
+- controller - the MIDI CC to lock. Ranges from 0 to 146. See the tip below to see why.
 - isLocked - boolean, if true then locked, if false then unlocked.
 
 **Example:**
@@ -544,7 +541,7 @@ synth.muteChannel(channel, isMuted);
 
 ```js
 // set solo on channel 4
-for (const i = 0; i < synth.channelsAmount; i++) {
+for (const i = 0; i < synth.channelCount; i++) {
     if (i === 3) {
         synth.muteChannel(i, false);
     } else {

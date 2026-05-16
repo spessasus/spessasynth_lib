@@ -18,12 +18,13 @@ export async function writeRMIDIWorker(
         sfBin = bin.binary;
         sf = bin.bank;
     } else {
-        const bin = await writeDLSWorker.call(this, opts);
+        const bin = writeDLSWorker.call(this, opts);
         sfBin = bin.binary;
         sf = bin.bank;
     }
 
     const mid = BasicMIDI.copyFrom(sq.midiData);
+    if (opts.applySnapshot) mid.applySnapshot(this.synthesizer.getSnapshot());
     return mid.writeRMIDI(sfBin, {
         soundBank: sf,
         ...opts

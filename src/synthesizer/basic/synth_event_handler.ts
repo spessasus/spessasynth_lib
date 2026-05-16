@@ -1,6 +1,6 @@
 import type { SynthProcessorEventData } from "spessasynth_core";
 
-type ProcessorEventCallback<T extends keyof SynthProcessorEventData> = (
+export type ProcessorEventCallback<T extends keyof SynthProcessorEventData> = (
     callbackData: SynthProcessorEventData[T]
 ) => unknown;
 
@@ -25,7 +25,6 @@ export class SynthEventHandler {
     private readonly events: EventsMap = {
         noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // Called on a note off message
         noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // Called on a note on message
-        pitchWheel: new Map<string, ProcessorEventCallback<"pitchWheel">>(), // Called on a pitch-wheel change
         controllerChange: new Map<
             string,
             ProcessorEventCallback<"controllerChange">
@@ -34,15 +33,9 @@ export class SynthEventHandler {
             string,
             ProcessorEventCallback<"programChange">
         >(), // Called on a program change
-        channelPressure: new Map<
-            string,
-            ProcessorEventCallback<"channelPressure">
-        >(), // Called on a channel pressure message
         polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // Called on a poly pressure message
-        drumChange: new Map<string, ProcessorEventCallback<"drumChange">>(), // Called when a channel type changes
         stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // Called when the synth receives stop all command
         newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // Called when a new channel is created
-        muteChannel: new Map<string, ProcessorEventCallback<"muteChannel">>(), // Called when a channel is muted/unmuted
         presetListChange: new Map<
             string,
             ProcessorEventCallback<"presetListChange">
@@ -56,14 +49,14 @@ export class SynthEventHandler {
             ProcessorEventCallback<"soundBankError">
         >(), // Called when a sound bank parsing error occurs
         synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // Called when there's a SysEx message to display some text
-        masterParameterChange: new Map<
+        globalMIDIParamChange: new Map<
             string,
-            ProcessorEventCallback<"masterParameterChange">
-        >(), // Called when a master parameter changes
-        channelPropertyChange: new Map<
+            ProcessorEventCallback<"globalMIDIParamChange">
+        >(), // Called when a MIDI global parameter changes
+        channelMIDIParamChange: new Map<
             string,
-            ProcessorEventCallback<"channelPropertyChange">
-        >(), // Called when a channel property changes
+            ProcessorEventCallback<"channelMIDIParamChange">
+        >(), // Called when a MIDI channel parameter changes
         effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
     };
 

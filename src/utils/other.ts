@@ -5,6 +5,6 @@
 
 import { SpessaSynthCoreUtils } from "spessasynth_core";
 
-const consoleColors = SpessaSynthCoreUtils.consoleColors;
+const ConsoleColors = SpessaSynthCoreUtils.ConsoleColors;
 
-export { consoleColors };
+export { ConsoleColors };

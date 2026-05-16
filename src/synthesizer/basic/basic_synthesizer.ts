@@ -1,18 +1,23 @@
 import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.ts";
 import { SoundBankManager } from "./sound_bank_manager.ts";
-import { SynthEventHandler } from "./synth_event_handler.ts";
 import {
-    ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    type ChannelProperty,
-    DEFAULT_MASTER_PARAMETERS,
-    DEFAULT_PERCUSSION,
-    type MasterParameterType,
+    type ProcessorEventCallback,
+    SynthEventHandler
+} from "./synth_event_handler.ts";
+import {
+    type ChannelMIDIParameter,
+    DEFAULT_GLOBAL_MIDI_PARAMETERS,
+    DEFAULT_GLOBAL_SYSTEM_PARAMETERS,
+    type GlobalMIDIParameter,
+    type GlobalSystemParameter,
     type MIDIController,
-    midiControllers,
-    midiMessageTypes,
-    type PresetList,
-    SpessaSynthCoreUtils as util,
-    type SynthMethodOptions
+    MIDIControllers,
+    MIDIMessageTypes,
+    type MIDIPatchFull,
+    SpessaLog,
+    type SynthesizerSnapshot,
+    type SynthMethodOptions,
+    type SynthProcessorEventData
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
 import type { SynthConfig } from "./types.ts";
@@ -22,13 +27,17 @@ import type {
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
-import { consoleColors } from "../../utils/other.ts";
+import { ConsoleColors } from "../../utils/other.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { LibSynthesizerSnapshot } from "./snapshot.ts";
+import { LibMIDIChannel } from "./lib_midi_channel.ts";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
 };
+
+const SPESSASYNTH_LIB_HANDLER = (event: string) =>
+    `SPESSASYNTH_LIB_HANDLE_${event}_${Math.random()}`;
 
 // The "remote controller" of a given processor and abstraction for both synth engines.
 export abstract class BasicSynthesizer {
@@ -53,11 +62,11 @@ export abstract class BasicSynthesizer {
     /**
      * Synth's current channel properties.
      */
-    public readonly channelProperties: ChannelProperty[] = [];
+    public readonly midiChannels: LibMIDIChannel[] = [];
     /**
      * The current preset list.
      */
-    public presetList: PresetList = [];
+    public presetList: MIDIPatchFull[] = [];
 
     /**
      * INTERNAL USE ONLY!
@@ -69,18 +78,6 @@ export abstract class BasicSynthesizer {
      * Resolves when the synthesizer is ready.
      */
     public readonly isReady: Promise<unknown>;
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Legacy parameter.
-     * @deprecated
-     */
-    public readonly reverbProcessor = undefined;
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Legacy parameter.
-     * @deprecated
-     */
-    public readonly chorusProcessor = undefined;
     /**
      * INTERNAL USE ONLY!
      * @internal
@@ -95,21 +92,15 @@ export abstract class BasicSynthesizer {
      * what does that mean?
      * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
      */
-    protected readonly _outputsAmount = 16;
-    /**
-     * The current amount of MIDI channels the synthesizer has.
-     */
-    public channelsAmount = this._outputsAmount;
-    protected readonly masterParameters: MasterParameterType = {
-        ...DEFAULT_MASTER_PARAMETERS
+    protected readonly _outputCount = 16;
+    protected readonly _systemParameters: GlobalSystemParameter = {
+        ...DEFAULT_GLOBAL_SYSTEM_PARAMETERS
     };
-
     // Resolve map, waiting for the worklet to confirm the operation
     protected resolveMap = new Map<
         keyof SynthesizerReturn,
         (data: SynthesizerReturn[keyof SynthesizerReturn]) => unknown
     >();
-
     protected renderingProgressTracker = new Map<
         keyof SynthesizerProgress,
         {
@@ -133,9 +124,9 @@ export abstract class BasicSynthesizer {
         ) => unknown,
         config: SynthConfig
     ) {
-        util.SpessaSynthInfo(
+        SpessaLog.info(
             "%cInitializing SpessaSynth synthesizer...",
-            consoleColors.info
+            ConsoleColors.info
         );
         this.context = worklet.context;
         this.worklet = worklet;
@@ -154,61 +145,81 @@ export abstract class BasicSynthesizer {
         ) => this.handleMessage(e.data);
 
         // Create initial channels
-        for (let i = 0; i < this.channelsAmount; i++) {
-            this.addNewChannelInternal(false);
-        }
-        this.channelProperties[DEFAULT_PERCUSSION].isDrum = true;
+        for (let i = 0; i < 16; i++) this.addNewChannelInternal(false);
 
         // Attach event handlers
-        this.eventHandler.addEvent(
-            "newChannel",
-            `synth-new-channel-${Math.random()}`,
-            () => {
-                this.channelsAmount++;
-            }
-        );
-        this.eventHandler.addEvent(
+        this.registerInternalEvent("newChannel", () => {
+            this.addNewChannelInternal(false);
+        });
+        this.registerInternalEvent(
             "presetListChange",
-            `synth-preset-list-change-${Math.random()}`,
-            (e) => {
-                this.presetList = [...e];
-            }
+            (e) => (this.presetList = [...e])
         );
-        this.eventHandler.addEvent(
-            "masterParameterChange",
-            `synth-master-parameter-change-${Math.random()}`,
-            <P extends keyof MasterParameterType>(e: {
+        this.registerInternalEvent(
+            "globalMIDIParamChange",
+            <P extends keyof GlobalMIDIParameter>(e: {
                 parameter: P;
-                value: MasterParameterType[P];
-            }) => {
-                this.masterParameters[e.parameter] = e.value;
-            }
+                value: GlobalMIDIParameter[P];
+            }) => (this._midiParameters[e.parameter] = e.value)
         );
-        this.eventHandler.addEvent(
-            "channelPropertyChange",
-            `synth-channel-property-change-${Math.random()}`,
-            (e) => {
-                this.channelProperties[e.channel] = e.property;
+        this.registerInternalEvent(
+            "channelMIDIParamChange",
+            <P extends keyof ChannelMIDIParameter>(e: {
+                channel: number;
+                parameter: P;
+                value: ChannelMIDIParameter[P];
+            }) =>
+                this.midiChannels[e.channel].setMIDIParameter(
+                    e.parameter,
+                    e.value
+                )
+        );
+        this.registerInternalEvent(
+            "programChange",
+            (e) =>
+                (this.midiChannels[e.channel].patch = {
+                    ...e
+                })
+        );
+        this.registerInternalEvent("allControllerReset", () => {
+            for (const c of this.midiChannels) c.reset();
+            this._midiParameters = {
+                ...DEFAULT_GLOBAL_MIDI_PARAMETERS
+            };
+        });
+    }
 
-                this._voicesAmount = this.channelProperties.reduce(
-                    (sum, voices) => sum + voices.voicesAmount,
-                    0
-                );
-            }
-        );
+    protected _midiParameters: GlobalMIDIParameter = {
+        ...DEFAULT_GLOBAL_MIDI_PARAMETERS
+    };
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * The global MIDI parameters of the synthesizer.
+     * These are only editable via MIDI messages.
+     */
+    public get midiParameters(): Readonly<GlobalMIDIParameter> {
+        return this._midiParameters;
+    }
+
+    /**
+     * The current channel count of the synthesizer.
+     */
+    public get channelCount() {
+        return this.midiChannels.length;
     }
 
     /**
      * Current voice amount
      */
-    protected _voicesAmount = 0;
+    protected _voiceCount = 0;
 
     // noinspection JSUnusedGlobalSymbols
     /**
      * The current number of voices playing.
      */
-    public get voicesAmount() {
-        return this._voicesAmount;
+    public get voiceCount() {
+        return this._voiceCount;
     }
 
     /**
@@ -216,6 +227,15 @@ export abstract class BasicSynthesizer {
      */
     public get currentTime() {
         return this.context.currentTime;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * The global system parameters of the synthesizer.
+     * These are only editable via the API.
+     */
+    public get systemParameters(): Readonly<GlobalSystemParameter> {
+        return this._systemParameters;
     }
 
     /**
@@ -272,39 +292,27 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Gets a master parameter from the synthesizer.
-     * @param type The parameter to get.
-     * @returns The parameter value.
-     */
-    public getMasterParameter<K extends keyof MasterParameterType>(
-        type: K
-    ): MasterParameterType[K] {
-        return this.masterParameters[type];
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Sets a master parameter to a given value.
+     * Sets a system parameter to a given value.
      * @param type The parameter to set.
      * @param value The value to set.
      */
-    public setMasterParameter<K extends keyof MasterParameterType>(
+    public setSystemParameter<K extends keyof GlobalSystemParameter>(
         type: K,
-        value: MasterParameterType[K]
+        value: GlobalSystemParameter[K]
     ) {
-        this.masterParameters[type] = value;
+        this._systemParameters[type] = value;
         this.post({
-            type: "setMasterParameter",
+            type: "setGlobalSystemParameter",
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             data: {
                 type,
                 data: value
             } as {
-                [K in keyof MasterParameterType]: {
+                [K in keyof GlobalSystemParameter]: {
                     type: K;
-                    data: MasterParameterType[K];
+                    data: GlobalSystemParameter[K];
                 };
-            }[keyof MasterParameterType]
+            }[keyof GlobalSystemParameter]
         });
     }
 
@@ -312,11 +320,10 @@ export abstract class BasicSynthesizer {
     /**
      * Gets a complete snapshot of the synthesizer, effects.
      */
-    public async getSnapshot(): Promise<LibSynthesizerSnapshot> {
+    public async getSnapshot(): Promise<SynthesizerSnapshot> {
         return new Promise((resolve) => {
             this.awaitWorkerResponse("synthesizerSnapshot", (s) => {
-                const snapshot = LibSynthesizerSnapshot.copyFrom(s);
-                resolve(snapshot);
+                resolve(s);
             });
             this.post({
                 type: "requestSynthesizerSnapshot",
@@ -332,18 +339,6 @@ export abstract class BasicSynthesizer {
      */
     public addNewChannel() {
         this.addNewChannelInternal(true);
-    }
-
-    /**
-     * DEPRECATED, please don't use it!
-     * @deprecated
-     */
-    public setVibrato(
-        channel: number,
-        value: { delay: number; depth: number; rate: number }
-    ) {
-        void channel;
-        void value;
     }
 
     /**
@@ -373,11 +368,11 @@ export abstract class BasicSynthesizer {
      * @param audioNodes Exactly 16 outputs.
      */
     public connectIndividualOutputs(audioNodes: AudioNode[]) {
-        if (audioNodes.length !== this._outputsAmount) {
+        if (audioNodes.length !== this._outputCount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
-            Expected ${this._outputsAmount} got ${audioNodes.length}`);
+            Expected ${this._outputCount} got ${audioNodes.length}`);
         }
-        for (let channel = 0; channel < this._outputsAmount; channel++) {
+        for (let channel = 0; channel < this._outputCount; channel++) {
             // + 1 because effects come first!
             this.connectChannel(audioNodes[channel], channel);
         }
@@ -388,23 +383,14 @@ export abstract class BasicSynthesizer {
      * @param audioNodes Exactly 16 outputs.
      */
     public disconnectIndividualOutputs(audioNodes: AudioNode[]) {
-        if (audioNodes.length !== this._outputsAmount) {
+        if (audioNodes.length !== this._outputCount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
-            Expected ${this._outputsAmount} got ${audioNodes.length}`);
+            Expected ${this._outputCount} got ${audioNodes.length}`);
         }
-        for (let channel = 0; channel < this._outputsAmount; channel++) {
+        for (let channel = 0; channel < this._outputCount; channel++) {
             // + 1 because effects come first!
             this.disconnectChannel(audioNodes[channel], channel);
         }
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Disables the GS NRPN parameters like vibrato or drum key tuning.
-     * @deprecated Deprecated! Please use master parameters
-     */
-    public disableGSNPRNParams() {
-        this.setMasterParameter("nprnParamLock", true);
     }
 
     /**
@@ -439,7 +425,7 @@ export abstract class BasicSynthesizer {
         midiNote %= 128;
         velocity %= 128;
         this.sendMessage(
-            [midiMessageTypes.noteOn | ch, midiNote, velocity],
+            [MIDIMessageTypes.noteOn | ch, midiNote, velocity],
             offset,
             eventOptions
         );
@@ -461,7 +447,7 @@ export abstract class BasicSynthesizer {
         const ch = channel % 16;
         const offset = channel - ch;
         this._sendInternal(
-            [midiMessageTypes.noteOff | ch, midiNote],
+            [MIDIMessageTypes.noteOff | ch, midiNote],
             offset,
             eventOptions
         );
@@ -482,30 +468,26 @@ export abstract class BasicSynthesizer {
     /**
      * Changes the given controller
      * @param channel Usually 0-15: the channel to change the controller.
-     * @param controllerNumber 0-127 the MIDI CC number.
-     * @param controllerValue 0-127 the controller value.
+     * @param controller 0-127 the MIDI CC number.
+     * @param value 0-127 the controller value.
      * @param eventOptions Additional options for this command.
      */
     public controllerChange(
         channel: number,
-        controllerNumber: MIDIController,
-        controllerValue: number,
+        controller: MIDIController,
+        value: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        if (controllerNumber > 127 || controllerNumber < 0) {
-            throw new Error(`Invalid controller number: ${controllerNumber}`);
+        if (controller > 127 || controller < 0) {
+            throw new Error(`Invalid controller number: ${controller}`);
         }
-        controllerValue = Math.floor(controllerValue) % 128;
-        controllerNumber = Math.floor(controllerNumber) % 128;
+        value = Math.floor(value) % 128;
+        controller = Math.floor(controller) % 128;
         // Controller change has its own message for the force property
         const ch = channel % 16;
         const offset = channel - ch;
         this._sendInternal(
-            [
-                midiMessageTypes.controllerChange | ch,
-                controllerNumber,
-                controllerValue
-            ],
+            [MIDIMessageTypes.controllerChange | ch, controller, value],
             offset,
             eventOptions
         );
@@ -524,29 +506,6 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Causes the given midi channel to ignore controller messages for the given controller number.
-     * @param channel Usually 0-15: the channel to lock.
-     * @param controllerNumber 0-127 MIDI CC number.
-     * @param isLocked True if locked, false if unlocked.
-     * @remarks
-     *  Controller number -1 locks the preset.
-     */
-    public lockController(
-        channel: number,
-        controllerNumber: MIDIController | -1,
-        isLocked: boolean
-    ) {
-        this.post({
-            channelNumber: channel,
-            type: "lockController",
-            data: {
-                controllerNumber,
-                isLocked
-            }
-        });
-    }
-
-    /**
      * Applies pressure to a given channel.
      * @param channel Usually 0-15: the channel to change the controller.
      * @param pressure 0-127: the pressure to apply.
@@ -561,7 +520,7 @@ export abstract class BasicSynthesizer {
         const offset = channel - ch;
         pressure %= 128;
         this.sendMessage(
-            [midiMessageTypes.channelPressure | ch, pressure],
+            [MIDIMessageTypes.channelPressure | ch, pressure],
             offset,
             eventOptions
         );
@@ -585,7 +544,7 @@ export abstract class BasicSynthesizer {
         midiNote %= 128;
         pressure %= 128;
         this.sendMessage(
-            [midiMessageTypes.polyPressure | ch, midiNote, pressure],
+            [MIDIMessageTypes.polyPressure | ch, midiNote, pressure],
             offset,
             eventOptions
         );
@@ -605,7 +564,7 @@ export abstract class BasicSynthesizer {
         const ch = channel % 16;
         const offset = channel - ch;
         this.sendMessage(
-            [midiMessageTypes.pitchWheel | ch, value & 0x7f, value >> 7],
+            [MIDIMessageTypes.pitchWheel | ch, value & 0x7f, value >> 7],
             offset,
             eventOptions
         );
@@ -626,34 +585,34 @@ export abstract class BasicSynthesizer {
         // Set range
         this.controllerChange(
             channel,
-            midiControllers.registeredParameterMSB,
+            MIDIControllers.registeredParameterMSB,
             0,
             eventOptions
         );
         this.controllerChange(
             channel,
-            midiControllers.registeredParameterLSB,
+            MIDIControllers.registeredParameterLSB,
             0,
             eventOptions
         );
-        this.controllerChange(channel, midiControllers.dataEntryMSB, range);
+        this.controllerChange(channel, MIDIControllers.dataEntryMSB, range);
 
         // Reset rpn
         this.controllerChange(
             channel,
-            midiControllers.registeredParameterMSB,
+            MIDIControllers.registeredParameterMSB,
             127,
             eventOptions
         );
         this.controllerChange(
             channel,
-            midiControllers.registeredParameterLSB,
+            MIDIControllers.registeredParameterLSB,
             127,
             eventOptions
         );
         this.controllerChange(
             channel,
-            midiControllers.dataEntryMSB,
+            MIDIControllers.dataEntryMSB,
             0,
             eventOptions
         );
@@ -674,42 +633,10 @@ export abstract class BasicSynthesizer {
         const offset = channel - ch;
         programNumber %= 128;
         this.sendMessage(
-            [midiMessageTypes.programChange | ch, programNumber],
+            [MIDIMessageTypes.programChange | ch, programNumber],
             offset,
             eventOptions
         );
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Transposes the channel by given number of semitones.
-     * @param channel The channel number.
-     * @param semitones The transposition of the channel, it can be a float.
-     * @param force Defaults to false, if true transposes the channel even if it's a drum channel.
-     */
-    public transposeChannel(channel: number, semitones: number, force = false) {
-        this.post({
-            channelNumber: channel,
-            type: "transposeChannel",
-            data: {
-                semitones,
-                force
-            }
-        });
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Mutes or unmutes the given channel.
-     * @param channel Usually 0-15: the channel to mute.
-     * @param isMuted Indicates if the channel is muted.
-     */
-    public muteChannel(channel: number, isMuted: boolean) {
-        this.post({
-            channelNumber: channel,
-            type: "muteChannel",
-            data: isMuted
-        });
     }
 
     /**
@@ -724,7 +651,7 @@ export abstract class BasicSynthesizer {
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
         this._sendInternal(
-            [midiMessageTypes.systemExclusive, ...Array.from(messageData)],
+            [MIDIMessageTypes.systemExclusive, ...Array.from(messageData)],
             channelOffset,
             eventOptions
         );
@@ -775,26 +702,15 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Toggles drums on a given channel.
-     * @param channel The channel number.
-     * @param isDrum If the channel should be drums.
-     */
-    public setDrums(channel: number, isDrum: boolean) {
-        this.post({
-            channelNumber: channel,
-            type: "setDrums",
-            data: isDrum
-        });
-    }
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
      * Yes please!
      */
     public reverbateEverythingBecauseWhyNot(): "That's the spirit!" {
-        for (let i = 0; i < this.channelsAmount; i++) {
-            this.controllerChange(i, midiControllers.reverbDepth, 127);
-            this.lockController(i, midiControllers.reverbDepth, true);
+        for (let i = 0; i < this.midiChannels.length; i++) {
+            this.controllerChange(i, MIDIControllers.reverbDepth, 127);
+            this.midiChannels[i].lockController(
+                MIDIControllers.reverbDepth,
+                true
+            );
         }
         return "That's the spirit!";
     }
@@ -837,7 +753,6 @@ export abstract class BasicSynthesizer {
         if (this.renderingProgressTracker.get(type)) {
             throw new Error("Something is already being rendered!");
         }
-        // @ts-expect-error I can't use generics with map
         this.renderingProgressTracker.set(type, progressFunction);
     }
 
@@ -882,39 +797,37 @@ export abstract class BasicSynthesizer {
                 break;
             }
 
+            case "voiceCountChange": {
+                for (let i = 0; i < m.data.length; i++) {
+                    this.midiChannels[i].voiceCount = m.data[i];
+                    this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+                }
+                break;
+            }
+
             case "isFullyInitialized": {
                 this.workletResponds(m.data.type, m.data.data);
                 break;
             }
 
             case "soundBankError": {
-                util.SpessaSynthWarn(m.data as unknown as string);
+                SpessaLog.warn(m.data as unknown as string);
                 this.eventHandler.callEventInternal("soundBankError", m.data);
                 break;
             }
 
             case "renderingProgress": {
-                this.renderingProgressTracker.get(m.data.type)?.(
-                    // @ts-expect-error I can't use generics with map
-                    m.data.data
-                );
+                this.renderingProgressTracker.get(m.data.type)?.(m.data.data);
             }
         }
     }
 
     protected addNewChannelInternal(post: boolean) {
-        this.channelProperties.push({
-            voicesAmount: 0,
-            pitchWheel: 0,
-            pitchWheelRange: 0,
-            isMuted: false,
-            isDrum: this.channelsAmount % 16 === DEFAULT_PERCUSSION,
-            isEFX: false,
-            transposition: 0
-        });
-        if (!post) {
-            return;
-        }
+        this.midiChannels.push(
+            new LibMIDIChannel(this.midiChannels.length, this)
+        );
+        if (!post) return;
+
         this.post({
             channelNumber: 0,
             type: "addNewChannel",
@@ -928,5 +841,16 @@ export abstract class BasicSynthesizer {
     ) {
         this.resolveMap.get(type)?.(data);
         this.resolveMap.delete(type);
+    }
+
+    private registerInternalEvent<T extends keyof SynthProcessorEventData>(
+        event: T,
+        callback: ProcessorEventCallback<T>
+    ) {
+        this.eventHandler.addEvent(
+            event,
+            SPESSASYNTH_LIB_HANDLER(event),
+            callback
+        );
     }
 }

@@ -1,15 +1,15 @@
-import type {
-    BasicMIDI,
-    CustomController,
-    DLSWriteOptions,
-    KeyModifier,
-    MasterParameterType,
-    MIDIController,
-    RMIDIWriteOptions,
-    SoundFont2WriteOptions,
-    SynthesizerSnapshot,
-    SynthMethodOptions,
-    SynthProcessorEvent
+import {
+    type BasicMIDI,
+    type ChannelSystemParameter,
+    type DLSWriteOptions,
+    type GlobalSystemParameter,
+    type KeyModifier,
+    type MIDIController,
+    type RMIDIWriteOptions,
+    type SoundFont2WriteOptions,
+    type SynthesizerSnapshot,
+    type SynthMethodOptions,
+    type SynthProcessorEvent
 } from "spessasynth_core";
 import type {
     SequencerMessage,
@@ -22,7 +22,7 @@ export interface PassedProcessorParameters {
     /**
      * If the synthesizer should send events.
      */
-    enableEventSystem: boolean;
+    eventsEnabled: boolean;
     /**
      * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
      */
@@ -54,7 +54,7 @@ export interface OfflineRenderWorkletData {
     /**
      * The options to pass to the sequencer.
      */
-    sequencerOptions: Partial<SequencerOptions>;
+    sequencerOptions?: Partial<SequencerOptions>;
 }
 
 export interface WorkletSBKManagerData {
@@ -90,6 +90,8 @@ export type BasicSynthesizerMessage = {
     };
 }[keyof BasicSynthesizerMessageData];
 
+type CompressionActionType = "keep" | "compress" | "decompress";
+
 export interface WorkerBankWriteOptions {
     /**
      * Trim the sound bank to only include samples used in the current MIDI file.
@@ -117,9 +119,17 @@ export type WorkerDLSWriteOptions = Omit<DLSWriteOptions, "progressFunction"> &
 
 export type WorkerSoundFont2WriteOptions = Omit<
     SoundFont2WriteOptions,
-    "compressionFunction" | "progressFunction"
+    "progressFunction"
 > &
     WorkerBankWriteOptions & {
+        /**
+         * If the samples should be changed. The values are:
+         * - `keep` - keep samples as-is.
+         * - `compress` - compress the samples with your compression function provided to the `WorkerSynthesizer` and change SF2 to SF3.
+         * - `decompress` - decompress the compressed samples and change SF3 to SF2.
+         */
+        compressionAction: CompressionActionType;
+
         /**
          * The compression quality to call your provided compressionFunction with, if compressing.
          */
@@ -132,8 +142,12 @@ export type WorkerSampleEncodingFunction = (
     quality: number
 ) => Promise<Uint8Array>;
 
-export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> &
-    (
+export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> & {
+    /**
+     * If a snapshot of the current `SpessaSynthProcessor` should be applied to the MIDI file.
+     */
+    applySnapshot: boolean;
+} & (
         | ({
               format: "sf2";
           } & WorkerSoundFont2WriteOptions)
@@ -170,22 +184,11 @@ interface BasicSynthesizerMessageData {
     // Force: (0 false, 1 true) note: if channel is -1 then stop all channels
     stopAll: number;
     // Is muted?
-    muteChannel: boolean;
     addNewChannel: null;
-    customCcChange: {
-        ccNumber: CustomController;
-        ccValue: number;
-    };
-    // Semitones
-    transposeChannel: {
-        semitones: number;
-        force: boolean;
-    };
     // Is drums?
     setDrums: boolean;
-    // Note: if cc num is -1, then preset is locked
     lockController: {
-        controllerNumber: MIDIController | -1;
+        controller: MIDIController;
         isLocked: boolean;
     };
     sequencerSpecific: SequencerMessage;
@@ -197,12 +200,18 @@ interface BasicSynthesizerMessageData {
         enableGroup: boolean;
     };
 
-    setMasterParameter: {
-        [K in keyof MasterParameterType]: {
+    setChannelSystemParameter: {
+        [K in keyof ChannelSystemParameter]: {
             type: K;
-            data: MasterParameterType[K];
+            data: ChannelSystemParameter[K];
         };
-    }[keyof MasterParameterType];
+    }[keyof ChannelSystemParameter];
+    setGlobalSystemParameter: {
+        [K in keyof GlobalSystemParameter]: {
+            type: K;
+            data: GlobalSystemParameter[K];
+        };
+    }[keyof GlobalSystemParameter];
     soundBankManager: {
         [K in keyof WorkletSBKManagerData]: {
             type: K;
@@ -229,6 +238,7 @@ interface BasicSynthesizerReturnMessageData {
     }[keyof SynthesizerReturn];
     // An error message related to the sound bank. It contains a string description of the error.
     soundBankError: Error;
+    voiceCountChange: number[];
     renderingProgress: {
         [K in keyof SynthesizerProgress]: {
             type: K;
@@ -247,11 +257,10 @@ export type BasicSynthesizerReturnMessage = {
 
 export interface SynthesizerProgress {
     renderAudio: number;
-    workerSynthWriteFile: {
-        sampleName: string;
-        sampleIndex: number;
-        sampleCount: number;
-    };
+    /**
+     * Progress amount (0-1)
+     */
+    workerSynthWriteFile: number;
 }
 
 export interface SynthesizerReturn {
