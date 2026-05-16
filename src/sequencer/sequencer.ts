@@ -2,6 +2,7 @@ import {
     BasicMIDI,
     MIDIControllers,
     MIDIMessageTypes,
+    MIDIUtils,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
 import { songChangeType } from "./enums.js";
@@ -530,7 +531,15 @@ export class Sequencer {
                 0
             ]); // Reset all controllers
         }
-        this.midiOut.send([MIDIMessageTypes.systemExclusive]); // Reset
+        this.midiOut.send([
+            MIDIMessageTypes.systemExclusive,
+            ...MIDIUtils.gsData(
+                0x40, // System parameter - Address
+                0x00, // Global mode parameter -  Address
+                0x7f, // MODE SET - Address
+                [0x00] // 00 = GS Reset - Data
+            )
+        ]);
     }
 
     private recalculateStartTime(time: number) {
