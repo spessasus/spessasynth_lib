@@ -18,6 +18,11 @@ It allows you to:
 >
 > Looking for a bare JS version that works without WebAudioAPI? Try [spessasynth_core](https://github.com/spessasus/spessasynth_core)!
 
+### v4.3.0 The General Update is here!
+
+Featuring robust MIDI analysis and editing, broadened MIDI exclusive support,
+and reworked, more powerful API!
+
 ### [Project site (consider giving it a star!)](https://github.com/spessasus/spessasynth_lib)
 
 ### Made with spessasynth_lib

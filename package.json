@@ -1,6 +1,6 @@
 {
     "name": "spessasynth_lib",
-    "version": "4.2.15",
+    "version": "4.3.0",
     "description": "MIDI and SoundFont2/DLS library for the browsers with no compromises",
     "type": "module",
     "main": "dist/index.js",
@@ -60,20 +60,20 @@
     "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@types/audioworklet": "^0.0.97",
-        "@types/node": "^25.6.0",
+        "@types/audioworklet": "^0.0.100",
+        "@types/node": "^25.9.0",
         "esbuild": "^0.28.0",
-        "eslint": "^10.2.0",
+        "eslint": "^10.4.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-unicorn": "^64.0.0",
-        "globals": "^17.5.0",
+        "globals": "^17.6.0",
         "husky": "^9.1.7",
-        "lint-staged": "^16.4.0",
+        "lint-staged": "^17.0.5",
         "prettier": "^3.8.3",
-        "tsdown": "^0.21.9",
-        "tsx": "^4.21.0",
+        "tsdown": "^0.22.0",
+        "tsx": "^4.22.2",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.58.2"
+        "typescript-eslint": "^8.59.4"
     },
     "lint-staged": {
         "*.{ts,js}": [
@@ -83,6 +83,6 @@
         "*.{html,json,md,yml,yaml,css}": "prettier --write"
     },
     "dependencies": {
-        "spessasynth_core": "file:../spessasynth_core"
+        "spessasynth_core": "latest"
     }
 }

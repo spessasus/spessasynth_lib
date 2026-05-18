@@ -811,7 +811,7 @@ export abstract class BasicSynthesizer {
             }
 
             case "soundBankError": {
-                SpessaLog.warn(m.data as unknown as string);
+                SpessaLog.warn(m.data);
                 this.eventHandler.callEventInternal("soundBankError", m.data);
                 break;
             }

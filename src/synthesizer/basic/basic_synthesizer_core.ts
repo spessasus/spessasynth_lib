@@ -136,12 +136,7 @@ export abstract class BasicSynthesizerCore {
             data: {
                 type,
                 data
-            } as {
-                [K in keyof SynthesizerProgress]: {
-                    type: K;
-                    data: SynthesizerProgress[K];
-                };
-            }[keyof SynthesizerProgress],
+            },
             currentTime: this.synthesizer.currentTime
         });
     }
