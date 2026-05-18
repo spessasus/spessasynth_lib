@@ -495,9 +495,9 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Resets all controllers (for every channel)
+     * Fully resets the synthesizer.
      */
-    public resetControllers() {
+    public reset() {
         this.post({
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             type: "ccReset",

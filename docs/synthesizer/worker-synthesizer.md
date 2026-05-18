@@ -1,4 +1,4 @@
-# Worker-based Synthesizer
+# WorkerSynthesizer
 
 This synthesizer uses a Worker communicating with an AudioWorklet to provide real-time playback along with methods to export the data in various formats.
 

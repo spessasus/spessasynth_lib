@@ -179,7 +179,6 @@ interface BasicSynthesizerMessageData {
         channelOffset: number;
         options: SynthMethodOptions;
     };
-    // Note: if channel is -1 then reset all channels
     ccReset: null;
     // Force: (0 false, 1 true) note: if channel is -1 then stop all channels
     stopAll: number;
@@ -228,6 +227,9 @@ interface BasicSynthesizerMessageData {
 }
 
 export interface SynthesizerEventData extends SynthProcessorEventData {
+    /**
+     * This event gets called when an error occurs while parsing the sound bank.
+     */
     soundBankError: Error;
 }
 export type SynthesizerEvent = {
