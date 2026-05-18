@@ -18,7 +18,7 @@ Below is the `SynthConfig` configuration object that can be passed to both synth
 Indicates if the [one output mode](#one-output-mode) should be enabled.
 A boolean.
 
-### enableEventSystem
+### eventsEnabled
 
 If the event system should be enabled. This can only be set once.
 
@@ -51,7 +51,7 @@ An example function that creates the standard worklet node looks like this:
 
     The synthesizer internally sends commands to the `SynthesizerCore` where all the processing happens. (This can be a worklet or a worker depending on your synthesizer of choice.)
     Keep that in mind as not all methods will immediately report values!
-    (E.g. `noteOn` won't instantly increase the voice count in `channelProperties`)
+    (E.g. `noteOn` won't instantly increase the voice count in `midiChannels`)
 
 ## Properties
 
@@ -71,9 +71,11 @@ The synthesizer's [event handler](synth-event-handler.md).
 
 The synthesizer's `BaseAudioContext` instance.
 
-### channelProperties
+### midiChannels
 
-The current [channel properties](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/#tchannelpropertychange) of all channels, an array.
+The synthesizer's (virtual) [MIDI channels](midi-channel.md).
+
+An array of [`LibMIDIChannel`](midi-channel.md)
 
 ### presetList
 
@@ -94,11 +96,11 @@ A promise that gets resolved when the synthesizer gets fully initialized.
 
     Remember to wait for this promise before playing anything or rendering audio!
 
-### channelsAmount
+### channelCount
 
 The current amount of MIDI channels the synthesizer has.
 
-### voicesAmount
+### voiceCount
 
 The current amount of voices (notes) being synthesized. A real-time value.
 
@@ -140,30 +142,12 @@ synth.setLogLevel(enableInfo, enableWarning, enableGroup);
 synth.setLogLevel(true, true, true);
 ```
 
-### getMasterParameter
+### setSystemParameter
 
-Gets a [master parameter](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/master-parameter/).
-
-```js
-synth.getMasterParameter(type);
-```
-
-- type - the type to get.
-
-The returned value depends on the type.
-**Example:**
+Sets a [Global System Parameter](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/global-parameters#system) to a given value.
 
 ```js
-// Get the current MIDI system
-console.log(synth.getMasterParameter("midiSystem"));
-```
-
-### setMasterParameter
-
-Sets a [master parameter](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/master-parameter/) to a given value.
-
-```js
-synth.setMasterParameter(type, value);
+synth.setSystemParameter(type, value);
 ```
 
 - type - the type to set.
@@ -173,7 +157,7 @@ synth.setMasterParameter(type, value);
 
 ```js
 // Set the master gain to 200%
-synth.setMasterParameter("masterGain", 2);
+synth.setSystemParameter("gain", 2);
 ```
 
 ### getSnapshot
@@ -186,14 +170,9 @@ The returned value is a `SynthesizerSnapshot` instance - the snapshot of the syn
 
     This method is *asynchronous.*
 
-!!! Warning
-
-    The `LibSynthesizerSnapshot` interface is now identical to `SynthesizerSnapshot`
-    from `spessasynth_core`, and therefore deprecated!
-
 ### addNewChannel
 
-Add a new MIDI channel. Invokes a `newChannel` event.
+Adds a new channel to the synthesizer.
 
 ### connectChannel
 
@@ -349,18 +328,13 @@ synth.stopAll((force = false));
 Set a given MIDI controller to a given value.
 
 ```js
-synth.controllerChange(
-    channel,
-    controllerNumber,
-    controllerValue,
-    eventOptions
-);
+synth.controllerChange(channel, controller, controllerValue, eventOptions);
 ```
 
 - channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
-- controllerNumber - the MIDI CC number of the controller to change.
+- controller - the MIDI CC number of the controller to change.
   Refer
-  to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives#default-supported-controllers) for the list of controllers
+  to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation#default-supported-controllers) for the list of controllers
   supported by default.
 - controllerValue - the value to set the given controller to. Ranges from 0 to 127.
 - eventOptions - refer to [event options](#event-options). It can be undefined.
@@ -376,20 +350,20 @@ synth.controllerChange(2, 10, 127);
 
     Note that theoretically all controllers are supported as it depends on the sound bank's modulators.
 
-### resetControllers
+### reset
 
-Reset all controllers to their default values. (for every channel)
+Fully resets the synthesizer.
 
 ### lockController
 
 Cause the given midi channel to ignore controller messages for the given controller number.
 
 ```js
-synth.lockController(channel, controllerNumber, isLocked);
+synth.lockController(channel, controller, isLocked);
 ```
 
 - channel - the channel to lock. It usually ranges from 0 to 15, but it depends on the channel count.
-- controllerNumber - the MIDI CC to lock. Ranges from 0 to 146. See the tip below to see why.
+- controller - the MIDI CC to lock. Ranges from 0 to 127.
 - isLocked - boolean, if true then locked, if false then unlocked.
 
 **Example:**
@@ -399,11 +373,6 @@ synth.lockController(channel, controllerNumber, isLocked);
 synth.controllerChange(0, 65, 0); // portamento on/off set to off
 synth.lockController(0, 65, true); // lock portamento on/off
 ```
-
-!!! Tip
-
-    To lock other modulator sources add 128 to the Source Enumerator [(Soundfont 2.04 Specification section 8.2.1)](https://www.synthfont.com/sfspec24.pdf#%5B%7B%22num%22%3A317%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C0%2C532%2Cnull%5D)
-    For example to lock pitch wheel, use `synth.lockController(channel, 142, true)`. (128 + 14 = 142)
 
 ### channelPressure
 
@@ -508,51 +477,6 @@ synth.programChange(channel, programNumber, eventOptions);
 synth.programChange(0, 16);
 ```
 
-### transposeChannel
-
-Transposes the channel by given number of semitones. Floating point values can be used for microtonal tuning.
-
-```js
-synth.transposeChannel(channel, semitones, (force = false));
-```
-
-- channel - the MIDI channel to change. It usually ranges from 0 to 15, but it depends on the channel count.
-- semitones - number - the number of semitones to transpose the channel by.
-  It can be positive or negative or zero.
-  Zero resets the pitch.
-- force - defaults to false, if true transposes the channel even if it's a drum channel.
-
-**Example:**
-
-```js
-// transpose channel 1 up by 125 cents
-synth.transposeChannel(0, 1.25);
-```
-
-### muteChannel
-
-Mute or unmute a given channel.
-
-```js
-synth.muteChannel(channel, isMuted);
-```
-
-- channel - number - the MIDI channel to change. It usually ranges from 0 to 15, but it depends on the channel count.
-- isMuted - boolean - if the channel should be muted.
-
-**Example:**
-
-```js
-// set solo on channel 4
-for (const i = 0; i < synth.channelsAmount; i++) {
-    if (i === 3) {
-        synth.muteChannel(i, false);
-    } else {
-        synth.muteChannel(i, true);
-    }
-}
-```
-
 ### systemExclusive
 
 Handle a MIDI System Exclusive message.
@@ -569,7 +493,9 @@ synth.systemExclusive(data, (channelOffset = 0), eventOptions);
 
 !!! Tip
 
-    Refer to [MIDI Implementation](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#supported-system-exclusives) for the list of supported System Exclusives.
+    Refer to the
+    [MIDI Implementation](../extra/midi-implementation.md#system-exclusives)
+    for the list of supported System Exclusives.
 
 **Example:**
 
@@ -613,75 +539,11 @@ synth.tuneKeys(81, [
 ]);
 ```
 
-### setDrums
-
-Toggles drums on a given channel.
-
-```js
-synth.setDrums(channel, isDrum);
-```
-
-- channel - the channel number.
-- isDrum - if the channel should be drums.
-
-**Example:**
-
-```js
-// set channel 11 to drums
-synth.setDrums(10, true);
-```
-
 ### reverbateEverythingBecauseWhyNot
 
 Yes please!
 
 Cranks the reverb up to the max and returns a string that says: `That's the spirit!`
-
-## Deprecated methods and parameters
-
-!!! Warning
-
-    These are deprecated and may be removed without further notice!
-
-### setVibrato
-
-Sets custom vibrato for the channel. _Deprecated, does nothing!_
-
-```js
-synth.setVibrato(channel, value);
-```
-
-- channel - the MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
-- value - the vibrato value. Three properties:
-    - delay - in seconds.
-    - depth - in cents.
-    - rate - in Hertz.
-
-**Example:**
-
-```js
-synth.setVibrato(0, {
-    rate: 7.6,
-    depth: 19.7,
-    delay: 1.5
-});
-```
-
-### disableGSNRParams
-
-Deprecated, please use master parameters.
-Disables GS NRPN (Non-Registered Parameter Number) messages from being recognized.
-Currently, the custom vibrato and Time-Variant Filter.
-
-### reverbProcessor
-
-Will be undefined!
-If the reverb processor was enabled in the configuration, it will be here, otherwise undefined.
-
-### chorusProcessor
-
-Will be undefined!
-If the chorus processor was enabled in the configuration, it will be here, otherwise undefined.
 
 ## One output mode
 

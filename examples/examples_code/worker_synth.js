@@ -49,9 +49,9 @@ document.querySelector("#save_sf2").addEventListener("click", async () => {
     const outputBuffer = await synth.writeSF2({
         trim: true,
         bankID: "main",
-        progressFunction: (arguments_) => {
+        progressFunction: (progress) => {
             document.querySelector("#message").textContent =
-                `Saving sample "${arguments_.sampleName}" (${arguments_.sampleIndex} out of ${arguments_.sampleCount})...`;
+                `Saving SF2... (${progress * 100}%)`;
         }
     });
     document.querySelector("#message").textContent = "Complete!";
@@ -72,9 +72,9 @@ document.querySelector("#save_dls").addEventListener("click", async () => {
     const outputBuffer = await synth.writeDLS({
         trim: true,
         bankID: "main",
-        progressFunction: (arguments_) => {
+        progressFunction: (progress) => {
             document.querySelector("#message").textContent =
-                `Saving sample "${arguments_.sampleName}" (${arguments_.sampleIndex} out of ${arguments_.sampleCount})...`;
+                `Saving DLS... (${progress * 100}%)`;
         }
     });
     document.querySelector("#message").textContent = "Complete!";
@@ -95,9 +95,9 @@ document.querySelector("#save_rmi").addEventListener("click", async () => {
     const outputBuffer = await synth.writeRMIDI({
         trim: true,
         bankID: "main",
-        progressFunction: (arguments_) => {
+        progressFunction: (progress) => {
             document.querySelector("#message").textContent =
-                `Saving sample "${arguments_.sampleName}" (${arguments_.sampleIndex} out of ${arguments_.sampleCount})...`;
+                `Saving RMIDI... (${progress * 100}%)`;
         }
     });
     document.querySelector("#message").textContent = "Complete!";

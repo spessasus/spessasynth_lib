@@ -1,7 +1,8 @@
 import {
-    ALL_CHANNELS_OR_DIFFERENT_ACTION,
     BasicMIDI,
-    midiMessageTypes,
+    MIDIControllers,
+    MIDIMessageTypes,
+    MIDIUtils,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
 import { songChangeType } from "./enums.js";
@@ -16,7 +17,8 @@ import type {
     WorkletSequencerEventType
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
-import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts"; // noinspection JSUnusedGlobalSymbols
+import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_config.ts"; // noinspection JSUnusedGlobalSymbols
 
 // noinspection JSUnusedGlobalSymbols
 export class Sequencer {
@@ -121,7 +123,7 @@ export class Sequencer {
         /**
          * Sets the song index in the playlist.
          */
-        const clamped = Math.max(0, value % this._songsAmount);
+        const clamped = Math.max(0, value % this._songCount);
         if (clamped === this._songIndex) {
             return;
         }
@@ -149,11 +151,11 @@ export class Sequencer {
         return this.midiData?.duration ?? 0;
     }
 
-    private _songsAmount = 0;
+    private _songCount = 0;
 
     // The amount of songs in the list.
-    public get songsAmount() {
-        return this._songsAmount;
+    public get songCount() {
+        return this._songCount;
     }
 
     private _skipToFirstNoteOn: boolean;
@@ -328,7 +330,7 @@ export class Sequencer {
         this.midiData = undefined;
         this.sendMessage("loadNewSongList", midiBuffers);
         this._songIndex = 0;
-        this._songsAmount = midiBuffers.length;
+        this._songCount = midiBuffers.length;
     }
 
     /**
@@ -339,7 +341,6 @@ export class Sequencer {
         this.resetMIDIOutput();
         this.midiOut = output;
         this.sendMessage("changeMIDIMessageSending", output !== undefined);
-        this.currentTime -= 0.1;
     }
 
     /**
@@ -425,29 +426,26 @@ export class Sequencer {
             case "metaEvent": {
                 const event = m.data.event;
                 switch (event.statusByte) {
-                    case midiMessageTypes.setTempo: {
+                    case MIDIMessageTypes.setTempo: {
                         this._currentTempo =
                             60_000_000 /
-                            SpessaSynthCoreUtils.readBytesAsUintBigEndian(
-                                event.data,
-                                3
-                            );
+                            SpessaSynthCoreUtils.readBigEndian(event.data, 3);
                         break;
                     }
 
-                    case midiMessageTypes.text:
-                    case midiMessageTypes.lyric:
-                    case midiMessageTypes.copyright:
-                    case midiMessageTypes.trackName:
-                    case midiMessageTypes.marker:
-                    case midiMessageTypes.cuePoint:
-                    case midiMessageTypes.instrumentName:
-                    case midiMessageTypes.programName: {
+                    case MIDIMessageTypes.text:
+                    case MIDIMessageTypes.lyric:
+                    case MIDIMessageTypes.copyright:
+                    case MIDIMessageTypes.trackName:
+                    case MIDIMessageTypes.marker:
+                    case MIDIMessageTypes.cuePoint:
+                    case MIDIMessageTypes.instrumentName:
+                    case MIDIMessageTypes.programName: {
                         if (!this.midiData) {
                             break;
                         }
                         let lyricsIndex = -1;
-                        if (event.statusByte === midiMessageTypes.lyric) {
+                        if (event.statusByte === MIDIMessageTypes.lyric) {
                             lyricsIndex = Math.min(
                                 this.midiData.lyrics.findIndex(
                                     (l) => l.ticks === event.ticks
@@ -467,8 +465,8 @@ export class Sequencer {
                         // If it's a karaoke file
                         if (
                             this.midiData.isKaraokeFile &&
-                            (event.statusByte === midiMessageTypes.text ||
-                                event.statusByte === midiMessageTypes.lyric)
+                            (event.statusByte === MIDIMessageTypes.text ||
+                                event.statusByte === MIDIMessageTypes.lyric)
                         ) {
                             lyricsIndex = Math.min(
                                 this.midiData.lyrics.findIndex(
@@ -522,10 +520,26 @@ export class Sequencer {
             return;
         }
         for (let i = 0; i < 16; i++) {
-            this.midiOut.send([midiMessageTypes.controllerChange | i, 120, 0]); // All notes off
-            this.midiOut.send([midiMessageTypes.controllerChange | i, 123, 0]); // All sound off
+            this.midiOut.send([
+                MIDIMessageTypes.controllerChange | i,
+                MIDIControllers.allNotesOff,
+                0
+            ]); // All notes off
+            this.midiOut.send([
+                MIDIMessageTypes.controllerChange | i,
+                MIDIControllers.resetAllControllers,
+                0
+            ]); // Reset all controllers
         }
-        this.midiOut.send([midiMessageTypes.reset]); // Reset
+        this.midiOut.send([
+            MIDIMessageTypes.systemExclusive,
+            ...MIDIUtils.gsData(
+                0x40, // System parameter - Address
+                0x00, // Global mode parameter -  Address
+                0x7f, // MODE SET - Address
+                [0x00] // 00 = GS Reset - Data
+            )
+        ]);
     }
 
     private recalculateStartTime(time: number) {

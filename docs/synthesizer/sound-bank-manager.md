@@ -1,4 +1,4 @@
-## The Sound Bank Manager
+# The Sound Bank Manager
 
 The sound bank manager allows for handling multiple sound banks with a single synthesizer instance.
 

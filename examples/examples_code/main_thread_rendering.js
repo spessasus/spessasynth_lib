@@ -46,7 +46,7 @@ document
         // THE MAIN AUDIO RENDERING LOOP IS HERE
         setInterval(() => {
             // Get the synthesizer’s internal current time
-            const synTime = synth.currentSynthTime;
+            const synTime = synth.currentTime;
 
             // If the synth time is significantly ahead of the context time, skip rendering
             // (wait for the context to catch up)

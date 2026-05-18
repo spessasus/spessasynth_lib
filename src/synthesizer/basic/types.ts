@@ -7,16 +7,6 @@ export interface SynthConfig {
     oneOutput: boolean;
 
     /**
-     * @deprecated Deprecated parameter, does nothing.
-     */
-    initializeChorusProcessor?: boolean;
-
-    /**
-     * @deprecated Deprecated parameter, does nothing.
-     */
-    initializeReverbProcessor?: boolean;
-
-    /**
      * Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.
      * Pass undefined to use the Web Audio API.
      */
@@ -25,7 +15,7 @@ export interface SynthConfig {
     /**
      * If the event system should be enabled. This can only be set once.
      */
-    enableEventSystem: boolean;
+    eventsEnabled: boolean;
 }
 
 export interface AudioNodeCreators {

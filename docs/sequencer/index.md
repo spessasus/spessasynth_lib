@@ -25,7 +25,8 @@ The data of the current sequence.
 A [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) (the song data).
 Undefined if the data is currently loading or if no song is playing.
 
-Note that the `embeddedSoundBank` property and `events` in the tracks are both empty for performance reasons.
+The `embeddedSoundBank` and `timeline` properties
+and `events` in the tracks are all empty to avoid copying the entire file between threads.
 
 !!! Tip
 
@@ -85,7 +86,7 @@ The current tempo of the sequence, in BPM.
 
 Length of the current track in seconds.
 
-### songsAmount
+### songCount
 
 The number of songs in the playlist.
 

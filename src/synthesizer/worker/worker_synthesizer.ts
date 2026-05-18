@@ -32,13 +32,14 @@ const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {
     ...DEFAULT_BANK_WRITE_OPTIONS,
     writeDefaultModulators: true,
     writeExtendedLimits: true,
-    compress: false,
+    compressionAction: "keep",
     compressionQuality: 1,
-    decompress: false
+    software: "SpessaSynth"
 };
 
 const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
     ...DEFAULT_BANK_WRITE_OPTIONS,
+    applySnapshot: false,
     bankOffset: 0,
     correctBankOffset: true,
     metadata: {},
@@ -47,7 +48,8 @@ const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
 };
 
 const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {
-    ...DEFAULT_BANK_WRITE_OPTIONS
+    ...DEFAULT_BANK_WRITE_OPTIONS,
+    software: "SpessaSynth"
 };
 
 type WorkerSynthWriteOptions<K> = K & {
@@ -101,7 +103,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     numberOfOutputs: 18,
                     processorOptions: {
                         oneOutput: synthConfig.oneOutput,
-                        enableEventSystem: synthConfig.enableEventSystem
+                        eventsEnabled: synthConfig.eventsEnabled
                     }
                 }
             );
@@ -189,9 +191,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
-                resolve(data)
-            );
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
+                this.revokeProgressTracker("workerSynthWriteFile");
+                resolve(data);
+            });
             this.post({
                 type: "writeDLS",
                 data: postOptions,
@@ -222,9 +225,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
-                resolve(data)
-            );
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
+                this.revokeProgressTracker("workerSynthWriteFile");
+                resolve(data);
+            });
             this.post({
                 type: "writeSF2",
                 data: postOptions,
@@ -255,9 +259,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 ...writeOptions,
                 progressFunction: null
             };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) =>
-                resolve(data.binary)
-            );
+            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
+                this.revokeProgressTracker("workerSynthWriteFile");
+                resolve(data.binary);
+            });
             this.post({
                 type: "writeRMIDI",
                 data: postOptions,

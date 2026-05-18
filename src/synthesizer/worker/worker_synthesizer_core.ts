@@ -48,8 +48,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         super(
             synthesizerConfiguration.sampleRate,
             {
-                enableEventSystem: true,
-                enableEffects: true,
+                effectsEnabled: true,
+                eventsEnabled: true,
                 initialTime: synthesizerConfiguration.initialTime
             },
             mainThreadCallback as PostMessageSynthCore
@@ -122,17 +122,16 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
             case "writeDLS": {
                 this.stopAudioLoop();
-                void writeDLSWorker.call(this, m.data).then((data) => {
-                    this.postReady(
-                        "workerSynthWriteFile",
-                        {
-                            binary: data.binary,
-                            fileName: data.bank.soundBankInfo.name + ".dls"
-                        },
-                        [data.binary]
-                    );
-                    this.startAudioLoop();
-                });
+                const data = writeDLSWorker.call(this, m.data);
+                this.postReady(
+                    "workerSynthWriteFile",
+                    {
+                        binary: data.binary,
+                        fileName: data.bank.soundBankInfo.name + ".dls"
+                    },
+                    [data.binary]
+                );
+                this.startAudioLoop();
                 break;
             }
 
@@ -157,7 +156,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             this.post({
                 type: "soundBankError",
                 data: e,
-                currentTime: this.synthesizer.currentSynthTime
+                currentTime: this.synthesizer.currentTime
             });
             throw e;
         }
@@ -217,9 +216,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         this.synthesizer.processSplit(dry, wetL, wetR);
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
-        const t = this.synthesizer.currentSynthTime;
+        const t = this.synthesizer.currentTime;
         if (
-            this.enableEventSystem &&
+            this.eventsEnabled &&
             t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
         ) {
             for (let id = 0; id < this.sequencers.length; id++) {
@@ -234,6 +233,22 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 });
             }
             this.lastSequencerSync = t;
+        }
+
+        // Update voice count
+        const c = this.synthesizer.midiChannels;
+        const cv = this.voiceCounts;
+        let updateChannels = false;
+        for (let i = 0; i < c.length; i++) {
+            updateChannels ||= c[i].voiceCount !== cv[i];
+            cv[i] = c[i].voiceCount;
+        }
+        if (updateChannels) {
+            this.post({
+                type: "voiceCountChange",
+                currentTime: t,
+                data: cv
+            });
         }
     }
 }

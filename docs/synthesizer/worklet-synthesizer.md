@@ -1,4 +1,4 @@
-# Worklet-based Synthesizer
+# WorkletSynthesizer
 
 This synthesizer uses a single AudioWorklet to provide real-time or offline playback.
 

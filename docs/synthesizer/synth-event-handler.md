@@ -1,11 +1,21 @@
-## The Synthesizer Event Handler
+# The Synthesizer Event Handler
 
 The synthesizer supports event handling.
 For example, the MIDI Keyboard in the demo uses handling to visualize key-presses.
 
 It is accessible via the `synth.eventHandler` property.
 
-**[Event types can be found here](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/)**
+## Event Types
+
+**[Most event types can be found here](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/)**
+
+The additional ones are listed below
+
+### `soundBankError`
+
+This event is triggered when the loaded sound bank was invalid.
+
+The data is the error message from the parser, a JavaScript `Error` object.
 
 ## Managing the events
 

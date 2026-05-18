@@ -17,6 +17,7 @@
         "noImplicitReturns": true,
         "alwaysStrict": true,
         "noImplicitThis": true,
+        "stripInternal": true,
         "strictBindCallApply": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,

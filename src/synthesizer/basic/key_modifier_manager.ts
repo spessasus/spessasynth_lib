@@ -32,15 +32,14 @@ export class WorkletKeyModifierManagerWrapper {
         const mod = new KeyModifier();
         mod.gain = options?.gain ?? 1;
         mod.velocity = options?.velocity ?? -1;
-        mod.patch = fillWithDefaults(
-            options.patch ?? ({} as Partial<MIDIPatch>),
-            {
-                isGMGSDrum: false,
-                bankLSB: -1,
-                bankMSB: -1,
-                program: -1
-            }
-        );
+        // Eslint is drunk so we have to set it here
+        const p: Partial<MIDIPatch> = options.patch ?? {};
+        mod.patch = fillWithDefaults(p, {
+            isGMGSDrum: false,
+            bankLSB: -1,
+            bankMSB: -1,
+            program: -1
+        });
         this.keyModifiers[channel] ??= [];
         this.keyModifiers[channel][midiNote] = mod;
         this.sendToWorklet("addMapping", {

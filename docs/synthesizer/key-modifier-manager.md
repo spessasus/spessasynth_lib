@@ -1,4 +1,4 @@
-## Synthesizer Key Modifier Manager
+# Synthesizer Key Modifier Manager
 
 This powerful tool allows modifying each key on each channel to your needs.
 

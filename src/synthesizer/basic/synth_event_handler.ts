@@ -1,14 +1,11 @@
-import type { SynthProcessorEventData } from "spessasynth_core";
+import type { SynthesizerEventData } from "../types.ts";
 
-type ProcessorEventCallback<T extends keyof SynthProcessorEventData> = (
-    callbackData: SynthProcessorEventData[T]
+export type ProcessorEventCallback<T extends keyof SynthesizerEventData> = (
+    callbackData: SynthesizerEventData[T]
 ) => unknown;
 
 type EventsMap = {
-    [K in keyof SynthProcessorEventData]: Map<
-        string,
-        ProcessorEventCallback<K>
-    >;
+    [K in keyof SynthesizerEventData]: Map<string, ProcessorEventCallback<K>>;
 };
 
 export class SynthEventHandler {
@@ -25,7 +22,6 @@ export class SynthEventHandler {
     private readonly events: EventsMap = {
         noteOff: new Map<string, ProcessorEventCallback<"noteOff">>(), // Called on a note off message
         noteOn: new Map<string, ProcessorEventCallback<"noteOn">>(), // Called on a note on message
-        pitchWheel: new Map<string, ProcessorEventCallback<"pitchWheel">>(), // Called on a pitch-wheel change
         controllerChange: new Map<
             string,
             ProcessorEventCallback<"controllerChange">
@@ -34,36 +30,30 @@ export class SynthEventHandler {
             string,
             ProcessorEventCallback<"programChange">
         >(), // Called on a program change
-        channelPressure: new Map<
-            string,
-            ProcessorEventCallback<"channelPressure">
-        >(), // Called on a channel pressure message
         polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // Called on a poly pressure message
-        drumChange: new Map<string, ProcessorEventCallback<"drumChange">>(), // Called when a channel type changes
         stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // Called when the synth receives stop all command
-        newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // Called when a new channel is created
-        muteChannel: new Map<string, ProcessorEventCallback<"muteChannel">>(), // Called when a channel is muted/unmuted
+        channelAdded: new Map<string, ProcessorEventCallback<"channelAdded">>(), // Called when a new channel is created
         presetListChange: new Map<
             string,
             ProcessorEventCallback<"presetListChange">
         >(), // Called when the preset list changes (soundfont gets reloaded)
-        allControllerReset: new Map<
-            string,
-            ProcessorEventCallback<"allControllerReset">
-        >(), // Called when all controllers are reset
+        reset: new Map<string, ProcessorEventCallback<"reset">>(), // Called when all controllers are reset
         soundBankError: new Map<
             string,
             ProcessorEventCallback<"soundBankError">
         >(), // Called when a sound bank parsing error occurs
-        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // Called when there's a SysEx message to display some text
-        masterParameterChange: new Map<
+        displayMessage: new Map<
             string,
-            ProcessorEventCallback<"masterParameterChange">
-        >(), // Called when a master parameter changes
-        channelPropertyChange: new Map<
+            ProcessorEventCallback<"displayMessage">
+        >(), // Called when there's a SysEx message to display some text
+        globalParamChange: new Map<
             string,
-            ProcessorEventCallback<"channelPropertyChange">
-        >(), // Called when a channel property changes
+            ProcessorEventCallback<"globalParamChange">
+        >(), // Called when a MIDI global parameter changes
+        channelParamChange: new Map<
+            string,
+            ProcessorEventCallback<"channelParamChange">
+        >(), // Called when a MIDI channel parameter changes
         effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
     };
 
@@ -73,7 +63,7 @@ export class SynthEventHandler {
      * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
      * @param callback The callback for the event.
      */
-    public addEvent<T extends keyof SynthProcessorEventData>(
+    public addEvent<T extends keyof SynthesizerEventData>(
         event: T,
         id: string,
         callback: ProcessorEventCallback<T>
@@ -87,7 +77,7 @@ export class SynthEventHandler {
      * @param name The event to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
-    public removeEvent<T extends keyof SynthProcessorEventData>(
+    public removeEvent<T extends keyof SynthesizerEventData>(
         name: T,
         id: string
     ) {
@@ -99,9 +89,9 @@ export class SynthEventHandler {
      * INTERNAL USE ONLY!
      * @internal
      */
-    public callEventInternal<T extends keyof SynthProcessorEventData>(
+    public callEventInternal<T extends keyof SynthesizerEventData>(
         name: T,
-        eventData: SynthProcessorEventData[T]
+        eventData: SynthesizerEventData[T]
     ) {
         const eventList = this.events[name];
         const callback = () => {

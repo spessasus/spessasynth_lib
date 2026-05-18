@@ -66,7 +66,7 @@ export function renderAudioWorker(
 ): ReturnedChunks {
     // Initialize synthesizer
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
-        enableEventSystem: false
+        eventsEnabled: false
     });
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
@@ -105,11 +105,11 @@ export function renderAudioWorker(
         // Apply snapshot if needed
         rendererSeq.playbackRate = seq.playbackRate;
         const snapshot = this.synthesizer.getSnapshot();
-        rendererSynth.applySynthesizerSnapshot(snapshot);
+        rendererSynth.applySnapshot(snapshot);
     }
 
-    // Apply no voice cap (applying snapshot resets master parameters)
-    rendererSynth.setMasterParameter("autoAllocateVoices", true);
+    // Apply no voice cap (applying snapshot resets system parameters)
+    rendererSynth.setSystemParameter("autoAllocateVoices", true);
 
     // Begin playing
     rendererSeq.loadNewSongList([parsedMid]);
