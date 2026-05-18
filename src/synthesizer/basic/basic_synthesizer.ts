@@ -148,7 +148,7 @@ export abstract class BasicSynthesizer {
         for (let i = 0; i < 16; i++) this.addNewChannelInternal(false);
 
         // Attach event handlers
-        this.registerInternalEvent("newChannel", () => {
+        this.registerInternalEvent("channelAdded", () => {
             this.addNewChannelInternal(false);
         });
         this.registerInternalEvent(
@@ -156,14 +156,14 @@ export abstract class BasicSynthesizer {
             (e) => (this.presetList = [...e])
         );
         this.registerInternalEvent(
-            "globalMIDIParamChange",
+            "globalParamChange",
             <P extends keyof GlobalMIDIParameter>(e: {
                 parameter: P;
                 value: GlobalMIDIParameter[P];
             }) => (this._midiParameters[e.parameter] = e.value)
         );
         this.registerInternalEvent(
-            "channelMIDIParamChange",
+            "channelParamChange",
             <P extends keyof ChannelMIDIParameter>(e: {
                 channel: number;
                 parameter: P;
@@ -181,7 +181,7 @@ export abstract class BasicSynthesizer {
                     ...e
                 })
         );
-        this.registerInternalEvent("synthReset", () => {
+        this.registerInternalEvent("reset", () => {
             for (const c of this.midiChannels) c.reset();
             this._midiParameters = {
                 ...DEFAULT_GLOBAL_MIDI_PARAMETERS

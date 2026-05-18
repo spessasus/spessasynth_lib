@@ -32,24 +32,27 @@ export class SynthEventHandler {
         >(), // Called on a program change
         polyPressure: new Map<string, ProcessorEventCallback<"polyPressure">>(), // Called on a poly pressure message
         stopAll: new Map<string, ProcessorEventCallback<"stopAll">>(), // Called when the synth receives stop all command
-        newChannel: new Map<string, ProcessorEventCallback<"newChannel">>(), // Called when a new channel is created
+        channelAdded: new Map<string, ProcessorEventCallback<"channelAdded">>(), // Called when a new channel is created
         presetListChange: new Map<
             string,
             ProcessorEventCallback<"presetListChange">
         >(), // Called when the preset list changes (soundfont gets reloaded)
-        synthReset: new Map<string, ProcessorEventCallback<"synthReset">>(), // Called when all controllers are reset
+        reset: new Map<string, ProcessorEventCallback<"reset">>(), // Called when all controllers are reset
         soundBankError: new Map<
             string,
             ProcessorEventCallback<"soundBankError">
         >(), // Called when a sound bank parsing error occurs
-        synthDisplay: new Map<string, ProcessorEventCallback<"synthDisplay">>(), // Called when there's a SysEx message to display some text
-        globalMIDIParamChange: new Map<
+        displayMessage: new Map<
             string,
-            ProcessorEventCallback<"globalMIDIParamChange">
+            ProcessorEventCallback<"displayMessage">
+        >(), // Called when there's a SysEx message to display some text
+        globalParamChange: new Map<
+            string,
+            ProcessorEventCallback<"globalParamChange">
         >(), // Called when a MIDI global parameter changes
-        channelMIDIParamChange: new Map<
+        channelParamChange: new Map<
             string,
-            ProcessorEventCallback<"channelMIDIParamChange">
+            ProcessorEventCallback<"channelParamChange">
         >(), // Called when a MIDI channel parameter changes
         effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
     };

@@ -56,7 +56,7 @@ export abstract class BasicSynthesizerCore {
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
-            if (event.type === "newChannel") {
+            if (event.type === "channelAdded") {
                 const l = this.synthesizer.midiChannels.length;
                 for (let i = this.voiceCounts.length; i < l; i++)
                     this.voiceCounts.push(0);
