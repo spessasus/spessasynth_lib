@@ -1,14 +1,11 @@
-import type { SynthProcessorEventData } from "spessasynth_core";
+import type { SynthesizerEventData } from "../types.ts";
 
-export type ProcessorEventCallback<T extends keyof SynthProcessorEventData> = (
-    callbackData: SynthProcessorEventData[T]
+export type ProcessorEventCallback<T extends keyof SynthesizerEventData> = (
+    callbackData: SynthesizerEventData[T]
 ) => unknown;
 
 type EventsMap = {
-    [K in keyof SynthProcessorEventData]: Map<
-        string,
-        ProcessorEventCallback<K>
-    >;
+    [K in keyof SynthesizerEventData]: Map<string, ProcessorEventCallback<K>>;
 };
 
 export class SynthEventHandler {
@@ -40,10 +37,7 @@ export class SynthEventHandler {
             string,
             ProcessorEventCallback<"presetListChange">
         >(), // Called when the preset list changes (soundfont gets reloaded)
-        allControllerReset: new Map<
-            string,
-            ProcessorEventCallback<"allControllerReset">
-        >(), // Called when all controllers are reset
+        synthReset: new Map<string, ProcessorEventCallback<"synthReset">>(), // Called when all controllers are reset
         soundBankError: new Map<
             string,
             ProcessorEventCallback<"soundBankError">
@@ -66,7 +60,7 @@ export class SynthEventHandler {
      * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
      * @param callback The callback for the event.
      */
-    public addEvent<T extends keyof SynthProcessorEventData>(
+    public addEvent<T extends keyof SynthesizerEventData>(
         event: T,
         id: string,
         callback: ProcessorEventCallback<T>
@@ -80,7 +74,7 @@ export class SynthEventHandler {
      * @param name The event to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
-    public removeEvent<T extends keyof SynthProcessorEventData>(
+    public removeEvent<T extends keyof SynthesizerEventData>(
         name: T,
         id: string
     ) {
@@ -92,9 +86,9 @@ export class SynthEventHandler {
      * INTERNAL USE ONLY!
      * @internal
      */
-    public callEventInternal<T extends keyof SynthProcessorEventData>(
+    public callEventInternal<T extends keyof SynthesizerEventData>(
         name: T,
-        eventData: SynthProcessorEventData[T]
+        eventData: SynthesizerEventData[T]
     ) {
         const eventList = this.events[name];
         const callback = () => {

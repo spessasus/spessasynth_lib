@@ -180,7 +180,7 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "ccReset": {
-                this.synthesizer.resetAllControllers();
+                this.synthesizer.reset();
                 break;
             }
 

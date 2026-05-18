@@ -9,7 +9,7 @@ import {
     type SoundFont2WriteOptions,
     type SynthesizerSnapshot,
     type SynthMethodOptions,
-    type SynthProcessorEvent
+    type SynthProcessorEventData
 } from "spessasynth_core";
 import type {
     SequencerMessage,
@@ -227,8 +227,18 @@ interface BasicSynthesizerMessageData {
     destroyWorklet: null;
 }
 
+export interface SynthesizerEventData extends SynthProcessorEventData {
+    soundBankError: Error;
+}
+export type SynthesizerEvent = {
+    [K in keyof SynthesizerEventData]: {
+        type: K;
+        data: SynthesizerEventData[K];
+    };
+}[keyof SynthesizerEventData];
+
 interface BasicSynthesizerReturnMessageData {
-    eventCall: SynthProcessorEvent;
+    eventCall: SynthesizerEvent;
     sequencerReturn: SequencerReturnMessage;
     isFullyInitialized: {
         [K in keyof SynthesizerReturn]: {

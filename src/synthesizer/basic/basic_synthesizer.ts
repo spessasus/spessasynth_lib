@@ -16,14 +16,14 @@ import {
     type MIDIPatchFull,
     SpessaLog,
     type SynthesizerSnapshot,
-    type SynthMethodOptions,
-    type SynthProcessorEventData
+    type SynthMethodOptions
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
 import type { SynthConfig } from "./types.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
+    SynthesizerEventData,
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
@@ -181,7 +181,7 @@ export abstract class BasicSynthesizer {
                     ...e
                 })
         );
-        this.registerInternalEvent("allControllerReset", () => {
+        this.registerInternalEvent("synthReset", () => {
             for (const c of this.midiChannels) c.reset();
             this._midiParameters = {
                 ...DEFAULT_GLOBAL_MIDI_PARAMETERS
@@ -843,7 +843,7 @@ export abstract class BasicSynthesizer {
         this.resolveMap.delete(type);
     }
 
-    private registerInternalEvent<T extends keyof SynthProcessorEventData>(
+    private registerInternalEvent<T extends keyof SynthesizerEventData>(
         event: T,
         callback: ProcessorEventCallback<T>
     ) {
