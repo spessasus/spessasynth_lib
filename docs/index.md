@@ -10,11 +10,10 @@ You've reached the central documentation for the spessasynth_lib library, a powe
 
 _If you're looking for the SpessaSynth web app, it can be found [here](https://spessasus.github.io/SpessaSynth)._
 
-!!! Danger
+!!! DANGER
 
-    SpessaSynth 3.27 and below is no longer supported!
-
-    [The migration guide for 4.0 is available here.](extra/4-0-migration-guide.md)
+    SpessaSynth below `4.3.0` is no longer supported!
+    Please consider updating to get the best performance and latest features.
 
 ## spessasynth_lib documentation
 
