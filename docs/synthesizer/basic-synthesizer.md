@@ -354,26 +354,6 @@ synth.controllerChange(2, 10, 127);
 
 Fully resets the synthesizer.
 
-### lockController
-
-Cause the given midi channel to ignore controller messages for the given controller number.
-
-```js
-synth.lockController(channel, controller, isLocked);
-```
-
-- channel - the channel to lock. It usually ranges from 0 to 15, but it depends on the channel count.
-- controller - the MIDI CC to lock. Ranges from 0 to 127.
-- isLocked - boolean, if true then locked, if false then unlocked.
-
-**Example:**
-
-```js
-// disable portamento on channel 0
-synth.controllerChange(0, 65, 0); // portamento on/off set to off
-synth.lockController(0, 65, true); // lock portamento on/off
-```
-
 ### channelPressure
 
 Apply pressure to the given channel. It usually controls the vibrato amount.
