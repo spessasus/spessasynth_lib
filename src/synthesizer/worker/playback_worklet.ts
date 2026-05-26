@@ -8,7 +8,7 @@ const BLOCK_SIZE = 128;
 const MAX_QUEUED = ${maxQueuedChunks};
 
 /**
- * An AudioWorkletProcessor that plays back 18 separate streams of stereo audio: reverb, and chorus and 16 dry channels.
+ * An AudioWorkletProcessor that plays back 17 separate streams of stereo audio: effects and 16 dry channels.
  */
 class PlaybackProcessor extends AudioWorkletProcessor
 {

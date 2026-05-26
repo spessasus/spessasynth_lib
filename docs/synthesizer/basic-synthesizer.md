@@ -474,7 +474,7 @@ synth.systemExclusive(data, (channelOffset = 0), eventOptions);
 !!! Tip
 
     Refer to the
-    [MIDI Implementation](../extra/midi-implementation.md#system-exclusives)
+    [MIDI Implementation](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#system-exclusives)
     for the list of supported System Exclusives.
 
 **Example:**
