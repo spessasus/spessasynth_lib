@@ -76,7 +76,7 @@ nav = [
             "synthesizer/importing-the-worklet.md",
             { "Callback Event Types" = "https://spessasus.github.io/spessasynth_core/spessa-synth-processor/event-types/" }
         ] },
-        { "Sequencer" = "sequencer/index.md" },
+        { "Sequencer" = ["sequencer/index.md"] },
         { "Web MIDI Support" = [
             "midi/web-midi-api.md",
             "midi/web-midi-link.md"

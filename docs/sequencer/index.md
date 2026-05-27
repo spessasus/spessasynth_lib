@@ -2,6 +2,12 @@
 
 This is the module that plays MIDI sequences using a Synthesizer.
 
+!!! Warning
+
+    If you're using the [`WorkletSynthesizer`](../synthesizer/worklet-synthesizer.md),
+    then please make sure you always update `spessasynth_processor.min.js` along with the npm package!
+    Creating a script that automatically copies it is recommended.
+
 ## Initialization
 
 ```ts

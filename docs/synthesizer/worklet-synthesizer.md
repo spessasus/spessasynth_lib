@@ -12,7 +12,8 @@ This synthesizer uses a single AudioWorklet to provide real-time or offline play
 
 !!! Warning
 
-    Remember that you need to add the worklet processor for the synthesizer to work!
+    Make sure you always update `spessasynth_processor.min.js` along with the npm package!
+    Creating a script that automatically copies it is recommended.
     See [Importing the worklet](importing-the-worklet.md)
 
 ```ts
