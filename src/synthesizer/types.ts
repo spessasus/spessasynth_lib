@@ -1,7 +1,9 @@
 import {
     type BasicMIDI,
+    type ChannelMIDIParameter,
     type ChannelSystemParameter,
     type DLSWriteOptions,
+    type GlobalMIDIParameter,
     type GlobalSystemParameter,
     type KeyModifier,
     type MIDIController,
@@ -199,16 +201,28 @@ interface BasicSynthesizerMessageData {
         enableGroup: boolean;
     };
 
+    lockChannelMIDIParameter: {
+        [K in keyof ChannelMIDIParameter]: {
+            parameter: K;
+            isLocked: boolean;
+        };
+    }[keyof ChannelMIDIParameter];
     setChannelSystemParameter: {
         [K in keyof ChannelSystemParameter]: {
-            type: K;
-            data: ChannelSystemParameter[K];
+            parameter: K;
+            value: ChannelSystemParameter[K];
         };
     }[keyof ChannelSystemParameter];
+    lockGlobalMIDIParameter: {
+        [K in keyof GlobalMIDIParameter]: {
+            parameter: K;
+            isLocked: boolean;
+        };
+    }[keyof GlobalMIDIParameter];
     setGlobalSystemParameter: {
         [K in keyof GlobalSystemParameter]: {
-            type: K;
-            data: GlobalSystemParameter[K];
+            parameter: K;
+            value: GlobalSystemParameter[K];
         };
     }[keyof GlobalSystemParameter];
     soundBankManager: {
