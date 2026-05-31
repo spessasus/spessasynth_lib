@@ -292,25 +292,46 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
+     * Locks or unlocks a given Global MIDI Parameter.
+     * This prevents any changes to it until it's unlocked.
+     * @param parameter The Global MIDI Parameter to lock.
+     * @param isLocked If the parameter should be locked.
+     */
+    public lockMIDIParameter<P extends keyof GlobalMIDIParameter>(
+        parameter: P,
+        isLocked: boolean
+    ) {
+        this.post({
+            type: "lockGlobalMIDIParameter",
+            data: {
+                parameter,
+                isLocked
+            },
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
+        });
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
      * Sets a system parameter to a given value.
-     * @param type The parameter to set.
+     * @param parameter The parameter to set.
      * @param value The value to set.
      */
     public setSystemParameter<K extends keyof GlobalSystemParameter>(
-        type: K,
+        parameter: K,
         value: GlobalSystemParameter[K]
     ) {
-        this._systemParameters[type] = value;
+        this._systemParameters[parameter] = value;
         this.post({
             type: "setGlobalSystemParameter",
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             data: {
-                type,
-                data: value
+                parameter,
+                value
             } as {
                 [K in keyof GlobalSystemParameter]: {
-                    type: K;
-                    data: GlobalSystemParameter[K];
+                    parameter: K;
+                    value: GlobalSystemParameter[K];
                 };
             }[keyof GlobalSystemParameter]
         });

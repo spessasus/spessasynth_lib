@@ -192,13 +192,35 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
+            case "lockGlobalMIDIParameter": {
+                this.synthesizer.lockMIDIParameter(
+                    m.data.parameter,
+                    m.data.isLocked
+                );
+                break;
+            }
+
             case "setGlobalSystemParameter": {
-                this.synthesizer.setSystemParameter(m.data.type, m.data.data);
+                this.synthesizer.setSystemParameter(
+                    m.data.parameter,
+                    m.data.value
+                );
+                break;
+            }
+
+            case "lockChannelMIDIParameter": {
+                channelObject?.lockMIDIParameter(
+                    m.data.parameter,
+                    m.data.isLocked
+                );
                 break;
             }
 
             case "setChannelSystemParameter": {
-                channelObject?.setSystemParameter(m.data.type, m.data.data);
+                channelObject?.setSystemParameter(
+                    m.data.parameter,
+                    m.data.value
+                );
                 break;
             }
 

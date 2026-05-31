@@ -142,15 +142,34 @@ synth.setLogLevel(enableInfo, enableWarning, enableGroup);
 synth.setLogLevel(true, true, true);
 ```
 
+### lockMIDIParameter
+
+Locks or unlocks a given [Global MIDI Parameter.](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/global-parameters#midi)
+This prevents any changes to it until it's unlocked.
+
+```ts
+synth.lockMIDIParameter(parameter, isLocked);
+```
+
+- parameter - the Global MIDI Parameter to lock, a string of the parameter type.
+- isLocked - if the parameter should be locked, boolean.
+
+**Example:**
+
+```js
+// Lock the MIDI system to GS
+synth.lockMIDIParameter("system", "gs");
+```
+
 ### setSystemParameter
 
 Sets a [Global System Parameter](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/global-parameters#system) to a given value.
 
 ```js
-synth.setSystemParameter(type, value);
+synth.setSystemParameter(parameter, value);
 ```
 
-- type - the type to set.
+- parameter - the type to set.
 - value - the value to set it to.
 
 **Example:**

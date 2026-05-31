@@ -95,14 +95,48 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Toggles drums on a given channel.
-     * @param isDrum If the channel should be drums.
+     * Locks or unlocks a given Channel MIDI Parameter.
+     * This prevents any changes to it until it's unlocked.
+     * @param parameter The Channel MIDI Parameter to lock.
+     * @param isLocked If the parameter should be locked.
      */
-    public setDrums(isDrum: boolean) {
+    public lockMIDIParameter<P extends keyof ChannelMIDIParameter>(
+        parameter: P,
+        isLocked: boolean
+    ) {
         this.synth.post({
+            type: "lockChannelMIDIParameter",
             channelNumber: this.channel,
-            type: "setDrums",
-            data: isDrum
+            data: {
+                parameter,
+                isLocked
+            }
+        });
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Sets a system parameter of the channel.
+     * @param parameter The type of the parameter to set.
+     * @param value The value to set for the parameter.
+     */
+    public setSystemParameter<P extends keyof ChannelSystemParameter>(
+        parameter: P,
+        value: ChannelSystemParameter[P]
+    ) {
+        this._systemParameters[parameter] = value;
+        this.synth.post({
+            type: "setChannelSystemParameter",
+            channelNumber: this.channel,
+            data: {
+                parameter,
+                value
+            } as {
+                [K in keyof ChannelSystemParameter]: {
+                    parameter: K;
+                    value: ChannelSystemParameter[K];
+                };
+            }[keyof ChannelSystemParameter]
         });
     }
 
@@ -125,27 +159,14 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets a system parameter of the channel.
-     * @param parameter The type of the parameter to set.
-     * @param value The value to set for the parameter.
+     * Toggles drums on a given channel.
+     * @param isDrum If the channel should be drums.
      */
-    public setSystemParameter<P extends keyof ChannelSystemParameter>(
-        parameter: P,
-        value: ChannelSystemParameter[P]
-    ) {
-        this._systemParameters[parameter] = value;
+    public setDrums(isDrum: boolean) {
         this.synth.post({
-            type: "setChannelSystemParameter",
             channelNumber: this.channel,
-            data: {
-                type: parameter,
-                data: value
-            } as {
-                [K in keyof ChannelSystemParameter]: {
-                    type: K;
-                    data: ChannelSystemParameter[K];
-                };
-            }[keyof ChannelSystemParameter]
+            type: "setDrums",
+            data: isDrum
         });
     }
 

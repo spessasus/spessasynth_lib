@@ -34,19 +34,28 @@ Current amount of voices that are playing on this channel.
 
 ## Methods
 
-### setDrums
+### lockMIDIParameter
 
-Changes the preset to, or from drums.
+Locks or unlocks a given [Channel MIDI Parameter.](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/midi-channel/channel-parameters#midi)
+This prevents any changes to it until it's unlocked.
 
 ```ts
-channel.setDrums(isDrum);
+channel.lockMIDIParameter(parameter, isLocked);
 ```
 
-- isDrum - if the channel should be a drum preset or not.
+- parameter - the Channel MIDI Parameter to lock, a string of the parameter type.
+- isLocked - if the parameter should be locked, boolean.
 
-!!! Note
+### setSystemParameter
 
-    This executes a program change.
+Set a [Channel System Parameter.](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/midi-channel/channel-parameters#system)
+
+```ts
+channel.setSystemParameter(type, value);
+```
+
+- type - the type of the parameter to set, a string of the parameter type.
+- value - the value of the parameter to set, depends on the type.
 
 ### lockController
 
@@ -60,13 +69,16 @@ channel.lockController(controller, isLocked);
 - controller - `MIDIController` to lock.
 - isLocked - `boolean` if the controller should be locked.
 
-### setSystemParameter
+### setDrums
 
-Set a [Channel System Parameter.](https://spessasus.github.io/spessasynth_core/spessa-synth-processor/midi-channel/channel-parameters#system)
+Changes the preset to, or from drums.
 
 ```ts
-channel.setSystemParameter(type, value);
+channel.setDrums(isDrum);
 ```
 
-- type - the type of the parameter to set, a string of the parameter type.
-- value - the value of the parameter to set, depends on the type.
+- isDrum - if the channel should be a drum preset or not.
+
+!!! Note
+
+    This executes a program change.
