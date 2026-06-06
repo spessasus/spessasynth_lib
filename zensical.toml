@@ -353,3 +353,10 @@ linenums = "true"
 base_path = "examples/examples_code"
 [project.markdown_extensions.tables]
 [project.markdown_extensions.meta]
+[project.markdown_extensions.footnotes]
+[project.markdown_extensions.zensical.extensions.preview]
+configurations = [
+    { targets.include = [
+        "*",
+    ] }
+]
