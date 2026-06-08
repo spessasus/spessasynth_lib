@@ -84,5 +84,8 @@
     },
     "dependencies": {
         "spessasynth_core": "latest"
+    },
+    "allowScripts": {
+        "esbuild@0.28.0": true
     }
 }
