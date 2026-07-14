@@ -82,10 +82,10 @@
         ],
         "*.{html,json,md,yml,yaml,css}": "prettier --write"
     },
-    "dependencies": {
-        "spessasynth_core": "latest"
-    },
     "allowScripts": {
         "esbuild@0.28.0": true
+    },
+    "dependencies": {
+        "spessasynth_core": "latest"
     }
 }
