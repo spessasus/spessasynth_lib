@@ -96,6 +96,9 @@ export abstract class BasicSynthesizer {
     protected readonly _systemParameters: GlobalSystemParameter = {
         ...DEFAULT_GLOBAL_SYSTEM_PARAMETERS
     };
+    protected readonly lockedMIDIParameters = Object.fromEntries(
+        Object.keys(DEFAULT_GLOBAL_MIDI_PARAMETERS).map((k) => [k, false])
+    ) as Record<keyof GlobalMIDIParameter, boolean>;
     // Resolve map, waiting for the worklet to confirm the operation
     protected resolveMap = new Map<
         keyof SynthesizerReturn,
@@ -183,9 +186,17 @@ export abstract class BasicSynthesizer {
         );
         this.registerInternalEvent("reset", () => {
             for (const c of this.midiChannels) c.reset();
-            this._midiParameters = {
-                ...DEFAULT_GLOBAL_MIDI_PARAMETERS
-            };
+
+            // Only reset unlocked parameters
+            for (const [key, value] of Object.entries(
+                DEFAULT_GLOBAL_MIDI_PARAMETERS
+            ) as {
+                [K in keyof GlobalMIDIParameter]: [K, GlobalMIDIParameter[K]];
+            }[keyof GlobalMIDIParameter][]) {
+                if (!this.lockedMIDIParameters[key])
+                    // Strange cast but works
+                    this._midiParameters[key] = value as never;
+            }
         });
     }
 
@@ -309,6 +320,7 @@ export abstract class BasicSynthesizer {
             },
             channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
         });
+        this.lockedMIDIParameters[parameter] = isLocked;
     }
 
     // noinspection JSUnusedGlobalSymbols

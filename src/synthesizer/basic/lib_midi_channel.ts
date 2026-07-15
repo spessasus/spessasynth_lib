@@ -18,6 +18,9 @@ export class LibMIDIChannel {
     private readonly _systemParameters: ChannelSystemParameter = {
         ...DEFAULT_CHANNEL_SYSTEM_PARAMETERS
     };
+    private readonly lockedMIDIParameters = Object.fromEntries(
+        Object.keys(DEFAULT_CHANNEL_MIDI_PARAMETERS).map((k) => [k, false])
+    ) as Record<keyof ChannelMIDIParameter, boolean>;
 
     /**
      * @internal
@@ -104,6 +107,7 @@ export class LibMIDIChannel {
         parameter: P,
         isLocked: boolean
     ) {
+        this.lockedMIDIParameters[parameter] = isLocked;
         this.synth.post({
             type: "lockChannelMIDIParameter",
             channelNumber: this.channel,
@@ -186,8 +190,15 @@ export class LibMIDIChannel {
      * @internal
      */
     public reset() {
-        this._midiParameters = {
-            ...DEFAULT_CHANNEL_MIDI_PARAMETERS
-        };
+        // Only reset unlocked parameters
+        for (const [key, value] of Object.entries(
+            DEFAULT_CHANNEL_MIDI_PARAMETERS
+        ) as {
+            [K in keyof ChannelMIDIParameter]: [K, ChannelMIDIParameter[K]];
+        }[keyof ChannelMIDIParameter][]) {
+            if (!this.lockedMIDIParameters[key])
+                // Strange cast but works
+                this._midiParameters[key] = value as never;
+        }
     }
 }
