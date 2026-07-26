@@ -12,7 +12,7 @@
         "build:npm": "tsx build_scripts/build_npm.ts",
         "build:pages": "tsx build_scripts/build_pages.ts",
         "format": "prettier . --write",
-        "test:types": "eslint --cache && tsc -b",
+        "test:types": "eslint && tsc -b",
         "debug": "tsx build_scripts/debug_enable.ts",
         "release": "tsx build_scripts/debug_disable.ts",
         "prepack": "npm run build:npm",
