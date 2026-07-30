@@ -144,8 +144,8 @@ export abstract class BasicSynthesizer {
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (
-            e: MessageEvent<BasicSynthesizerReturnMessage>
-        ) => this.handleMessage(e.data);
+            e: MessageEvent<BasicSynthesizerReturnMessage[]>
+        ) => this.handleMessages(e.data);
 
         // Create initial channels
         for (let i = 0; i < 16; i++) this.addNewChannelInternal(false);
@@ -818,41 +818,50 @@ export abstract class BasicSynthesizer {
     /**
      * Handles the messages received from the worklet.
      */
-    protected handleMessage(m: BasicSynthesizerReturnMessage) {
-        switch (m.type) {
-            case "eventCall": {
-                this.eventHandler.callEventInternal(m.data.type, m.data.data);
-                break;
-            }
-
-            case "sequencerReturn": {
-                this.sequencers[m.data.id]?.(m.data);
-                break;
-            }
-
-            case "voiceCountChange": {
-                for (let i = 0; i < m.data.length; i++) {
-                    this.midiChannels[i].voiceCount = m.data[i];
-                    this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+    protected handleMessages(messages: BasicSynthesizerReturnMessage[]) {
+        for (const m of messages)
+            switch (m.type) {
+                case "eventCall": {
+                    this.eventHandler.callEventInternal(
+                        m.data.type,
+                        m.data.data
+                    );
+                    break;
                 }
-                break;
-            }
 
-            case "isFullyInitialized": {
-                this.workletResponds(m.data.type, m.data.data);
-                break;
-            }
+                case "sequencerReturn": {
+                    this.sequencers[m.data.id]?.(m.data);
+                    break;
+                }
 
-            case "soundBankError": {
-                SpessaLog.warn(m.data);
-                this.eventHandler.callEventInternal("soundBankError", m.data);
-                break;
-            }
+                case "voiceCountChange": {
+                    for (let i = 0; i < m.data.length; i++) {
+                        this.midiChannels[i].voiceCount = m.data[i];
+                        this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+                    }
+                    break;
+                }
 
-            case "renderingProgress": {
-                this.renderingProgressTracker.get(m.data.type)?.(m.data.data);
+                case "isFullyInitialized": {
+                    this.workletResponds(m.data.type, m.data.data);
+                    break;
+                }
+
+                case "soundBankError": {
+                    SpessaLog.warn(m.data);
+                    this.eventHandler.callEventInternal(
+                        "soundBankError",
+                        m.data
+                    );
+                    break;
+                }
+
+                case "renderingProgress": {
+                    this.renderingProgressTracker.get(m.data.type)?.(
+                        m.data.data
+                    );
+                }
             }
-        }
     }
 
     protected addNewChannelInternal(post: boolean) {

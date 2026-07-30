@@ -187,6 +187,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         if (!this.alive) {
             return;
         }
+        // Start the queue
+        this.messageQueueActive = true;
+
         // Data is encoded into a single f32 array as follows
         // WetL, WetR,
         // Dry1L, dry1R
@@ -250,5 +253,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 data: cv
             });
         }
+
+        this.flushQueue();
     }
 }

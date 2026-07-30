@@ -18,7 +18,7 @@ import { songChangeType } from "../../sequencer/enums.ts";
 import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
 
 export type PostMessageSynthCore = (
-    data: BasicSynthesizerReturnMessage,
+    data: BasicSynthesizerReturnMessage[],
     transfer?: Transferable[]
 ) => unknown;
 
@@ -31,7 +31,7 @@ export const SEQUENCER_SYNC_INTERVAL = 1;
 export abstract class BasicSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
     public readonly sequencers = new Array<SpessaSynthSequencer>();
-    protected readonly post: PostMessageSynthCore;
+    protected readonly postInternal: PostMessageSynthCore;
     protected lastSequencerSync = 0;
     /**
      * For syncing voice counts, implemented separately in the `process()` method.
@@ -45,6 +45,22 @@ export abstract class BasicSynthesizerCore {
     protected alive = false;
     protected readonly eventsEnabled;
 
+    /**
+     * A message queue for sending bulk many messages as one.
+     * @protected
+     */
+    protected messageQueue = new Array<BasicSynthesizerReturnMessage>();
+    /**
+     * The transferable part of the queue.
+     * @protected
+     */
+    protected messageQueueTransferable = new Array<Transferable>();
+    /**
+     * If the queue is active, all messages will be queued. If not, they will be sent immediately.
+     * @protected
+     */
+    protected messageQueueActive = false;
+
     protected constructor(
         sampleRate: number,
         options: Partial<SynthProcessorOptions>,
@@ -52,7 +68,7 @@ export abstract class BasicSynthesizerCore {
     ) {
         this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
         this.eventsEnabled = options.eventsEnabled ?? false;
-        this.post = postMessage;
+        this.postInternal = postMessage;
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
@@ -67,6 +83,26 @@ export abstract class BasicSynthesizerCore {
                 currentTime: this.synthesizer.currentTime
             });
         };
+    }
+
+    protected flushQueue() {
+        this.messageQueueActive = false;
+        if (this.messageQueue.length > 0)
+            this.postInternal(this.messageQueue, this.messageQueueTransferable);
+        this.messageQueue.length = 0;
+        this.messageQueueTransferable.length = 0;
+    }
+
+    protected post(
+        data: BasicSynthesizerReturnMessage,
+        transfer?: Transferable[]
+    ) {
+        if (this.messageQueue) {
+            this.messageQueue.push(data);
+            if (transfer) this.messageQueueTransferable.push(...transfer);
+        } else {
+            this.postInternal([data], transfer);
+        }
     }
 
     protected createNewSequencer() {

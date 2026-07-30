@@ -65,6 +65,8 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         if (!this.alive) {
             return false;
         }
+        // Start the queue
+        this.messageQueueActive = true;
         // Process sequencer
         for (const sq of this.sequencers) {
             sq.processTick();
@@ -130,6 +132,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 data: cv
             });
 
+        this.flushQueue();
         return true;
     }
 

@@ -162,11 +162,12 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Handles a return message from the Worker.
-     * @param e The event received from the Worker.
+     * @param events The events received from the Worker.
      */
-    public handleWorkerMessage(e: BasicSynthesizerReturnMessage) {
-        this.timeOffset = e.currentTime - this.context.currentTime;
-        this.handleMessage(e);
+    public handleWorkerMessage(events: BasicSynthesizerReturnMessage[]) {
+        if (events.length > 0)
+            this.timeOffset = events[0].currentTime - this.context.currentTime;
+        this.handleMessages(events);
     }
 
     /**
