@@ -74,18 +74,19 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
 
         if (this.oneOutputMode) {
             const out = outputs[0];
-            // 1 output with 32 channels.
+            // 1 output with 34 channels.
             // Channels are ordered as follows:
+            // EffectsL, EffectsR
             // MidiChannel1L, midiChannel1R,
             // MidiChannel2L, midiChannel2R
             // And so on
             const channelMap: Float32Array[][] = [];
-            for (let i = 0; i < 32; i += 2) {
+            for (let i = 2; i < 34; i += 2) {
                 channelMap.push([out[i], out[i + 1]]);
             }
             this.synthesizer.setSystemParameter("effectsEnabled", false);
             // Effects are disabled
-            this.synthesizer.processSplit(channelMap, out[0], out[0]);
+            this.synthesizer.processSplit(channelMap, out[0], out[1]);
         } else {
             // 17 outputs, each a stereo one
             // 0: Effects
