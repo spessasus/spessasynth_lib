@@ -12,6 +12,7 @@ import {
 } from "../basic/basic_synthesizer_core.ts";
 import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
 import { writeRMIDIWorker } from "./write_rmi_worker.ts";
+import type { SynthCoreConfig } from "../basic/types.ts";
 
 const BLOCK_SIZE = 128;
 
@@ -30,30 +31,19 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     /**
      * Creates a new worker synthesizer core: the synthesizer that runs in the worker.
      * Most parameters here are provided with the first message that is posted to the worker by the WorkerSynthesizer.
-     * @param synthesizerConfiguration The data from the first message sent from WorkerSynthesizer.
+     * @param synthCoreConfig The data from the first message sent from WorkerSynthesizer.
      * Listen for the first event and use its data to initialize this class.
      * @param workletMessagePort The first port from the first message sent from WorkerSynthesizer.
      * @param mainThreadCallback postMessage function or similar.
      * @param compressionFunction Optional function for compressing SF3 banks.
      */
     public constructor(
-        synthesizerConfiguration: {
-            sampleRate: number;
-            initialTime: number;
-        },
+        synthCoreConfig: SynthCoreConfig,
         workletMessagePort: MessagePort,
         mainThreadCallback: typeof Worker.prototype.postMessage,
         compressionFunction?: WorkerSampleEncodingFunction
     ) {
-        super(
-            synthesizerConfiguration.sampleRate,
-            {
-                effectsEnabled: true,
-                eventsEnabled: true,
-                initialTime: synthesizerConfiguration.initialTime
-            },
-            mainThreadCallback as PostMessageSynthCore
-        );
+        super(synthCoreConfig, mainThreadCallback as PostMessageSynthCore);
 
         this.workletMessagePort = workletMessagePort;
         this.workletMessagePort.onmessage = this.process.bind(this);

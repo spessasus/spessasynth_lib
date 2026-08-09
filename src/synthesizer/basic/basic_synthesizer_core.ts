@@ -4,8 +4,7 @@ import {
     SoundBankLoader,
     SpessaLog,
     SpessaSynthProcessor,
-    SpessaSynthSequencer,
-    type SynthProcessorOptions
+    SpessaSynthSequencer
 } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
@@ -16,6 +15,7 @@ import type {
 import { MIDIData } from "../../sequencer/midi_data.ts";
 import { songChangeType } from "../../sequencer/enums.ts";
 import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
+import type { SynthCoreConfig } from "./types.ts";
 
 export type PostMessageSynthCore = (
     data: BasicSynthesizerReturnMessage[],
@@ -31,20 +31,28 @@ export const SEQUENCER_SYNC_INTERVAL = 1;
 export abstract class BasicSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
     public readonly sequencers = new Array<SpessaSynthSequencer>();
+
     protected readonly postInternal: PostMessageSynthCore;
-    protected lastSequencerSync = 0;
+
     /**
      * For syncing voice counts, implemented separately in the `process()` method.
      * @protected
      */
     protected readonly voiceCounts = new Array<number>(16).fill(0);
+
+    protected readonly eventsEnabled;
+
+    /**
+     * In this mode, the reverb is captured and sent to the main thread for a ConvolverNode to process. One extra output or channel pair for one output mode.
+     * @protected
+     */
+    protected readonly convolverMode;
     /**
      * Indicates if the processor is alive.
      * @protected
      */
     protected alive = false;
-    protected readonly eventsEnabled;
-
+    protected lastSequencerSync = 0;
     /**
      * A message queue for sending bulk many messages as one.
      * @protected
@@ -60,14 +68,23 @@ export abstract class BasicSynthesizerCore {
      * @protected
      */
     protected messageQueueActive = false;
+    /**
+     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
+     */
+    protected readonly oneOutputMode: boolean;
 
     protected constructor(
-        sampleRate: number,
-        options: Partial<SynthProcessorOptions>,
+        synthCoreConfig: SynthCoreConfig,
         postMessage: PostMessageSynthCore
     ) {
-        this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.eventsEnabled = options.eventsEnabled ?? false;
+        this.synthesizer = new SpessaSynthProcessor(
+            synthCoreConfig.sampleRate,
+            synthCoreConfig
+        );
+        this.eventsEnabled =
+            synthCoreConfig.processorConfig.eventsEnabled ?? false;
+        this.convolverMode = synthCoreConfig.convolverMode;
+        this.oneOutputMode = synthCoreConfig.oneOutputMode;
         this.postInternal = postMessage;
 
         // Prepare synthesizer connections

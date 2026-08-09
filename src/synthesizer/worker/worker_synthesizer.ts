@@ -81,7 +81,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     ) {
         // Ensure default values for options
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
-        if (synthConfig.oneOutput) {
+        if (synthConfig.oneOutputMode) {
             throw new Error(
                 "One output mode is not supported in the WorkerSynthesizer."
             );
@@ -102,8 +102,13 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     outputChannelCount: new Array<number>(18).fill(2),
                     numberOfOutputs: 18,
                     processorOptions: {
-                        oneOutput: synthConfig.oneOutput,
-                        eventsEnabled: synthConfig.eventsEnabled
+                        convolverMode: synthConfig.convolverMode,
+                        oneOutputMode: synthConfig.oneOutputMode,
+                        sampleRate: context.sampleRate,
+                        initialTime: context.currentTime,
+                        processorConfig: {
+                            eventsEnabled: synthConfig.eventsEnabled
+                        }
                     }
                 }
             );

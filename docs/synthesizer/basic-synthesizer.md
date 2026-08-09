@@ -13,10 +13,16 @@ The synthesizer uses `spessasynth_core`'s synthesizer as the core audio engine, 
 
 Below is the `SynthConfig` configuration object that can be passed to both synthesizers during configuration:
 
-### oneOutput
+### oneOutputMode
 
 Indicates if the [one output mode](#one-output-mode) should be enabled.
 A boolean.
+
+### convolverMode
+
+If the convolver mode should be enabled.
+In the convolver mode, the reverb is fed into a Web Audio ConvolverNode,
+which can be used for a custom impulse response.
 
 ### eventsEnabled
 

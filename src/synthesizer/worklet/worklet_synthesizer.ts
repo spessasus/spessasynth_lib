@@ -1,6 +1,6 @@
 import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
-import type { SynthConfig } from "../basic/types.ts";
+import type { AudioNodeCreators, SynthConfig } from "../basic/types.ts";
 import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
 import type { OfflineRenderWorkletData } from "../types.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
@@ -24,7 +24,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         let outputChannelCount = new Array<number>(17).fill(2);
         let numberOfOutputs = 17;
 
-        if (synthConfig.oneOutput) {
+        if (synthConfig.oneOutputMode) {
             // One output with 34 channels
             outputChannelCount = [34];
             numberOfOutputs = 1;
@@ -33,7 +33,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         let worklet: AudioWorkletNode;
         // Create the audio worklet node
         try {
-            const workletConstructor =
+            const workletConstructor: AudioNodeCreators["worklet"] =
                 synthConfig?.audioNodeCreators?.worklet ??
                 ((context, name, options) => {
                     return new AudioWorkletNode(context, name, options);
@@ -42,8 +42,13 @@ export class WorkletSynthesizer extends BasicSynthesizer {
                 outputChannelCount,
                 numberOfOutputs,
                 processorOptions: {
-                    oneOutput: synthConfig.oneOutput,
-                    eventsEnabled: synthConfig.eventsEnabled
+                    convolverMode: synthConfig.convolverMode,
+                    oneOutputMode: synthConfig.oneOutputMode,
+                    sampleRate: context.sampleRate,
+                    initialTime: context.currentTime,
+                    processorConfig: {
+                        eventsEnabled: synthConfig.eventsEnabled
+                    }
                 }
             });
         } catch (error) {

@@ -2,8 +2,7 @@
 import { BasicMIDI, SoundBankLoader, SpessaLog } from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
-    OfflineRenderWorkletData,
-    PassedProcessorParameters
+    OfflineRenderWorkletData
 } from "../types.ts";
 import type { SequencerOptions } from "../../sequencer/types.ts";
 import { ConsoleColors } from "../../utils/other.ts";
@@ -13,35 +12,17 @@ import {
     BasicSynthesizerCore,
     SEQUENCER_SYNC_INTERVAL
 } from "../basic/basic_synthesizer_core.ts";
+import type { SynthCoreConfig } from "../basic/types.ts";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     protected alive = true;
-    /**
-     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
-     */
-    private readonly oneOutputMode: boolean;
     private readonly port: MessagePort;
 
-    public constructor(
-        sampleRate: number,
-        currentTime: number,
-        port: MessagePort,
-        opts: PassedProcessorParameters
-    ) {
-        super(
-            sampleRate,
-            {
-                effectsEnabled: !opts.oneOutput, // One output mode disables effects
-                eventsEnabled: opts?.eventsEnabled, // Enable message port?
-                initialTime: currentTime
-            },
-            (data, transfer) => {
-                port.postMessage(data, transfer!);
-            }
-        );
+    public constructor(synthCoreConfig: SynthCoreConfig, port: MessagePort) {
+        super(synthCoreConfig, (data, transfer) => {
+            port.postMessage(data, transfer!);
+        });
         this.port = port;
-
-        this.oneOutputMode = opts.oneOutput;
 
         void this.synthesizer.processorInitialized.then(() => {
             // Receive messages from the main thread

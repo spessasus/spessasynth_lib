@@ -20,17 +20,6 @@ import type {
 } from "../sequencer/types";
 import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
 
-export interface PassedProcessorParameters {
-    /**
-     * If the synthesizer should send events.
-     */
-    eventsEnabled: boolean;
-    /**
-     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
-     */
-    oneOutput: boolean;
-}
-
 export interface OfflineRenderWorkletData {
     /**
      * The MIDI to render.

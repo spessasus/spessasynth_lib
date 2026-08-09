@@ -1,21 +1,21 @@
 import { SpessaLog } from "spessasynth_core";
 import { ConsoleColors } from "./utils/other.ts";
 import { WORKLET_PROCESSOR_NAME } from "./synthesizer/worklet/worklet_processor_name.ts";
-import type { PassedProcessorParameters } from "./synthesizer/types.ts";
 import { WorkletSynthesizerCore } from "./synthesizer/worklet/worklet_synthesizer_core.ts";
+import type { SynthCoreConfig } from "./synthesizer/basic/types.ts";
 
 class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
     private readonly core: WorkletSynthesizerCore;
 
-    public constructor(options: {
-        processorOptions: PassedProcessorParameters;
-    }) {
+    public constructor(options: { processorOptions: SynthCoreConfig }) {
         super();
         this.core = new WorkletSynthesizerCore(
-            sampleRate, // AudioWorkletGlobalScope
-            currentTime, // AudioWorkletGlobalScope, sync with audioContext time
-            this.port,
-            options.processorOptions
+            {
+                ...options.processorOptions,
+                sampleRate, // AudioWorkletGlobalScope
+                initialTime: currentTime // AudioWorkletGlobalScope, sync with audioContext time
+            },
+            this.port
         );
     }
 
