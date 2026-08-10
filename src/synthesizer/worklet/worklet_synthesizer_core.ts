@@ -28,7 +28,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         });
         this.port = port;
 
-        void this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.ready.then(() => {
             // Receive messages from the main thread
             this.port.onmessage = (e: MessageEvent<BasicSynthesizerMessage>) =>
                 this.handleMessage(e.data);

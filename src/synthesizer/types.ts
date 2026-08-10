@@ -20,6 +20,8 @@ import type {
 } from "../sequencer/types";
 import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
 
+export * from "./basic/types.ts";
+
 export interface LibSynthesizerSnapshot extends SynthesizerSnapshot {
     /**
      * Optional convolver impulse response stored on the main thread.

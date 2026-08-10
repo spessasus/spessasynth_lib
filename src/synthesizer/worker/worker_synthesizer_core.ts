@@ -49,7 +49,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         this.workletMessagePort = workletMessagePort;
         this.workletMessagePort.onmessage = this.process.bind(this);
         this.compressionFunction = compressionFunction;
-        void this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.ready.then(() => {
             this.postReady("sf3Decoder", null);
             this.startAudioLoop();
         });

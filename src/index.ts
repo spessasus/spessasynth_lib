@@ -12,3 +12,4 @@ export { WorkerSynthesizer } from "./synthesizer/worker/worker_synthesizer.ts";
 export { WorkerSynthesizerCore } from "./synthesizer/worker/worker_synthesizer_core.ts";
 export { WorkletSynthesizer } from "./synthesizer/worklet/worklet_synthesizer.js";
 export { audioBufferToWav } from "./utils/buffer_to_wav.js";
+export type { SynthCoreConfig } from "./synthesizer/types.ts";

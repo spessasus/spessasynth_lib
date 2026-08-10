@@ -22,7 +22,6 @@ export interface SynthConfig {
      * In the convolver mode, the reverb is fed into a Web Audio ConvolverNode,
      * which can be used for a custom impulse response.
      */
-    // TODO: Implement this
     convolverMode: boolean;
 }
 
