@@ -21,8 +21,11 @@ A boolean.
 ### convolverMode
 
 If the convolver mode should be enabled.
-In the convolver mode, the reverb is fed into a Web Audio ConvolverNode,
-which can be used for a custom impulse response.
+In the convolver mode, the synthesizer captures its reverb output and feeds it into a Web Audio `ConvolverNode`.
+This lets you use a custom impulse response for the synth's reverb tail instead of the built-in reverb engine.
+
+- When enabled, the synthesizer exposes a single reverb stream that is processed by the `ConvolverNode`.
+- The impulse response is loaded internally from the library and can be replaced by assigning a new buffer to the synthesizer's `convolverNode`.
 
 ### eventsEnabled
 
@@ -72,6 +75,14 @@ The synthesizer's [key modifier manager](key-modifier-manager.md).
 ### eventHandler
 
 The synthesizer's [event handler](synth-event-handler.md).
+
+### convolverNode
+
+The `AudioNode` that processes the synthesizer's captured reverb tail through a Web Audio `ConvolverNode`.
+
+!!! WARNING
+
+    `convolverNode` is only defined when `convolverMode` is enabled.
 
 ### context
 

@@ -260,9 +260,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         }
         return new Promise((resolve) => {
             // First pass: Worker renders the dry audio
-            this.awaitWorkerResponse("renderAudio", (data) => {
+            this.awaitWorkerResponse("renderAudio", async (data) => {
                 this.revokeProgressTracker("renderAudio");
                 const bufferLength = data.dry[0][0].length;
+                const convolverData = data.convolver;
                 // Convert to audio buffers
                 const dryChannels = data.dry.map((dryPair) => {
                     const buffer = new AudioBuffer({
@@ -296,6 +297,38 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                         1
                     );
                     dryChannels.push(buffer);
+
+                    if (convolverData && this.convolverNode?.buffer) {
+                        const convolverSource = new AudioBuffer({
+                            sampleRate,
+                            numberOfChannels: 2,
+                            length: bufferLength
+                        });
+                        convolverSource.copyToChannel(
+                            convolverData[0] as Float32Array<ArrayBuffer>,
+                            0
+                        );
+                        convolverSource.copyToChannel(
+                            convolverData[1] as Float32Array<ArrayBuffer>,
+                            1
+                        );
+
+                        const offline = new OfflineAudioContext({
+                            numberOfChannels: 2,
+                            length: bufferLength,
+                            sampleRate
+                        });
+                        const source = offline.createBufferSource();
+                        source.buffer = convolverSource;
+                        const convolver = offline.createConvolver();
+                        convolver.buffer = this.convolverNode.buffer;
+                        source.connect(convolver);
+                        convolver.connect(offline.destination);
+                        source.start(0);
+                        const renderedConvolver =
+                            await offline.startRendering();
+                        dryChannels.push(renderedConvolver);
+                    }
                 }
                 resolve(dryChannels);
                 return;

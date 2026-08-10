@@ -1,8 +1,12 @@
+import type { SynthesizerSnapshot } from "spessasynth_core";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
 import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import type { SynthConfig } from "../basic/types.ts";
-import type { OfflineRenderWorkletData } from "../types.ts";
+import type {
+    LibSynthesizerSnapshot,
+    OfflineRenderWorkletData
+} from "../types.ts";
 import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
 
 /**
@@ -26,6 +30,19 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         );
     }
 
+    private stripConvolverFromSnapshot(
+        snapshot: LibSynthesizerSnapshot
+    ): SynthesizerSnapshot {
+        // Remove this, so it's not sent to the worklet
+        const snapshotCopy = { ...snapshot } as Omit<
+            LibSynthesizerSnapshot,
+            "convolverImpulseResponse"
+        >;
+        delete (snapshotCopy as { convolverImpulseResponse?: unknown })
+            .convolverImpulseResponse;
+        return snapshotCopy;
+    }
+
     /**
      * Starts an offline audio render.
      * @param config The configuration to use.
@@ -35,10 +52,17 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * Chromium seems to ignore worklet messages for OfflineAudioContext.
      */
     public async startOfflineRender(config: OfflineRenderWorkletData) {
+        const configToSend = {
+            ...config,
+            snapshot: config.snapshot
+                ? this.stripConvolverFromSnapshot(config.snapshot)
+                : undefined
+        };
+
         this.post(
             {
                 type: "startOfflineRender",
-                data: config,
+                data: configToSend,
                 channelNumber: -1
             },
             config.soundBankList.map((b) => b.soundBankBuffer)

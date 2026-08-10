@@ -20,6 +20,13 @@ import type {
 } from "../sequencer/types";
 import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
 
+export interface LibSynthesizerSnapshot extends SynthesizerSnapshot {
+    /**
+     * Optional convolver impulse response stored on the main thread.
+     */
+    convolverImpulseResponse?: AudioBuffer;
+}
+
 export interface OfflineRenderWorkletData {
     /**
      * The MIDI to render.
@@ -28,7 +35,7 @@ export interface OfflineRenderWorkletData {
     /**
      * The snapshot to apply.
      */
-    snapshot?: SynthesizerSnapshot;
+    snapshot?: LibSynthesizerSnapshot;
     /**
      * The amount times to loop the song.
      */
@@ -286,6 +293,7 @@ export interface SynthesizerReturn {
     renderAudio: {
         effects: [Float32Array, Float32Array];
         dry: [Float32Array, Float32Array][];
+        convolver?: [Float32Array, Float32Array];
     };
     workerSynthWriteFile: {
         /**

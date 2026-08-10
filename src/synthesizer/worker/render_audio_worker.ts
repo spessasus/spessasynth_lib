@@ -1,5 +1,6 @@
-import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
 import { SpessaSynthProcessor, SpessaSynthSequencer } from "spessasynth_core";
+import { ReverbCapture } from "../basic/reverb_passthrough.ts";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
 
 export interface WorkerRenderAudioOptions {
     /**
@@ -57,6 +58,7 @@ type StereoAudioChunk = [Float32Array, Float32Array];
 interface ReturnedChunks {
     effects: StereoAudioChunk;
     dry: StereoAudioChunk[];
+    convolver?: StereoAudioChunk;
 }
 
 export function renderAudioWorker(
@@ -65,8 +67,12 @@ export function renderAudioWorker(
     options: WorkerRenderAudioOptions
 ): ReturnedChunks {
     // Initialize synthesizer
+    const renderReverbCapture = this.convolverMode
+        ? new ReverbCapture()
+        : undefined;
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
-        eventsEnabled: false
+        eventsEnabled: false,
+        reverbProcessor: renderReverbCapture
     });
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
@@ -125,6 +131,12 @@ export function renderAudioWorker(
         effects,
         dry: []
     };
+    const convolver: StereoAudioChunk | undefined = renderReverbCapture
+        ? [new Float32Array(sampleDuration), new Float32Array(sampleDuration)]
+        : undefined;
+    if (convolver) {
+        returnedChunks.convolver = convolver;
+    }
     const sampleDurationNoLastQuantum = sampleDuration - BLOCK_SIZE;
     if (options.separateChannels) {
         const dry: StereoAudioChunk[] = [];
@@ -148,11 +160,25 @@ export function renderAudioWorker(
                         index,
                         sampleDuration - index
                     );
+                    if (convolver) {
+                        convolver[0].set(
+                            renderReverbCapture!.capturedData,
+                            index
+                        );
+                        convolver[1].set(
+                            renderReverbCapture!.capturedData,
+                            index
+                        );
+                    }
                     this.startAudioLoop();
                     return returnedChunks;
                 }
                 rendererSeq.processTick();
                 rendererSynth.processSplit(dry, wetL, wetR, index, BLOCK_SIZE);
+                if (convolver) {
+                    convolver[0].set(renderReverbCapture!.capturedData, index);
+                    convolver[1].set(renderReverbCapture!.capturedData, index);
+                }
                 index += BLOCK_SIZE;
             }
             this.postProgress("renderAudio", index / sampleDuration);
@@ -173,12 +199,26 @@ export function renderAudioWorker(
                         index,
                         sampleDuration - index
                     );
+                    if (convolver) {
+                        convolver[0].set(
+                            renderReverbCapture!.capturedData,
+                            index
+                        );
+                        convolver[1].set(
+                            renderReverbCapture!.capturedData,
+                            index
+                        );
+                    }
                     this.startAudioLoop();
                     return returnedChunks;
                 }
                 rendererSeq.processTick();
 
                 rendererSynth.process(dryL, dryR, index, BLOCK_SIZE);
+                if (convolver) {
+                    convolver[0].set(renderReverbCapture!.capturedData, index);
+                    convolver[1].set(renderReverbCapture!.capturedData, index);
+                }
                 index += BLOCK_SIZE;
             }
             this.postProgress("renderAudio", index / sampleDuration);

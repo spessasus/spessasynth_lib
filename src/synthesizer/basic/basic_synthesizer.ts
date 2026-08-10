@@ -19,6 +19,7 @@ import { reverbBufferBinary } from "../reverb/compressed_reverb_decoder.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
+    LibSynthesizerSnapshot,
     SynthesizerEventData,
     SynthesizerProgress,
     SynthesizerReturn
@@ -102,6 +103,12 @@ export abstract class BasicSynthesizer {
     protected readonly dryChannelCount = 16;
 
     public readonly convolverNode: ConvolverNode | undefined;
+    public readonly oneOutputMode: boolean;
+    /**
+     * Splitter for one output mode channel merging
+     */
+    protected readonly convolverSplitter: ChannelSplitterNode | undefined;
+    protected readonly convolverReady?: Promise<AudioBuffer>;
 
     /**
      * Spessasynth_core system parameters
@@ -147,6 +154,7 @@ export abstract class BasicSynthesizer {
             ConsoleColors.info
         );
         this.context = context;
+        this.oneOutputMode = synthConfig.oneOutputMode;
         // Create worklet
         let outputChannelCount = new Array<number>(TOTAL_OUTPUT_COUNT).fill(2);
         // 16 Stereo channels + effects + convolver, potentially unused
@@ -194,11 +202,25 @@ export abstract class BasicSynthesizer {
         // Create convolver if needed
         if (synthConfig.convolverMode) {
             this.convolverNode = context.createConvolver();
-            void context.decodeAudioData(reverbBufferBinary).then((buffer) => {
-                this.convolverNode!.buffer = buffer;
-            });
-            // Second output is convolver data
-            this.worklet.connect(this.convolverNode, 1);
+            this.convolverReady = context
+                .decodeAudioData(reverbBufferBinary)
+                .then((buffer) => {
+                    this.convolverNode!.buffer = buffer;
+                    return buffer;
+                });
+            if (synthConfig.oneOutputMode) {
+                // One-output mode presents a single multichannel output.
+                // Route the dedicated convolver pair (channels 2/3) to the ConvolverNode.
+                this.convolverSplitter = context.createChannelSplitter(
+                    TOTAL_OUTPUT_COUNT * 2
+                );
+                this.worklet.connect(this.convolverSplitter, 0);
+                this.convolverSplitter.connect(this.convolverNode, 2, 0);
+                this.convolverSplitter.connect(this.convolverNode, 3, 1);
+            } else {
+                // Second output is convolver data.
+                this.worklet.connect(this.convolverNode, 1);
+            }
         }
 
         this.post =
@@ -323,8 +345,14 @@ export abstract class BasicSynthesizer {
      * @param destinationNode The node to connect to.
      */
     public connect(destinationNode: AudioNode) {
-        // Connect all other worklet outputs (effects + 16 channels)
+        if (this.oneOutputMode) {
+            this.worklet.connect(destinationNode, 0);
+            this.convolverNode?.connect(destinationNode);
+            return destinationNode;
+        }
+
         for (let i = 0; i < TOTAL_OUTPUT_COUNT; i++) {
+            if (this.convolverNode && i === 1) continue;
             this.worklet.connect(destinationNode, i);
         }
         this.convolverNode?.connect(destinationNode);
@@ -339,11 +367,17 @@ export abstract class BasicSynthesizer {
     public disconnect(destinationNode?: AudioNode) {
         if (!destinationNode) {
             this.worklet.disconnect();
+            this.convolverSplitter?.disconnect();
             this.convolverNode?.disconnect();
             return undefined;
         }
-        // Disconnect all other worklet outputs
+        if (this.oneOutputMode) {
+            this.worklet.disconnect(destinationNode, 0);
+            this.convolverNode?.disconnect(destinationNode);
+            return destinationNode;
+        }
         for (let i = 0; i < TOTAL_OUTPUT_COUNT; i++) {
+            if (this.convolverNode && i === 1) continue;
             this.worklet.disconnect(destinationNode, i);
         }
         this.convolverNode?.disconnect(destinationNode);
@@ -425,8 +459,8 @@ export abstract class BasicSynthesizer {
     /**
      * Gets a complete snapshot of the synthesizer, effects.
      */
-    public async getSnapshot(): Promise<SynthesizerSnapshot> {
-        return new Promise((resolve) => {
+    public async getSnapshot(): Promise<LibSynthesizerSnapshot> {
+        const snapshot = await new Promise<SynthesizerSnapshot>((resolve) => {
             this.awaitWorkerResponse("synthesizerSnapshot", (s) => {
                 resolve(s);
             });
@@ -436,6 +470,17 @@ export abstract class BasicSynthesizer {
                 channelNumber: -1
             });
         });
+
+        const convolverBuffer =
+            this.convolverNode?.buffer ??
+            (this.convolverReady ? await this.convolverReady : undefined);
+
+        return {
+            ...snapshot,
+            ...(convolverBuffer
+                ? { convolverImpulseResponse: convolverBuffer }
+                : {})
+        };
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -454,6 +499,11 @@ export abstract class BasicSynthesizer {
      * @returns The target node.
      */
     public connectChannel(targetNode: AudioNode, channelNumber: number) {
+        if (this.oneOutputMode) {
+            throw new Error(
+                "connectChannel is not supported in oneOutputMode. Use the single worklet output instead."
+            );
+        }
         this.worklet.connect(
             targetNode,
             (channelNumber % 16) + CHANNEL_OUTPUTS_START
@@ -467,6 +517,11 @@ export abstract class BasicSynthesizer {
      * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
      */
     public disconnectChannel(targetNode: AudioNode, channelNumber: number) {
+        if (this.oneOutputMode) {
+            throw new Error(
+                "disconnectChannel is not supported in oneOutputMode. Use the single worklet output instead."
+            );
+        }
         this.worklet.disconnect(
             targetNode,
             (channelNumber % 16) + CHANNEL_OUTPUTS_START
@@ -479,6 +534,11 @@ export abstract class BasicSynthesizer {
      * @param audioNodes Exactly 16 outputs.
      */
     public connectIndividualOutputs(audioNodes: AudioNode[]) {
+        if (this.oneOutputMode) {
+            throw new Error(
+                "connectIndividualOutputs is not supported in oneOutputMode. Use the single worklet output instead."
+            );
+        }
         if (audioNodes.length !== this.dryChannelCount) {
             throw new Error(`input nodes amount differs from the system's outputs amount!
             Expected ${this.dryChannelCount} got ${audioNodes.length}`);
