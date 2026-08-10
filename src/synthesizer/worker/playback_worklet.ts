@@ -8,12 +8,10 @@ const BLOCK_SIZE = 128;
 const MAX_QUEUED = ${maxQueuedChunks};
 
 /**
- * An AudioWorkletProcessor that plays back 17 separate streams of stereo audio: effects and 16 dry channels.
+ * An AudioWorkletProcessor that plays back dynamic streams of stereo audio.
  */
 class PlaybackProcessor extends AudioWorkletProcessor
 {
-    
-    
     /** @type {Float32Array[]} */
     data = [];
     
@@ -22,7 +20,6 @@ class PlaybackProcessor extends AudioWorkletProcessor
     alive = true;
     
     /**
-     *
      * @type {MessagePort}
      */
     sentPort;
@@ -73,9 +70,12 @@ class PlaybackProcessor extends AudioWorkletProcessor
         {
             return this.alive;
         }
+
+        const stereoPairs = Math.floor(data.length / (BLOCK_SIZE * 2));
+        const channels = Math.min(outputs.length, stereoPairs);
+
         let offset = 0;
-        // decode the data nicely
-        for (let i = 0; i < 17; i++)
+        for (let i = 0; i < channels; i++)
         {
             outputs[i][0].set(data.subarray(offset, offset + BLOCK_SIZE));
             offset += BLOCK_SIZE;

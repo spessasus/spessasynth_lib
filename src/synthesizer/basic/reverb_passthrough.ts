@@ -8,7 +8,7 @@ const BLOCK_SIZE = 128;
 /**
  * Passthrough for capturing reverb (convolver mode)
  */
-export class ReverbPassthrough implements ReverbProcessor {
+export class ReverbCapture implements ReverbProcessor {
     public character = 0;
     public delayFeedback = 0;
     public level = 64;

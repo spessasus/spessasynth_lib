@@ -1,18 +1,22 @@
 // A worklet processor for the WorkletSynthesizer
 import { BasicMIDI, SoundBankLoader, SpessaLog } from "spessasynth_core";
-import type {
-    BasicSynthesizerMessage,
-    OfflineRenderWorkletData
-} from "../types.ts";
-import type { SequencerOptions } from "../../sequencer/types.ts";
-import { ConsoleColors } from "../../utils/other.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
+import type { SequencerOptions } from "../../sequencer/types.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { ConsoleColors } from "../../utils/other.ts";
 import {
     BasicSynthesizerCore,
     SEQUENCER_SYNC_INTERVAL
 } from "../basic/basic_synthesizer_core.ts";
+import {
+    CHANNEL_OUTPUTS_START,
+    TOTAL_OUTPUT_COUNT
+} from "../basic/synth_config.ts";
 import type { SynthCoreConfig } from "../basic/types.ts";
+import type {
+    BasicSynthesizerMessage,
+    OfflineRenderWorkletData
+} from "../types.ts";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     protected alive = true;
@@ -55,30 +59,46 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
 
         if (this.oneOutputMode) {
             const out = outputs[0];
-            // 1 output with 34 channels.
+            // 1 output with 36 channels.
             // Channels are ordered as follows:
             // EffectsL, EffectsR
+            // ConvolerL, ConvolverR
             // MidiChannel1L, midiChannel1R,
             // MidiChannel2L, midiChannel2R
             // And so on
             const channelMap: Float32Array[][] = [];
-            for (let i = 2; i < 34; i += 2) {
-                channelMap.push([out[i], out[i + 1]]);
+            for (
+                let i = CHANNEL_OUTPUTS_START * 2;
+                i < TOTAL_OUTPUT_COUNT * 2;
+                i++
+            ) {
+                channelMap.push([out[i], out[++i]]);
             }
-            this.synthesizer.setSystemParameter("effectsEnabled", false);
-            // Effects are disabled
             this.synthesizer.processSplit(channelMap, out[0], out[1]);
+
+            // Send reverb to pair 1
+            if (this.reverbCapture) {
+                out[2].set(this.reverbCapture.capturedData);
+                out[3].set(this.reverbCapture.capturedData);
+            }
         } else {
-            // 17 outputs, each a stereo one
+            // 18 outputs, each a stereo one
             // 0: Effects
+            // 1: Convolver
             // 2: channel 1
             // 3: channel 2
             // And so on
             this.synthesizer.processSplit(
-                outputs.slice(1),
+                outputs.slice(CHANNEL_OUTPUTS_START),
                 outputs[0][0],
                 outputs[0][1]
             );
+
+            // Send reverb
+            if (this.reverbCapture) {
+                outputs[1][0].set(this.reverbCapture.capturedData);
+                outputs[1][1].set(this.reverbCapture.capturedData);
+            }
         }
         const t = this.synthesizer.currentTime;
         if (

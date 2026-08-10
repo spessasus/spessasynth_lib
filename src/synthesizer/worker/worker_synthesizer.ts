@@ -1,11 +1,7 @@
-import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import type { SynthConfig } from "../basic/types.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import {
-    getPlaybackWorkletURL,
-    PLAYBACK_WORKLET_PROCESSOR_NAME
-} from "./playback_worklet.ts";
+import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
+import type { SynthConfig } from "../basic/types.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -16,6 +12,10 @@ import type {
     WorkerRMIDIWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types.ts";
+import {
+    getPlaybackWorkletURL,
+    PLAYBACK_WORKLET_PROCESSOR_NAME
+} from "./playback_worklet.ts";
 import {
     DEFAULT_WORKER_RENDER_AUDIO_OPTIONS,
     type WorkerRenderAudioOptions
@@ -80,52 +80,14 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
         // Ensure default values for options
-        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
-        if (synthConfig.oneOutputMode) {
-            throw new Error(
-                "One output mode is not supported in the WorkerSynthesizer."
-            );
-        }
-
-        let worklet: AudioWorkletNode;
-        // Create the audio worklet node
-        try {
-            const workletConstructor =
-                synthConfig?.audioNodeCreators?.worklet ??
-                ((context, name, options) => {
-                    return new AudioWorkletNode(context, name, options);
-                });
-            worklet = workletConstructor(
-                context,
-                PLAYBACK_WORKLET_PROCESSOR_NAME,
-                {
-                    outputChannelCount: new Array<number>(18).fill(2),
-                    numberOfOutputs: 18,
-                    processorOptions: {
-                        convolverMode: synthConfig.convolverMode,
-                        oneOutputMode: synthConfig.oneOutputMode,
-                        sampleRate: context.sampleRate,
-                        initialTime: context.currentTime,
-                        processorConfig: {
-                            eventsEnabled: synthConfig.eventsEnabled
-                        }
-                    }
-                }
-            );
-        } catch (error) {
-            console.error(error);
-            throw new Error(
-                "Could not create the AudioWorkletNode. Did you forget to registerPlaybackWorklet()?",
-                { cause: error }
-            );
-        }
         super(
-            worklet,
+            context,
+            PLAYBACK_WORKLET_PROCESSOR_NAME,
+            fillWithDefaults(config, DEFAULT_SYNTH_CONFIG),
             workerPostMessage as (
                 data: BasicSynthesizerMessage,
                 transfer?: Transferable[]
-            ) => unknown,
-            synthConfig
+            ) => unknown
         );
 
         // Create a message channel for communication between the worker and the worklet

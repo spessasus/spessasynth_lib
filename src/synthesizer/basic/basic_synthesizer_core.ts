@@ -6,14 +6,15 @@ import {
     SpessaSynthProcessor,
     SpessaSynthSequencer
 } from "spessasynth_core";
+import { songChangeType } from "../../sequencer/enums.ts";
+import { MIDIData } from "../../sequencer/midi_data.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
-import { MIDIData } from "../../sequencer/midi_data.ts";
-import { songChangeType } from "../../sequencer/enums.ts";
+import { ReverbCapture } from "./reverb_passthrough.ts";
 import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
 import type { SynthCoreConfig } from "./types.ts";
 
@@ -47,6 +48,8 @@ export abstract class BasicSynthesizerCore {
      * @protected
      */
     protected readonly convolverMode;
+
+    protected readonly reverbCapture: ReverbCapture | undefined;
     /**
      * Indicates if the processor is alive.
      * @protected
@@ -77,9 +80,15 @@ export abstract class BasicSynthesizerCore {
         synthCoreConfig: SynthCoreConfig,
         postMessage: PostMessageSynthCore
     ) {
+        this.reverbCapture = synthCoreConfig.convolverMode
+            ? new ReverbCapture()
+            : undefined;
         this.synthesizer = new SpessaSynthProcessor(
             synthCoreConfig.sampleRate,
-            synthCoreConfig
+            {
+                ...synthCoreConfig,
+                reverbProcessor: this.reverbCapture
+            }
         );
         this.eventsEnabled =
             synthCoreConfig.processorConfig.eventsEnabled ?? false;

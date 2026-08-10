@@ -13,6 +13,7 @@ import {
 import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
 import { writeRMIDIWorker } from "./write_rmi_worker.ts";
 import type { SynthCoreConfig } from "../basic/types.ts";
+import { TOTAL_OUTPUT_COUNT } from "../basic/synth_config.ts";
 
 const BLOCK_SIZE = 128;
 
@@ -181,18 +182,36 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         this.messageQueueActive = true;
 
         // Data is encoded into a single f32 array as follows
-        // WetL, WetR,
+        // EffectsL, EffectsR
+        // ConvolverL, ConvolverR
         // Dry1L, dry1R
         // DryNL, dryNR
         // Dry16L, dry16R
         // To improve performance
         const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
-        const data = new Float32Array(BLOCK_SIZE * 34);
+        const data = new Float32Array(BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT);
         let byteOffset = 0;
+        // Effects
         const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
         const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
+
+        // Convolver
+        const convolverR = new Float32Array(
+            data.buffer,
+            byteOffset,
+            BLOCK_SIZE
+        );
+        byteOffset += byteStep;
+        const convolverL = new Float32Array(
+            data.buffer,
+            byteOffset,
+            BLOCK_SIZE
+        );
+        byteOffset += byteStep;
+
+        // Channels
         const dry: AudioChunks = [];
         for (let i = 0; i < 16; i++) {
             const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
@@ -207,6 +226,11 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             seq.processTick();
         }
         this.synthesizer.processSplit(dry, wetL, wetR);
+        // Extract reverb capture data
+        if (this.reverbCapture) {
+            convolverL.set(this.reverbCapture.capturedData);
+            convolverR.set(this.reverbCapture.capturedData);
+        }
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
         const t = this.synthesizer.currentTime;

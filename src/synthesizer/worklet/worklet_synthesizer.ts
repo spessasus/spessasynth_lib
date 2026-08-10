@@ -1,9 +1,9 @@
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
-import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
-import type { AudioNodeCreators, SynthConfig } from "../basic/types.ts";
-import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import type { OfflineRenderWorkletData } from "../types.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
+import type { SynthConfig } from "../basic/types.ts";
+import type { OfflineRenderWorkletData } from "../types.ts";
+import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
 
 /**
  * This synthesizer uses an audio worklet node containing the processor.
@@ -19,51 +19,10 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
         // Ensure default values for options
-        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
-
-        let outputChannelCount = new Array<number>(17).fill(2);
-        let numberOfOutputs = 17;
-
-        if (synthConfig.oneOutputMode) {
-            // One output with 34 channels
-            outputChannelCount = [34];
-            numberOfOutputs = 1;
-        }
-
-        let worklet: AudioWorkletNode;
-        // Create the audio worklet node
-        try {
-            const workletConstructor: AudioNodeCreators["worklet"] =
-                synthConfig?.audioNodeCreators?.worklet ??
-                ((context, name, options) => {
-                    return new AudioWorkletNode(context, name, options);
-                });
-            worklet = workletConstructor(context, WORKLET_PROCESSOR_NAME, {
-                outputChannelCount,
-                numberOfOutputs,
-                processorOptions: {
-                    convolverMode: synthConfig.convolverMode,
-                    oneOutputMode: synthConfig.oneOutputMode,
-                    sampleRate: context.sampleRate,
-                    initialTime: context.currentTime,
-                    processorConfig: {
-                        eventsEnabled: synthConfig.eventsEnabled
-                    }
-                }
-            });
-        } catch (error) {
-            console.error(error);
-            throw new Error(
-                "Could not create the AudioWorkletNode. Did you forget to addModule()?",
-                { cause: error }
-            );
-        }
         super(
-            worklet,
-            (data, transfer = []) => {
-                worklet.port.postMessage(data, transfer);
-            },
-            synthConfig
+            context,
+            WORKLET_PROCESSOR_NAME,
+            fillWithDefaults(config, DEFAULT_SYNTH_CONFIG)
         );
     }
 
