@@ -19,6 +19,7 @@ import type {
     SequencerReturnMessage
 } from "../sequencer/types";
 import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
+import type { SynthCoreConfig } from "./basic/types.ts";
 
 export * from "./basic/types.ts";
 
@@ -158,10 +159,7 @@ export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> & {
 
 interface BasicSynthesizerMessageData {
     // WORKER SPECIFIC
-    workerInitialization: {
-        sampleRate: number;
-        currentTime: number;
-    };
+    workerInitialization: SynthCoreConfig;
     renderAudio: {
         sampleRate: number;
         options: WorkerRenderAudioOptions;

@@ -100,7 +100,12 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         workerPostMessage(
             {
                 initialTime: this.context.currentTime,
-                sampleRate: this.context.sampleRate
+                sampleRate: this.context.sampleRate,
+                convolverMode: config.convolverMode,
+                oneOutputMode: config.oneOutputMode,
+                processorConfig: {
+                    eventsEnabled: config.eventsEnabled
+                }
             },
             [workerPort]
         );

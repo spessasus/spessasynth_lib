@@ -72,7 +72,9 @@ export abstract class BasicSynthesizerCore {
      */
     protected messageQueueActive = false;
     /**
-     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
+     * Instead of 18 stereo outputs, there's one with 36 channels.
+     * The channels are ordered as follows: effects (2), convolver (2),
+     * then a stereo pair for each MIDI channel.
      */
     protected readonly oneOutputMode: boolean;
 

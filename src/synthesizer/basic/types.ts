@@ -2,7 +2,9 @@ import type { SynthProcessorOptions } from "spessasynth_core";
 
 export interface SynthConfig {
     /**
-     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
+     * If the synth should use one output with 36 channels.
+     * The channels are ordered as follows: effects (2), convolver (2),
+     * then a stereo pair for each MIDI channel.
      */
     oneOutputMode: boolean;
 
@@ -31,7 +33,9 @@ export interface SynthCoreConfig {
     convolverMode: boolean;
     processorConfig: Partial<SynthProcessorOptions>;
     /**
-     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
+     * If the synth should use one output with 36 channels.
+     * The channels are ordered as follows: effects (2), convolver (2),
+     * then a stereo pair for each MIDI channel.
      */
     oneOutputMode: boolean;
 }

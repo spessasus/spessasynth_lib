@@ -24,8 +24,9 @@ If the convolver mode should be enabled.
 In the convolver mode, the synthesizer captures its reverb output and feeds it into a Web Audio `ConvolverNode`.
 This lets you use a custom impulse response for the synth's reverb tail instead of the built-in reverb engine.
 
-- When enabled, the synthesizer exposes a single reverb stream that is processed by the `ConvolverNode`.
+- When enabled, the reverb is removed from the effects output and exposed as a separate stream that is processed by the `ConvolverNode`.
 - The impulse response is loaded internally from the library and can be replaced by assigning a new buffer to the synthesizer's `convolverNode`.
+- Works with both [synthesizers](index.md) and with [one output mode](#one-output-mode).
 
 ### eventsEnabled
 
@@ -563,33 +564,35 @@ Cranks the reverb up to the max and returns a string that says: `That's the spir
 
 ## One output mode
 
-This is a special synth mode, which causes the synth to have one output instead of 18, but 32 channels.
+This is a special synth mode which causes the synth to have a single output with 36 channels instead of 18 stereo outputs.
 
-In regular mode, the synthesizer's WorkletNode has 18 stereo outputs (16 channel outputs + dry signal for reverb and chorus effects).
+In regular mode, the synthesizer's WorkletNode has 18 stereo outputs: the effects output, the convolver output (when `convolverMode` is enabled) and 16 channel outputs.
 
-One output mode changes the synthesizer to have only a single output with 16 stereo pairs (no effects).
+One output mode changes the synthesizer to have only a single output with 36 channels. The channels are ordered as follows:
 
-Every midi channel has two audio channels. So it looks like this:
+- Effects left
+- Effects right
+- Convolver left (only populated when `convolverMode` is enabled)
+- Convolver right (only populated when `convolverMode` is enabled)
+- MIDI channel 0 left
+- MIDI channel 0 right
+- MIDI channel 1 left
+- MIDI channel 1 right
+- MIDI channel 2 left
+- MIDI channel 2 right
 
-- MIDI channel 0:
-    - audio output 0
-    - audio output 1
-- MIDI channel 1:
-    - audio output 2
-    - audio output 3
-- MIDI channel 2:
-    - audio output 4
-    - audio output 5
-
-etc.
+and so on up to MIDI channel 15.
 
 This allows for many things, such as exporting files of individual channels in a single OfflineAudioContext rendering pass.
 
-!!! Info
+When `convolverMode` is enabled, the convolver channel pair is automatically routed into the synthesizer's `convolverNode`, so no extra wiring is required.
 
-    Chorus and reverb are **disabled** when the one output mode is on.
+!!! Tip
+
+    The single multichannel output can be split with a `ChannelSplitterNode` to access the individual channels.
+    This is particularly useful for split channel rendering.
 
 !!! Warning
 
-    The AudioContext **must** be initialized with 32 channels when this mode is on!
+    The AudioContext **must** be initialized with 36 channels when this mode is on!
     Otherwise, there will be an error!

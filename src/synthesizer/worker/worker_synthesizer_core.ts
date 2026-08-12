@@ -192,19 +192,19 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         const data = new Float32Array(BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT);
         let byteOffset = 0;
         // Effects
-        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-        byteOffset += byteStep;
         const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        byteOffset += byteStep;
+        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
 
         // Convolver
-        const convolverR = new Float32Array(
+        const convolverL = new Float32Array(
             data.buffer,
             byteOffset,
             BLOCK_SIZE
         );
         byteOffset += byteStep;
-        const convolverL = new Float32Array(
+        const convolverR = new Float32Array(
             data.buffer,
             byteOffset,
             BLOCK_SIZE
