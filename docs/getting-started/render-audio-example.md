@@ -20,3 +20,8 @@ This example uses the [`WorkletSynthesizer`](../synthesizer/worklet-synthesizer.
 the MIDI and sound bank are passed directly to the render call, so no sequencer is needed.
 
 For more info about writing WAV files, see [writing wave files](../writing-files/writing-wav-files.md).
+
+!!! Tip
+
+    Want each channel as a separate file instead?
+    See [Rendering Separate Channels To File](render-split-example.md).

@@ -26,25 +26,48 @@ worker.addEventListener("message", (event) =>
     synth.handleWorkerMessage(event.data)
 );
 
-// Add a button for rendering the audio
-document.querySelector("#render").addEventListener("click", async () => {
-    // Render audio with a simple progress tracking function
-    const outputBuffer = await synth.renderAudio(44_100, {
-        progressCallback: (progress, stage) => {
-            const message = `Rendering ${Math.floor(progress * 100)}% Stage: ${stage}`;
-            document.querySelector("#message").textContent = message;
-            console.info(message);
-        }
-    });
-    document.querySelector("#message").textContent = "Complete!";
-    // Convert the buffer to a wave file and create URL for it
-    const wavFile = audioBufferToWav(outputBuffer[0]);
+// Create an audio element for a rendered buffer
+function addAudioElement(buffer, title) {
+    const wavFile = audioBufferToWav(buffer);
     const fileURL = URL.createObjectURL(wavFile);
-    // Create an audio element and add it
     const audio = document.createElement("audio");
     audio.controls = true;
     audio.src = fileURL;
-    document.querySelectorAll(".example_content")[0].append(audio);
+    const text = document.createElement("span");
+    text.textContent = title;
+    const parent = document.querySelectorAll(".example_content")[0];
+    parent.append(text);
+    parent.append(audio);
+}
+
+// Render with a simple progress tracking function
+function renderProgress(progress, stage) {
+    const message = `Rendering ${Math.floor(progress * 100)}% Stage: ${stage}`;
+    document.querySelector("#message").textContent = message;
+    console.info(message);
+}
+
+// Add a button for rendering the audio
+document.querySelector("#render").addEventListener("click", async () => {
+    const outputBuffer = await synth.renderAudio(44_100, {
+        progressCallback: renderProgress
+    });
+    document.querySelector("#message").textContent = "Complete!";
+    addAudioElement(outputBuffer, "Rendered audio: ");
+});
+
+// Add a button for rendering the audio with separate channels
+document.querySelector("#render_split").addEventListener("click", async () => {
+    const rendered = await synth.renderAudioSplit(44_100, {
+        progressCallback: renderProgress
+    });
+    document.querySelector("#message").textContent = "Complete!";
+    for (let index = 0; index < rendered.channels.length; index++) {
+        addAudioElement(rendered.channels[index], `Channel ${index + 1}`);
+    }
+    if (rendered.effects) {
+        addAudioElement(rendered.effects, "Effects");
+    }
 });
 
 // Add a button for saving the SF2 file

@@ -26,11 +26,11 @@ export class ReverbCapture implements ReverbProcessor {
         input: Float32Array,
         _outputLeft: Float32Array,
         _outputRight: Float32Array,
-        startIndex: number,
+        _startIndex: number,
         sampleCount: number
     ): void {
         for (let i = 0; i < sampleCount; i++) {
-            this.capturedData[i] = input[i + startIndex];
+            this.capturedData[i] = input[i];
         }
     }
 }

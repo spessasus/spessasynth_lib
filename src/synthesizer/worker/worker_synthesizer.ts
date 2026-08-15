@@ -59,6 +59,48 @@ type WorkerSynthWriteOptions<K> = K & {
     ) => unknown;
 };
 
+interface RenderAudioResult {
+    effects?: AudioBuffer;
+    channels: AudioBuffer[];
+}
+
+interface RenderAudioInternalResult {
+    dry: AudioBuffer[];
+    effects?: AudioBuffer;
+}
+
+type RenderAudioOptions = Omit<
+    Partial<WorkerRenderAudioOptions>,
+    "separateChannels"
+>;
+
+type StereoAudioChunk = [Float32Array, Float32Array];
+
+function makeAudioBuffer(
+    pair: StereoAudioChunk,
+    sampleRate: number
+): AudioBuffer {
+    const buffer = new AudioBuffer({
+        sampleRate,
+        numberOfChannels: 2,
+        length: pair[0].length
+    });
+    buffer.copyToChannel(pair[0] as Float32Array<ArrayBuffer>, 0);
+    buffer.copyToChannel(pair[1] as Float32Array<ArrayBuffer>, 1);
+    return buffer;
+}
+
+function mergeStereoAudioBuffer(into: AudioBuffer, from: AudioBuffer): void {
+    const channelCount = Math.min(into.numberOfChannels, from.numberOfChannels);
+    for (let ch = 0; ch < channelCount; ch++) {
+        const data = into.getChannelData(ch);
+        const src = from.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) {
+            data[i] += src[i];
+        }
+    }
+}
+
 /**
  * This synthesizer uses a Worker containing the processor and an audio worklet node for playback.
  */
@@ -247,106 +289,79 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Renders the current song in the connected sequencer to Float32 buffers.
+     * Renders the current song to a single stereo AudioBuffer.
      * @param sampleRate The sample rate to use, in Hertz.
      * @param renderOptions Extra options for the render.
-     * @returns A single audioBuffer if separate channels were not enabled, otherwise 16.
+     * @returns The dry output merged with the effects and convolver output.
      * @remarks
-     * This stops the synthesizer.
+     * This stops the synthesizer while rendering.
      */
     public async renderAudio(
         sampleRate: number,
-        renderOptions: Partial<WorkerRenderAudioOptions> = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
-    ): Promise<AudioBuffer[]> {
-        const options = fillWithDefaults(
-            renderOptions,
-            DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
-        );
-        if (options.enableEffects && options.separateChannels) {
-            throw new Error("Effects cannot be applied to separate channels.");
+        renderOptions: RenderAudioOptions = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+    ): Promise<AudioBuffer> {
+        const options: WorkerRenderAudioOptions = {
+            ...fillWithDefaults(
+                renderOptions,
+                DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+            ),
+            separateChannels: false
+        };
+        const rendered = await this.renderAudioInternal(sampleRate, options);
+        const output = rendered.dry[0];
+        if (rendered.effects) {
+            mergeStereoAudioBuffer(output, rendered.effects);
         }
+        return output;
+    }
+
+    /**
+     * Renders the current song to separate channel buffers plus the effects.
+     * @param sampleRate The sample rate to use, in Hertz.
+     * @param renderOptions Extra options for the render.
+     * @returns The dry channels and the effects if they are enabled.
+     * @remarks
+     * This stops the synthesizer while rendering.
+     */
+    public async renderAudioSplit(
+        sampleRate: number,
+        renderOptions: RenderAudioOptions = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+    ): Promise<RenderAudioResult> {
+        const options: WorkerRenderAudioOptions = {
+            ...fillWithDefaults(
+                renderOptions,
+                DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+            ),
+            separateChannels: true
+        };
+        const rendered = await this.renderAudioInternal(sampleRate, options);
+        return { effects: rendered.effects, channels: rendered.dry };
+    }
+
+    private async renderAudioInternal(
+        sampleRate: number,
+        options: WorkerRenderAudioOptions
+    ): Promise<RenderAudioInternalResult> {
         return new Promise((resolve) => {
             // First pass: Worker renders the dry audio
             this.awaitWorkerResponse("renderAudio", async (data) => {
                 this.revokeProgressTracker("renderAudio");
-                const bufferLength = data.dry[0][0].length;
                 const convolverData = data.convolver;
-                // Convert to audio buffers
-                const dryChannels = data.dry.map((dryPair) => {
-                    const buffer = new AudioBuffer({
-                        sampleRate,
-                        numberOfChannels: 2,
-                        length: bufferLength
-                    });
-                    buffer.copyToChannel(
-                        dryPair[0] as Float32Array<ArrayBuffer>,
-                        0
-                    );
-                    buffer.copyToChannel(
-                        dryPair[1] as Float32Array<ArrayBuffer>,
-                        1
-                    );
-                    return buffer;
-                });
+                const dry = data.dry.map((dryPair) =>
+                    makeAudioBuffer(dryPair, sampleRate)
+                );
+                let effects: AudioBuffer | undefined;
                 if (options.enableEffects) {
-                    // Append effects
-                    const buffer = new AudioBuffer({
-                        sampleRate,
-                        numberOfChannels: 2,
-                        length: bufferLength
-                    });
-                    buffer.copyToChannel(
-                        data.effects[0] as Float32Array<ArrayBuffer>,
-                        0
-                    );
-                    buffer.copyToChannel(
-                        data.effects[1] as Float32Array<ArrayBuffer>,
-                        1
-                    );
-                    dryChannels.push(buffer);
-
-                    // Render convolver reverb
+                    effects = makeAudioBuffer(data.effects, sampleRate);
                     if (convolverData && this.convolverNode?.buffer) {
-                        const convolverSource = new AudioBuffer({
-                            sampleRate,
-                            numberOfChannels: 2,
-                            length: bufferLength
-                        });
-                        convolverSource.copyToChannel(
-                            convolverData[0] as Float32Array<ArrayBuffer>,
-                            0
-                        );
-                        convolverSource.copyToChannel(
-                            convolverData[1] as Float32Array<ArrayBuffer>,
-                            1
-                        );
-
-                        const offline = new OfflineAudioContext({
-                            numberOfChannels: 2,
-                            length: bufferLength,
+                        const convolver = await this.renderConvolverBuffer(
+                            convolverData,
                             sampleRate
-                        });
-                        const source = offline.createBufferSource();
-                        source.buffer = convolverSource;
-                        const convolver = offline.createConvolver();
-                        // Different sample rates crash the thread
-                        let impulseResponse = this.convolverNode.buffer;
-                        if (impulseResponse.sampleRate !== sampleRate) {
-                            impulseResponse = await resampleAudioBuffer(
-                                impulseResponse,
-                                sampleRate
-                            );
-                        }
-                        convolver.buffer = impulseResponse;
-                        source.connect(convolver);
-                        convolver.connect(offline.destination);
-                        source.start(0);
-                        const renderedConvolver =
-                            await offline.startRendering();
-                        dryChannels.push(renderedConvolver);
+                        );
+                        mergeStereoAudioBuffer(effects, convolver);
                     }
                 }
-                resolve(dryChannels);
+                resolve({ dry, effects });
                 return;
             });
             // Assign progress tracker and render
@@ -368,5 +383,39 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 channelNumber: -1
             });
         });
+    }
+
+    /**
+     * Render the convolver buffer with the current impulse response we have
+     * @param convolverData
+     * @param sampleRate
+     * @private
+     */
+    private async renderConvolverBuffer(
+        convolverData: StereoAudioChunk,
+        sampleRate: number
+    ) {
+        const convolverSource = makeAudioBuffer(convolverData, sampleRate);
+        const offline = new OfflineAudioContext({
+            numberOfChannels: 2,
+            length: convolverData[0].length,
+            sampleRate
+        });
+        const source = offline.createBufferSource();
+        source.buffer = convolverSource;
+        const convolver = offline.createConvolver();
+        // Different sample rates crash the thread
+        let impulseResponse = this.convolverNode!.buffer!;
+        if (impulseResponse.sampleRate !== sampleRate) {
+            impulseResponse = await resampleAudioBuffer(
+                impulseResponse,
+                sampleRate
+            );
+        }
+        convolver.buffer = impulseResponse;
+        source.connect(convolver);
+        convolver.connect(offline.destination);
+        source.start(0);
+        return offline.startRendering();
     }
 }

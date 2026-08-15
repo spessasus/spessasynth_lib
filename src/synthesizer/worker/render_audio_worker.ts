@@ -55,9 +55,18 @@ const BLOCK_SIZE = 128;
 
 type StereoAudioChunk = [Float32Array, Float32Array];
 
-interface RenderAudioWorkerChunks {
+export interface RenderedAudioWorkerChunks {
+    /**
+     * The wet effects output from spessasynth_core
+     */
     effects: StereoAudioChunk;
+    /**
+     * The dry channel output from spessasynth_core
+     */
     dry: StereoAudioChunk[];
+    /**
+     * The convolver dry output for rendering in the main thread (optional)
+     */
     convolver?: StereoAudioChunk;
 }
 
@@ -65,7 +74,10 @@ export function renderAudioWorker(
     this: WorkerSynthesizerCore,
     sampleRate: number,
     options: WorkerRenderAudioOptions
-): RenderAudioWorkerChunks {
+): RenderedAudioWorkerChunks {
+    // Stop the audio loop while rendering
+    this.stopAudioLoop();
+
     // Initialize synthesizer
     const reverbCapture = this.convolverMode ? new ReverbCapture() : undefined;
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
@@ -81,7 +93,6 @@ export function renderAudioWorker(
         );
     rendererSynth.soundBankManager.priorityOrder =
         this.synthesizer.soundBankManager.priorityOrder;
-    this.stopAudioLoop();
 
     const seq = this.sequencers[options.sequencerID];
     const parsedMid = seq.midiData;
@@ -125,7 +136,7 @@ export function renderAudioWorker(
     const wetR = new Float32Array(sampleDuration);
     const effects: StereoAudioChunk = [wetL, wetR];
     // Final output
-    const returnedChunks: RenderAudioWorkerChunks = {
+    const returnedChunks: RenderedAudioWorkerChunks = {
         effects,
         dry: []
     };
@@ -137,85 +148,47 @@ export function renderAudioWorker(
         ];
         returnedChunks.convolver = convolver;
     }
-    const sampleDurationNoLastQuantum = sampleDuration - BLOCK_SIZE;
-    if (options.separateChannels) {
-        const dry: StereoAudioChunk[] = [];
-        for (let i = 0; i < 16; i++) {
-            const d: StereoAudioChunk = [
-                new Float32Array(sampleDuration),
-                new Float32Array(sampleDuration)
-            ];
-            dry.push(d);
-            returnedChunks.dry.push(d);
-        }
-        // The current index
-        let index = 0;
-        while (true) {
-            for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
-                if (index >= sampleDurationNoLastQuantum) {
-                    rendererSeq.processTick();
-                    const remaining = sampleDuration - index;
-                    rendererSynth.processSplit(
-                        dry,
-                        wetL,
-                        wetR,
-                        index,
-                        remaining
-                    );
-                    if (convolver) {
-                        const tail = reverbCapture!.capturedData.subarray(
-                            0,
-                            remaining
-                        );
-                        convolver[0].set(tail, index);
-                        convolver[1].set(tail, index);
-                    }
-                    this.startAudioLoop();
-                    return returnedChunks;
-                }
-                rendererSeq.processTick();
-                rendererSynth.processSplit(dry, wetL, wetR, index, BLOCK_SIZE);
-                if (convolver) {
-                    convolver[0].set(reverbCapture!.capturedData, index);
-                    convolver[1].set(reverbCapture!.capturedData, index);
-                }
-                index += BLOCK_SIZE;
-            }
-            this.postProgress("renderAudio", index / sampleDuration);
-        }
-    } else {
-        const dryL = new Float32Array(sampleDuration);
-        const dryR = new Float32Array(sampleDuration);
-        const dry: StereoAudioChunk = [dryL, dryR];
-        returnedChunks.dry.push(dry);
-        let index = 0;
-        while (true) {
-            for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
-                if (index >= sampleDurationNoLastQuantum) {
-                    rendererSeq.processTick();
-                    const remaining = sampleDuration - index;
-                    rendererSynth.process(dryL, dryR, index, remaining);
-                    if (convolver) {
-                        const tail = reverbCapture!.capturedData.subarray(
-                            0,
-                            remaining
-                        );
-                        convolver[0].set(tail, index);
-                        convolver[1].set(tail, index);
-                    }
-                    this.startAudioLoop();
-                    return returnedChunks;
-                }
-                rendererSeq.processTick();
+    // Dry output pairs: one per MIDI channel if separated, otherwise a single mix
+    const outputCount = options.separateChannels ? 16 : 1;
+    for (let i = 0; i < outputCount; i++) {
+        const d: StereoAudioChunk = [
+            new Float32Array(sampleDuration),
+            new Float32Array(sampleDuration)
+        ];
+        returnedChunks.dry.push(d);
+    }
 
-                rendererSynth.process(dryL, dryR, index, BLOCK_SIZE);
-                if (convolver) {
-                    convolver[0].set(reverbCapture!.capturedData, index);
-                    convolver[1].set(reverbCapture!.capturedData, index);
-                }
-                index += BLOCK_SIZE;
+    // Render the audio here
+    let index = 0;
+    while (true) {
+        for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
+            rendererSeq.processTick();
+            // 128 samples for the middle blocks, the remainder for the last one
+            const sampleCount =
+                Math.min(index + BLOCK_SIZE, sampleDuration) - index;
+            rendererSynth.processSplit(
+                // Automatically wraps the channels for us!
+                returnedChunks.dry,
+                wetL,
+                wetR,
+                index,
+                sampleCount
+            );
+            if (convolver) {
+                const tail = reverbCapture!.capturedData.subarray(
+                    0,
+                    sampleCount
+                );
+                convolver[0].set(tail, index);
+                convolver[1].set(tail, index);
             }
-            this.postProgress("renderAudio", index / sampleDuration);
+            index += sampleCount;
+            if (index >= sampleDuration) {
+                // Restart the audio loop and return
+                this.startAudioLoop();
+                return returnedChunks;
+            }
         }
+        this.postProgress("renderAudio", index / sampleDuration);
     }
 }

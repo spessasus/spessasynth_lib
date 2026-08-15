@@ -1,10 +1,7 @@
 import type { SynthesizerSnapshot } from "spessasynth_core";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import {
-    DEFAULT_SYNTH_CONFIG,
-    TOTAL_OUTPUT_COUNT
-} from "../basic/synth_config.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import type { SynthConfig } from "../basic/types.ts";
 import type {
     LibSynthesizerSnapshot,
@@ -74,36 +71,27 @@ export class WorkletSynthesizer extends BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Returns a `ChannelMergerNode` with all outputs merged int o a single one, with multiple channels, layered as follows:
+     * Returns a `ChannelMergerNode` with all 16 channel outputs merged into a single one, with multiple channels, layered as follows:
      *
-     * - EffectsL, EffectsR
-     * - Channel1L, Channel2R
+     * - Channel1L, Channel1R
      * - ...
      * - Channel16L, Channel16R
      *
-     * This is intended for offline audio rendering via OfflineAudioContext to allow extraction of separate channels
-     * and is the replacement for one output mode.
+     * This is intended for offline audio rendering via OfflineAudioContext to allow extraction of separate channels.
+     * Note that the effects output is not included, as Web Audio caps the number of channels at 32.
      */
     public getMergedOutput(): ChannelMergerNode {
-        const merger = this.context.createChannelMerger(TOTAL_OUTPUT_COUNT * 2);
-        // Connect effects, both convolver and dry
-        const effectsSplitter = this.context.createChannelSplitter(2);
-
-        // Forced connection at the first output for shared effects
-        this.worklet.connect(effectsSplitter, 0);
-        this.convolverNode?.connect(effectsSplitter);
-
-        effectsSplitter.connect(merger, 0, 0);
-        effectsSplitter.connect(merger, 1, 1);
+        // 16 stereo pairs to stay within the 32 channel cap
+        const merger = this.context.createChannelMerger(16 * 2);
 
         // Connect channels
         for (let i = 0; i < 16; i++) {
             const splitter = this.context.createChannelSplitter(2);
-            // +1 because convolver + worklet are packed into one pair
-            const output = i + 1;
+            // +2 because outputs 0 and 1 are the effects and convolver
+            const output = i + 2;
             this.worklet.connect(splitter, output);
-            splitter.connect(merger, 0, output * 2);
-            splitter.connect(merger, 1, output * 2 + 1);
+            splitter.connect(merger, 0, i * 2);
+            splitter.connect(merger, 1, i * 2 + 1);
         }
 
         return merger;

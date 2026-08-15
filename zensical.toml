@@ -61,6 +61,7 @@ nav = [
             "getting-started/piano-example.md",
             "getting-started/visualizer-example.md",
             "getting-started/render-audio-example.md",
+            "getting-started/render-split-example.md",
             "getting-started/main-thread-rendering.md"
         ] },
         { "Synthesizer" = [
