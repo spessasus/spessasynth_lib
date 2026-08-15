@@ -16,14 +16,11 @@ const context = new AudioContext({
 
 // Wait for the user to upload the sound bank
 document
-    .querySelector("#sound_bank_input")
+    .querySelector("#sound_bank_input")!
     .addEventListener("change", async (event) => {
-        /**
-         * If no file is selected, exit early
-         * @type {FileList}
-         */
-        const files = event.target?.files;
-        if (!files[0]) {
+        // If no file is selected, exit early
+        const files = (event.target as HTMLInputElement)?.files;
+        if (!files?.[0]) {
             return;
         }
 
@@ -87,18 +84,15 @@ document
             });
             source.connect(context.destination);
 
-            // Schedule the buffer to play at the synth’s current time
+            // Schedule the buffer to play at the synth's current time
             source.start(synTime);
         });
 
         // List all the voices currently playing
-        const list = document.querySelector("#voice_list");
-        /**
-         * @type {HTMLPreElement[]}
-         * create and store a <pre> element for each of the 16 MIDI channels
-         * each one will be used to display information about active voices on a given channel
-         */
-        const voiceListElements = [];
+        const list = document.querySelector("#voice_list")!;
+        // Create and store a <pre> element for each of the 16 MIDI channels
+        // Each one will be used to display information about active voices on a given channel
+        const voiceListElements: HTMLPreElement[] = [];
         for (let index = 0; index < 16; index++) {
             const element = document.createElement("pre");
             voiceListElements.push(element);
@@ -108,7 +102,17 @@ document
         setInterval(() => {
             // Note: this code is working directly with the synth engine.
             // Advanced users only.
-            const core = synth.midiChannels[0].synthCore;
+            const core = (
+                synth.midiChannels[0] as unknown as {
+                    synthCore: {
+                        voices: {
+                            isActive: boolean;
+                            channel: number;
+                            midiNote: number;
+                        }[];
+                    };
+                }
+            ).synthCore;
 
             // Start building the display string with the channel number
             const textData = voiceListElements.map(
@@ -133,14 +137,15 @@ document
 
         // Set up the MIDI player
         document
-            .querySelector("#midi_input")
+            .querySelector("#midi_input")!
             .addEventListener("change", async (event) => {
                 // Verify if the file is really there
-                if (!event.target?.files[0]) {
+                const input = event.target as HTMLInputElement;
+                const file = input.files?.[0];
+                if (!file) {
                     return;
                 }
                 // Parse and play the file
-                const file = event.target.files[0];
                 const midi = BasicMIDI.fromArrayBuffer(
                     await file.arrayBuffer()
                 );

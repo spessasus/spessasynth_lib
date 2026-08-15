@@ -1,15 +1,16 @@
 // Import the modules
-import { WorkletSynthesizer } from "../../src/index.js";
-import { EXAMPLE_WORKLET_PATH } from "../examples_common.js";
+import { WorkletSynthesizer } from "../../src";
+import { EXAMPLE_WORKLET_PATH } from "../examples_common.ts";
 
 document
-    .querySelector("#sound_bank_input")
+    .querySelector("#sound_bank_input")!
     .addEventListener("change", async (event) => {
+        const input = event.target as HTMLInputElement;
         // Check if there's a file uploaded
-        if (!event.target.files[0]) {
+        const file = input.files?.[0];
+        if (!file) {
             return;
         }
-        const file = event.target.files[0];
         const sfFile = await file.arrayBuffer(); // Convert to array buffer
         // Create the context and add audio worklet
         const context = new AudioContext();
@@ -20,11 +21,8 @@ document
         await synth.isReady;
         await synth.soundBankManager.addSoundBank(sfFile, "main");
         // Create a 36-key piano
-        const piano = document.querySelector("#piano");
+        const piano = document.querySelector("#piano")!;
         for (let index = 0; index < 36; index++) {
-            /**
-             * @type {HTMLElement}
-             */
             const key = document.createElement("td");
             key.style.background = "white";
             key.style.height = "10em";
@@ -42,6 +40,8 @@ document
                 synth.noteOff(0, 46 + index);
                 key.style.background = "white";
             });
-            key.addEventListener("pointerleave", key.onpointerup);
+            key.addEventListener("pointerleave", (event) => {
+                key.onpointerup?.(event);
+            });
         }
     });

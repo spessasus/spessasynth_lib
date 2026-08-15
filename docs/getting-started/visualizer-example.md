@@ -30,8 +30,8 @@ synth.eventHandler.addEvent("noteOn", (event) => {
 [The event system](../synthesizer/synth-event-handler.md) allows us to hook up events
 (in this case, note on and off to visualize key presses)
 
-```js title='visualizer.js'
---8<-- "visualizer.js"
+```ts title='visualizer.ts'
+--8<-- "visualizer.ts"
 ```
 
 Quite cool, isn't it?

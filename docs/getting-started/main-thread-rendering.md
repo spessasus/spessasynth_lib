@@ -41,8 +41,8 @@ which is something that cannot be achieved with just the `WorkletSynthesizer` cl
 
 Nothing special here.
 
-```js title='main_thread_rendering.js'
---8<-- "main_thread_rendering.js"
+```ts title='main_thread_rendering.ts'
+--8<-- "main_thread_rendering.ts"
 ```
 
 The audio loop presented in this script is very similar to the one shown above:

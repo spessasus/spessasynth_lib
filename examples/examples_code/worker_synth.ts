@@ -1,16 +1,17 @@
 // Import the modules
 import {
     audioBufferToWav,
+    type BasicSynthesizerReturnMessage,
     Sequencer,
     WorkerSynthesizer
-} from "../../src/index.ts";
-import { EXAMPLE_SOUND_BANK_PATH } from "../examples_common.js";
+} from "../../src";
+import { EXAMPLE_SOUND_BANK_PATH } from "../examples_common.ts";
 
 // Load the sound bank
 const response = await fetch(EXAMPLE_SOUND_BANK_PATH);
 // Load the sound bank into an array buffer
 const sfBuffer = await response.arrayBuffer();
-document.querySelector("#message").textContent = "Sound bank has been loaded!";
+document.querySelector("#message")!.textContent = "Sound bank has been loaded!";
 
 // Create the context and add audio worklet
 const context = new AudioContext();
@@ -20,12 +21,14 @@ await WorkerSynthesizer.registerPlaybackWorklet(context);
 const worker = new Worker(new URL("worker_synth_worker.js", import.meta.url));
 // Create the synthesizer and bind it to the worker
 const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker));
-worker.addEventListener("message", (event) =>
-    synth.handleWorkerMessage(event.data)
+worker.addEventListener(
+    "message",
+    (event: MessageEvent<BasicSynthesizerReturnMessage[]>) =>
+        synth.handleWorkerMessage(event.data)
 );
 
 // Create an audio element for a rendered buffer
-function addAudioElement(buffer, title) {
+function addAudioElement(buffer: AudioBuffer, title: string) {
     const wavFile = audioBufferToWav(buffer);
     const fileURL = URL.createObjectURL(wavFile);
     const audio = document.createElement("audio");
@@ -39,27 +42,27 @@ function addAudioElement(buffer, title) {
 }
 
 // Render with a simple progress tracking function
-function renderProgress(progress, stage) {
+function renderProgress(progress: number, stage: number) {
     const message = `Rendering ${Math.floor(progress * 100)}% Stage: ${stage}`;
-    document.querySelector("#message").textContent = message;
+    document.querySelector("#message")!.textContent = message;
     console.info(message);
 }
 
 // Add a button for rendering the audio
-document.querySelector("#render").addEventListener("click", async () => {
+document.querySelector("#render")!.addEventListener("click", async () => {
     const outputBuffer = await synth.renderAudio(44_100, {
         progressCallback: renderProgress
     });
-    document.querySelector("#message").textContent = "Complete!";
+    document.querySelector("#message")!.textContent = "Complete!";
     addAudioElement(outputBuffer, "Rendered audio: ");
 });
 
 // Add a button for rendering the audio with separate channels
-document.querySelector("#render_split").addEventListener("click", async () => {
+document.querySelector("#render_split")!.addEventListener("click", async () => {
     const rendered = await synth.renderAudioSplit(44_100, {
         progressCallback: renderProgress
     });
-    document.querySelector("#message").textContent = "Complete!";
+    document.querySelector("#message")!.textContent = "Complete!";
     for (let index = 0; index < rendered.channels.length; index++) {
         addAudioElement(rendered.channels[index], `Channel ${index + 1}`);
     }
@@ -69,16 +72,16 @@ document.querySelector("#render_split").addEventListener("click", async () => {
 });
 
 // Add a button for saving the SF2 file
-document.querySelector("#save_sf2").addEventListener("click", async () => {
+document.querySelector("#save_sf2")!.addEventListener("click", async () => {
     const outputBuffer = await synth.writeSF2({
         trim: true,
         bankID: "main",
         progressFunction: (progress) => {
-            document.querySelector("#message").textContent =
+            document.querySelector("#message")!.textContent =
                 `Saving SF2... (${progress * 100}%)`;
         }
     });
-    document.querySelector("#message").textContent = "Complete!";
+    document.querySelector("#message")!.textContent = "Complete!";
     const blob = new Blob([outputBuffer.binary]);
     const fileURL = URL.createObjectURL(blob);
 
@@ -92,16 +95,16 @@ document.querySelector("#save_sf2").addEventListener("click", async () => {
 });
 
 // Add a button for saving the DLS file
-document.querySelector("#save_dls").addEventListener("click", async () => {
+document.querySelector("#save_dls")!.addEventListener("click", async () => {
     const outputBuffer = await synth.writeDLS({
         trim: true,
         bankID: "main",
         progressFunction: (progress) => {
-            document.querySelector("#message").textContent =
+            document.querySelector("#message")!.textContent =
                 `Saving DLS... (${progress * 100}%)`;
         }
     });
-    document.querySelector("#message").textContent = "Complete!";
+    document.querySelector("#message")!.textContent = "Complete!";
     const blob = new Blob([outputBuffer.binary]);
     const fileURL = URL.createObjectURL(blob);
 
@@ -115,23 +118,23 @@ document.querySelector("#save_dls").addEventListener("click", async () => {
 });
 
 // Add a button for saving the RMIDI file
-document.querySelector("#save_rmi").addEventListener("click", async () => {
+document.querySelector("#save_rmi")!.addEventListener("click", async () => {
     const outputBuffer = await synth.writeRMIDI({
         trim: true,
         bankID: "main",
         progressFunction: (progress) => {
-            document.querySelector("#message").textContent =
+            document.querySelector("#message")!.textContent =
                 `Saving RMIDI... (${progress * 100}%)`;
         }
     });
-    document.querySelector("#message").textContent = "Complete!";
+    document.querySelector("#message")!.textContent = "Complete!";
     const blob = new Blob([outputBuffer]);
     const fileURL = URL.createObjectURL(blob);
 
     // Add an anchor for downloading the file
     const a = document.createElement("a");
     a.href = fileURL;
-    a.download = `${seq.midiData.getName()}.rmi`;
+    a.download = `${seq.midiData!.getName()}.rmi`;
     a.textContent = "Download RMIDI";
     document.querySelectorAll(".example_content")[0].append(a);
     a.click();
@@ -143,21 +146,21 @@ await synth.isReady;
 await synth.soundBankManager.addSoundBank(sfBuffer, "main");
 const seq = new Sequencer(synth);
 
-// Add an event listener for the file inout
+// Add an event listener for the file input
 document
-    .querySelector("#midi_input")
+    .querySelector("#midi_input")!
     .addEventListener("change", async (event) => {
         // Check if any files are added
-
-        const target = /**  @type {HTMLInputElement}*/ event.target;
-        if (target.files.length === 0) {
+        const target = event.target as HTMLInputElement;
+        const files = target.files;
+        if (files === null || files.length === 0) {
             return;
         }
         // Resume the context if paused
         await context.resume();
         // Parse all the files
-        const parsedSongs = [];
-        for (const file of target.files) {
+        const parsedSongs: { binary: ArrayBuffer; fileName: string }[] = [];
+        for (const file of files) {
             const buffer = await file.arrayBuffer();
             parsedSongs.push({
                 binary: buffer, // Binary: the binary data of the file
@@ -168,10 +171,10 @@ document
         seq.play(); // Play the midi
 
         // Make the slider move with the song
-        const slider = document.querySelector("#progress");
+        const slider = document.querySelector<HTMLInputElement>("#progress")!;
         setInterval(() => {
             // Slider ranges from 0 to 1000
-            slider.value = (seq.currentTime / seq.duration) * 1000;
+            slider.value = String((seq.currentTime / seq.duration) * 1000);
         }, 100);
 
         // On song change, show the name
@@ -179,7 +182,7 @@ document
             "songChange",
             "example-time-change",
             (event) => {
-                document.querySelector("#message").textContent =
+                document.querySelector("#message")!.textContent =
                     "Now playing: " + event.getName();
             }
         ); // Make sure to add a unique id!
@@ -187,25 +190,25 @@ document
         // Add time adjustment
         slider.addEventListener("change", () => {
             // Calculate the time
-            seq.currentTime = (slider.value / 1000) * seq.duration; // Switch the time (the sequencer adjusts automatically)
+            seq.currentTime = (Number(slider.value) / 1000) * seq.duration; // Switch the time (the sequencer adjusts automatically)
         });
 
         // Add button controls
-        document.querySelector("#previous").addEventListener("click", () => {
+        document.querySelector("#previous")!.addEventListener("click", () => {
             seq.songIndex--; // Go back by one song
         });
 
         // On pause click
-        document.querySelector("#pause").addEventListener("click", () => {
+        document.querySelector("#pause")!.addEventListener("click", () => {
             if (seq.paused) {
-                document.querySelector("#pause").textContent = "Pause";
+                document.querySelector("#pause")!.textContent = "Pause";
                 seq.play(); // Resume
             } else {
-                document.querySelector("#pause").textContent = "Resume";
+                document.querySelector("#pause")!.textContent = "Resume";
                 seq.pause(); // Pause
             }
         });
-        document.querySelector("#next").addEventListener("click", () => {
+        document.querySelector("#next")!.addEventListener("click", () => {
             seq.songIndex++; // Go to the next song
         });
     });

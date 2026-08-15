@@ -19,6 +19,6 @@ Now we need to add functionality to those buttons:
 - Next song button
 - Song progress slider
 
-```js title='advanced_demo.js'
---8<-- "advanced_demo.js"
+```ts title='advanced_demo.ts'
+--8<-- "advanced_demo.ts"
 ```

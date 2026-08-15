@@ -8,6 +8,10 @@ export { Sequencer } from "./sequencer/sequencer.js";
 export { type BasicSynthesizer } from "./synthesizer/basic/basic_synthesizer.ts";
 export { DEFAULT_SYNTH_CONFIG } from "./synthesizer/basic/synth_config.ts";
 export type { LibSynthesizerSnapshot } from "./synthesizer/types.ts";
+export type {
+    BasicSynthesizerMessage,
+    BasicSynthesizerReturnMessage
+} from "./synthesizer/types.ts";
 export { WorkerSynthesizer } from "./synthesizer/worker/worker_synthesizer.ts";
 export { WorkerSynthesizerCore } from "./synthesizer/worker/worker_synthesizer_core.ts";
 export { WorkletSynthesizer } from "./synthesizer/worklet/worklet_synthesizer.js";

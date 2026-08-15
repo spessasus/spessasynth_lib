@@ -1,9 +1,9 @@
 // Import the modules
-import { Sequencer, WorkletSynthesizer } from "../../src/index.js";
+import { Sequencer, WorkletSynthesizer } from "../../src";
 import {
     EXAMPLE_SOUND_BANK_PATH,
     EXAMPLE_WORKLET_PATH
-} from "../examples_common.js";
+} from "../examples_common.ts";
 
 // Add different colors to channels!
 const channelColors = [
@@ -29,9 +29,9 @@ const channelColors = [
 const VISUALIZER_GAIN = 2;
 
 // Create a keyboard
-const keyboard = document.querySelector("#keyboard");
+const keyboard = document.querySelector("#keyboard")!;
 // Create an array of 128 keys
-const keys = [];
+const keys: HTMLTableCellElement[] = [];
 for (let index = 0; index < 128; index++) {
     const key = document.createElement("td");
     key.style.width = "5px";
@@ -45,7 +45,7 @@ for (let index = 0; index < 128; index++) {
 const response = await fetch(EXAMPLE_SOUND_BANK_PATH);
 // Load the sound bank into an array buffer
 const sfFile = await response.arrayBuffer();
-document.querySelector("#message").textContent = "Sound bank has been loaded!";
+document.querySelector("#message")!.textContent = "Sound bank has been loaded!";
 
 // Create the context and add audio worklet
 const context = new AudioContext();
@@ -56,15 +56,14 @@ synth.connect(context.destination);
 await synth.soundBankManager.addSoundBank(sfFile, "main");
 const seq = new Sequencer(synth);
 
-// Add an event listener for the file inout
+// Add an event listener for the file input
 document
-    .querySelector("#midi_input")
+    .querySelector("#midi_input")!
     .addEventListener("change", async (event) => {
         // Check if any files are added
-        /**
-         * @type {File}
-         */
-        const file = event.target.files[0];
+        const input = event.target as HTMLInputElement;
+        // Check if any files are added
+        const file = input.files?.[0];
         if (!file) {
             return;
         }
@@ -73,15 +72,10 @@ document
         seq.loadNewSongList([{ binary: midiFile, fileName: file.name }]);
         seq.play();
 
-        /**
-         * @type {HTMLCanvasElement}
-         */
-        const canvas = document.querySelector("#canvas"); // Get canvas
-        const drawingContext = canvas.getContext("2d");
-        /**
-         * Create the AnalyserNodes for the channels
-         */
-        const analysers = [];
+        const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!; // Get canvas
+        const drawingContext = canvas.getContext("2d")!;
+        // Create the AnalyserNodes for the channels
+        const analysers: AnalyserNode[] = [];
         for (let index = 0; index < 16; index++) {
             // Create analyzer and connect it
             const analyzer = context.createAnalyser();

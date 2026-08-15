@@ -10,8 +10,8 @@ it renders each MIDI channel separately using the `WorkletSynthesizer`'s
 --8<-- "offline_audio_split.html"
 ```
 
-```js title='offline_audio_split.js'
---8<-- "offline_audio_split.js"
+```ts title='offline_audio_split.ts'
+--8<-- "offline_audio_split.ts"
 ```
 
 Instead of connecting the synthesizer directly to the destination, we call `getMergedOutput` and connect the returned
