@@ -54,7 +54,68 @@ Starts an offline audio render.
 await synth.startOfflineRender(config);
 ```
 
+!!! Info
+
+    This method is *asynchronous.*
+
 - config - a configuration object, described below:
+
+#### midiSequence
+
+The MIDI to render, a [`BasicMIDI`](https://spessasus.github.io/spessasynth_core/midi/) instance.
+
+#### snapshot
+
+Optional, the `SynthesizerSnapshot` to apply before starting the render.
+
+!!! Warning
+
+    The master parameters will be replaced with the `SynthesizerSnapshot` ones.
+
+#### loopCount
+
+The amount of times to loop the song. A number.
+
+#### soundBankList
+
+The list of sound banks to render this file with.
+
+An array of objects with two properties:
+
+- bankOffset - bank offset for this sound bank, a number. Leave at 0 if you are not sure.
+- soundBankBuffer - an ArrayBuffer containing the file.
+
+#### sequencerOptions
+
+The options to pass to the sequencer. The same options as with [initializing the sequencer](../sequencer/index.md#initialization)
+
+!!! Tip
+
+    This method is *asynchronous.*
+
+!!! Danger
+
+    Call this method immediately after you've set up the synthesizer.
+    Do NOT call any other methods after initializing before this one.
+    Chromium seems to ignore worklet messages for OfflineAudioContext.
+
+### getMergedOutput
+
+Returns a `ChannelMergerNode` with all outputs merged into a single one.
+
+```ts
+synth.getMergedOutput();
+```
+
+The multiple channels are layered as follows:
+
+- EffectsL, EffectsR
+- Channel1L, Channel2R
+- ...
+- Channel16L, Channel16R
+
+This is intended for offline audio rendering via OfflineAudioContext to allow extraction of separate channels
+and is the replacement for one output mode.
 
 #### midiSequence
 

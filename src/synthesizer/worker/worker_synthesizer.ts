@@ -20,6 +20,7 @@ import {
     DEFAULT_WORKER_RENDER_AUDIO_OPTIONS,
     type WorkerRenderAudioOptions
 } from "./render_audio_worker.ts";
+import { resampleAudioBuffer } from "../../utils/resample_audio_buffer.ts";
 
 const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
     trim: true,
@@ -75,15 +76,17 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @param config Optional configuration for the synthesizer.
      */
     public constructor(
-        context: BaseAudioContext,
+        // Disallow the use of OfflineAudioContext here
+        context: AudioContext,
         workerPostMessage: typeof Worker.prototype.postMessage,
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
+        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
         // Ensure default values for options
         super(
             context,
             PLAYBACK_WORKLET_PROCESSOR_NAME,
-            fillWithDefaults(config, DEFAULT_SYNTH_CONFIG),
+            synthConfig,
             workerPostMessage as (
                 data: BasicSynthesizerMessage,
                 transfer?: Transferable[]
@@ -101,10 +104,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             {
                 initialTime: this.context.currentTime,
                 sampleRate: this.context.sampleRate,
-                convolverMode: config.convolverMode,
-                oneOutputMode: config.oneOutputMode,
+                convolverMode: synthConfig.convolverMode,
                 processorConfig: {
-                    eventsEnabled: config.eventsEnabled
+                    eventsEnabled: synthConfig.eventsEnabled
                 }
             },
             [workerPort]
@@ -303,6 +305,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     );
                     dryChannels.push(buffer);
 
+                    // Render convolver reverb
                     if (convolverData && this.convolverNode?.buffer) {
                         const convolverSource = new AudioBuffer({
                             sampleRate,
@@ -326,7 +329,15 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                         const source = offline.createBufferSource();
                         source.buffer = convolverSource;
                         const convolver = offline.createConvolver();
-                        convolver.buffer = this.convolverNode.buffer;
+                        // Different sample rates crash the thread
+                        let impulseResponse = this.convolverNode.buffer;
+                        if (impulseResponse.sampleRate !== sampleRate) {
+                            impulseResponse = await resampleAudioBuffer(
+                                impulseResponse,
+                                sampleRate
+                            );
+                        }
+                        convolver.buffer = impulseResponse;
                         source.connect(convolver);
                         convolver.connect(offline.destination);
                         source.start(0);

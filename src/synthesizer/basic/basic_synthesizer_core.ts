@@ -44,7 +44,7 @@ export abstract class BasicSynthesizerCore {
     protected readonly eventsEnabled;
 
     /**
-     * In this mode, the reverb is captured and sent to the main thread for a ConvolverNode to process. One extra output or channel pair for one output mode.
+     * In this mode, the reverb is captured and sent to the main thread for a ConvolverNode to process.
      * @protected
      */
     protected readonly convolverMode;
@@ -71,12 +71,6 @@ export abstract class BasicSynthesizerCore {
      * @protected
      */
     protected messageQueueActive = false;
-    /**
-     * Instead of 18 stereo outputs, there's one with 36 channels.
-     * The channels are ordered as follows: effects (2), convolver (2),
-     * then a stereo pair for each MIDI channel.
-     */
-    protected readonly oneOutputMode: boolean;
 
     protected constructor(
         synthCoreConfig: SynthCoreConfig,
@@ -95,7 +89,6 @@ export abstract class BasicSynthesizerCore {
         this.eventsEnabled =
             synthCoreConfig.processorConfig.eventsEnabled ?? false;
         this.convolverMode = synthCoreConfig.convolverMode;
-        this.oneOutputMode = synthCoreConfig.oneOutputMode;
         this.postInternal = postMessage;
 
         // Prepare synthesizer connections

@@ -55,7 +55,7 @@ const BLOCK_SIZE = 128;
 
 type StereoAudioChunk = [Float32Array, Float32Array];
 
-interface ReturnedChunks {
+interface RenderAudioWorkerChunks {
     effects: StereoAudioChunk;
     dry: StereoAudioChunk[];
     convolver?: StereoAudioChunk;
@@ -65,14 +65,12 @@ export function renderAudioWorker(
     this: WorkerSynthesizerCore,
     sampleRate: number,
     options: WorkerRenderAudioOptions
-): ReturnedChunks {
+): RenderAudioWorkerChunks {
     // Initialize synthesizer
-    const renderReverbCapture = this.convolverMode
-        ? new ReverbCapture()
-        : undefined;
+    const reverbCapture = this.convolverMode ? new ReverbCapture() : undefined;
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
         eventsEnabled: false,
-        reverbProcessor: renderReverbCapture
+        reverbProcessor: reverbCapture
     });
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
@@ -127,14 +125,16 @@ export function renderAudioWorker(
     const wetR = new Float32Array(sampleDuration);
     const effects: StereoAudioChunk = [wetL, wetR];
     // Final output
-    const returnedChunks: ReturnedChunks = {
+    const returnedChunks: RenderAudioWorkerChunks = {
         effects,
         dry: []
     };
-    const convolver: StereoAudioChunk | undefined = renderReverbCapture
-        ? [new Float32Array(sampleDuration), new Float32Array(sampleDuration)]
-        : undefined;
-    if (convolver) {
+    let convolver: StereoAudioChunk | undefined = undefined;
+    if (reverbCapture) {
+        convolver = [
+            new Float32Array(sampleDuration),
+            new Float32Array(sampleDuration)
+        ];
         returnedChunks.convolver = convolver;
     }
     const sampleDurationNoLastQuantum = sampleDuration - BLOCK_SIZE;
@@ -148,27 +148,27 @@ export function renderAudioWorker(
             dry.push(d);
             returnedChunks.dry.push(d);
         }
+        // The current index
         let index = 0;
         while (true) {
             for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
                 if (index >= sampleDurationNoLastQuantum) {
                     rendererSeq.processTick();
+                    const remaining = sampleDuration - index;
                     rendererSynth.processSplit(
                         dry,
                         wetL,
                         wetR,
                         index,
-                        sampleDuration - index
+                        remaining
                     );
                     if (convolver) {
-                        convolver[0].set(
-                            renderReverbCapture!.capturedData,
-                            index
+                        const tail = reverbCapture!.capturedData.subarray(
+                            0,
+                            remaining
                         );
-                        convolver[1].set(
-                            renderReverbCapture!.capturedData,
-                            index
-                        );
+                        convolver[0].set(tail, index);
+                        convolver[1].set(tail, index);
                     }
                     this.startAudioLoop();
                     return returnedChunks;
@@ -176,8 +176,8 @@ export function renderAudioWorker(
                 rendererSeq.processTick();
                 rendererSynth.processSplit(dry, wetL, wetR, index, BLOCK_SIZE);
                 if (convolver) {
-                    convolver[0].set(renderReverbCapture!.capturedData, index);
-                    convolver[1].set(renderReverbCapture!.capturedData, index);
+                    convolver[0].set(reverbCapture!.capturedData, index);
+                    convolver[1].set(reverbCapture!.capturedData, index);
                 }
                 index += BLOCK_SIZE;
             }
@@ -193,21 +193,15 @@ export function renderAudioWorker(
             for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
                 if (index >= sampleDurationNoLastQuantum) {
                     rendererSeq.processTick();
-                    rendererSynth.process(
-                        dryL,
-                        dryR,
-                        index,
-                        sampleDuration - index
-                    );
+                    const remaining = sampleDuration - index;
+                    rendererSynth.process(dryL, dryR, index, remaining);
                     if (convolver) {
-                        convolver[0].set(
-                            renderReverbCapture!.capturedData,
-                            index
+                        const tail = reverbCapture!.capturedData.subarray(
+                            0,
+                            remaining
                         );
-                        convolver[1].set(
-                            renderReverbCapture!.capturedData,
-                            index
-                        );
+                        convolver[0].set(tail, index);
+                        convolver[1].set(tail, index);
                     }
                     this.startAudioLoop();
                     return returnedChunks;
@@ -216,8 +210,8 @@ export function renderAudioWorker(
 
                 rendererSynth.process(dryL, dryR, index, BLOCK_SIZE);
                 if (convolver) {
-                    convolver[0].set(renderReverbCapture!.capturedData, index);
-                    convolver[1].set(renderReverbCapture!.capturedData, index);
+                    convolver[0].set(reverbCapture!.capturedData, index);
+                    convolver[1].set(reverbCapture!.capturedData, index);
                 }
                 index += BLOCK_SIZE;
             }

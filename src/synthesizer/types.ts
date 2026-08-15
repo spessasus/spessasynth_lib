@@ -30,7 +30,7 @@ export interface LibSynthesizerSnapshot extends SynthesizerSnapshot {
     convolverImpulseResponse?: AudioBuffer;
 }
 
-export interface OfflineRenderWorkletData {
+export interface OfflineRenderWorkletData<T extends SynthesizerSnapshot> {
     /**
      * The MIDI to render.
      */
@@ -38,7 +38,7 @@ export interface OfflineRenderWorkletData {
     /**
      * The snapshot to apply.
      */
-    snapshot?: LibSynthesizerSnapshot;
+    snapshot?: T;
     /**
      * The amount times to loop the song.
      */
@@ -169,7 +169,7 @@ interface BasicSynthesizerMessageData {
     writeRMIDI: WorkerRMIDIWriteOptions;
 
     // WORKLET SPECIFIC
-    startOfflineRender: OfflineRenderWorkletData;
+    startOfflineRender: OfflineRenderWorkletData<SynthesizerSnapshot>;
 
     // SHARED
     midiMessage: {

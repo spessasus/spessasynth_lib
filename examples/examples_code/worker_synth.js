@@ -19,7 +19,9 @@ await WorkerSynthesizer.registerPlaybackWorklet(context);
 // Create the worker
 const worker = new Worker(new URL("worker_synth_worker.js", import.meta.url));
 // Create the synthesizer and bind it to the worker
-const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker));
+const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker), {
+    convolverMode: true
+});
 worker.addEventListener("message", (event) =>
     synth.handleWorkerMessage(event.data)
 );
@@ -29,8 +31,9 @@ document.querySelector("#render").addEventListener("click", async () => {
     // Render audio with a simple progress tracking function
     const outputBuffer = await synth.renderAudio(44_100, {
         progressCallback: (progress, stage) => {
-            document.querySelector("#message").textContent =
-                `Rendering ${Math.floor(progress * 100)}% Stage: ${stage}`;
+            const message = `Rendering ${Math.floor(progress * 100)}% Stage: ${stage}`;
+            document.querySelector("#message").textContent = message;
+            console.info(message);
         }
     });
     document.querySelector("#message").textContent = "Complete!";

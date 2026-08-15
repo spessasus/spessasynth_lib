@@ -83,11 +83,11 @@ document
          */
         const analysers = [];
         for (let index = 0; index < 16; index++) {
-            analysers.push(context.createAnalyser()); // Create analyzer
+            // Create analyzer and connect it
+            const analyzer = context.createAnalyser();
+            analysers.push(analyzer);
+            synth.connectChannel(analyzer, index);
         }
-
-        // Connect them to the synthesizer
-        synth.connectIndividualOutputs(analysers);
 
         // Render analyzers in a 4x4 grid
         function render() {

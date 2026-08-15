@@ -2,13 +2,6 @@ import type { SynthProcessorOptions } from "spessasynth_core";
 
 export interface SynthConfig {
     /**
-     * If the synth should use one output with 36 channels.
-     * The channels are ordered as follows: effects (2), convolver (2),
-     * then a stereo pair for each MIDI channel.
-     */
-    oneOutputMode: boolean;
-
-    /**
      * Custom audio node creation functions for Web Audio wrappers, such as standardized-audio-context.
      * Pass undefined to use the Web Audio API.
      */
@@ -32,12 +25,6 @@ export interface SynthCoreConfig {
     initialTime: number;
     convolverMode: boolean;
     processorConfig: Partial<SynthProcessorOptions>;
-    /**
-     * If the synth should use one output with 36 channels.
-     * The channels are ordered as follows: effects (2), convolver (2),
-     * then a stereo pair for each MIDI channel.
-     */
-    oneOutputMode: boolean;
 }
 
 export interface AudioNodeCreators {

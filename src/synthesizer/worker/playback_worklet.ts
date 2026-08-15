@@ -72,20 +72,15 @@ class PlaybackProcessor extends AudioWorkletProcessor
         }
 
         const stereoPairs = Math.floor(data.length / (BLOCK_SIZE * 2));
-        // In one output mode, there's a single multi-channel output that
-        // holds all the stereo pairs. In regular mode, each stereo pair
-        // is written to its own output.
-        const oneOutputMode = outputs.length === 1 && outputs[0].length >= stereoPairs * 2;
-        const channels = oneOutputMode ? stereoPairs : Math.min(outputs.length, stereoPairs);
+        const channels = Math.min(outputs.length, stereoPairs);
 
         let offset = 0;
         for (let i = 0; i < channels; i++)
         {
-            const output = oneOutputMode ? outputs[0] : outputs[i];
-            const channel = oneOutputMode ? i * 2 : 0;
-            output[channel].set(data.subarray(offset, offset + BLOCK_SIZE));
+            const output = outputs[i];
+            output[0].set(data.subarray(offset, offset + BLOCK_SIZE));
             offset += BLOCK_SIZE;
-            output[channel + 1].set(data.subarray(offset, offset + BLOCK_SIZE));
+            output[1].set(data.subarray(offset, offset + BLOCK_SIZE));
             offset += BLOCK_SIZE;
         }
         

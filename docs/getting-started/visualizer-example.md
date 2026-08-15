@@ -15,11 +15,11 @@ We need to add the canvas and our "keyboard".
 We use two functions of the API to achieve this:
 
 ```js
-synth.connectIndividualOutputs(audioNodes);
+synth.connectChannel(audioNode, channel);
 ```
 
 This connects the [`AnalyserNode`](https://developer.mozilla.org/en-US/Web/API/AnalyserNode)s to the synthesizer,
-allowing visualizations.
+allowing visualizations for specific MIDI channels.
 
 ```js
 synth.eventHandler.addEvent("noteOn", (event) => {
