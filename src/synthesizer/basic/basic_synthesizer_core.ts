@@ -118,7 +118,7 @@ export abstract class BasicSynthesizerCore {
         data: BasicSynthesizerReturnMessage,
         transfer?: Transferable[]
     ) {
-        if (this.messageQueue) {
+        if (this.messageQueueActive) {
             this.messageQueue.push(data);
             if (transfer) this.messageQueueTransferable.push(...transfer);
         } else {

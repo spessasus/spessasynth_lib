@@ -19,9 +19,7 @@ await WorkerSynthesizer.registerPlaybackWorklet(context);
 // Create the worker
 const worker = new Worker(new URL("worker_synth_worker.js", import.meta.url));
 // Create the synthesizer and bind it to the worker
-const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker), {
-    convolverMode: true
-});
+const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker));
 worker.addEventListener("message", (event) =>
     synth.handleWorkerMessage(event.data)
 );
