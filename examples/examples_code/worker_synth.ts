@@ -63,12 +63,10 @@ document.querySelector("#render_split")!.addEventListener("click", async () => {
         progressCallback: renderProgress
     });
     document.querySelector("#message")!.textContent = "Complete!";
-    for (let index = 0; index < rendered.channels.length; index++) {
-        addAudioElement(rendered.channels[index], `Channel ${index + 1}`);
+    for (let index = 0; index < rendered.visual.length; index++) {
+        addAudioElement(rendered.visual[index], `Channel ${index + 1}`);
     }
-    if (rendered.effects) {
-        addAudioElement(rendered.effects, "Effects");
-    }
+    addAudioElement(rendered.output, "Output");
 });
 
 // Add a button for saving the SF2 file

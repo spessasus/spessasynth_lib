@@ -18,7 +18,10 @@ import type {
     SequencerOptions,
     SequencerReturnMessage
 } from "../sequencer/types";
-import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
+import type {
+    RenderedAudioWorkerChunks,
+    WorkerRenderAudioOptions
+} from "./worker/render_audio_worker.ts";
 import type { SynthCoreConfig } from "./basic/types.ts";
 
 export * from "./basic/types.ts";
@@ -290,11 +293,7 @@ export interface SynthesizerReturn {
     soundBankManager: null;
     startOfflineRender: null;
     synthesizerSnapshot: SynthesizerSnapshot;
-    renderAudio: {
-        effects: [Float32Array, Float32Array];
-        dry: [Float32Array, Float32Array][];
-        convolver?: [Float32Array, Float32Array];
-    };
+    renderAudio: RenderedAudioWorkerChunks;
     workerSynthWriteFile: {
         /**
          * The binary data of the file.

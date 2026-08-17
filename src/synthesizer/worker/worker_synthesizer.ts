@@ -60,13 +60,13 @@ type WorkerSynthWriteOptions<K> = K & {
 };
 
 interface RenderAudioResult {
-    effects?: AudioBuffer;
-    channels: AudioBuffer[];
+    output: AudioBuffer;
+    visual: AudioBuffer[];
 }
 
 interface RenderAudioInternalResult {
-    dry: AudioBuffer[];
-    effects?: AudioBuffer;
+    visual: AudioBuffer[];
+    output: AudioBuffer;
 }
 
 type RenderAudioOptions = Omit<
@@ -308,11 +308,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             separateChannels: false
         };
         const rendered = await this.renderAudioInternal(sampleRate, options);
-        const output = rendered.dry[0];
-        if (rendered.effects) {
-            mergeStereoAudioBuffer(output, rendered.effects);
-        }
-        return output;
+        return rendered.output;
     }
 
     /**
@@ -335,7 +331,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             separateChannels: true
         };
         const rendered = await this.renderAudioInternal(sampleRate, options);
-        return { effects: rendered.effects, channels: rendered.dry };
+        return {
+            output: rendered.output,
+            visual: rendered.visual
+        };
     }
 
     private async renderAudioInternal(
@@ -347,21 +346,21 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             this.awaitWorkerResponse("renderAudio", async (data) => {
                 this.revokeProgressTracker("renderAudio");
                 const convolverData = data.convolver;
-                const dry = data.dry.map((dryPair) =>
+                const visual = data.visual.map((dryPair) =>
                     makeAudioBuffer(dryPair, sampleRate)
                 );
-                let effects: AudioBuffer | undefined;
+                let output = makeAudioBuffer(data.output, sampleRate);
                 if (options.enableEffects) {
-                    effects = makeAudioBuffer(data.effects, sampleRate);
+                    output = makeAudioBuffer(data.output, sampleRate);
                     if (convolverData && this.convolverNode?.buffer) {
                         const convolver = await this.renderConvolverBuffer(
                             convolverData,
                             sampleRate
                         );
-                        mergeStereoAudioBuffer(effects, convolver);
+                        mergeStereoAudioBuffer(output, convolver);
                     }
                 }
-                resolve({ dry, effects });
+                resolve({ visual, output });
                 return;
             });
             // Assign progress tracker and render

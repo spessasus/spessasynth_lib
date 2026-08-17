@@ -68,8 +68,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     m.data.options
                 );
                 const transferable: Transferable[] = [];
-                for (const r of rendered.effects) transferable.push(r.buffer);
-                for (const d of rendered.dry)
+                for (const r of rendered.output) transferable.push(r.buffer);
+                for (const d of rendered.visual)
                     transferable.push(...d.map((c) => c.buffer));
                 this.postReady("renderAudio", rendered, transferable);
                 break;
@@ -182,8 +182,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         this.messageQueueActive = true;
 
         // Data is encoded into a single f32 array as follows
-        // EffectsL, EffectsR
+        // OutL, OutR
         // ConvolverL, ConvolverR
+        // 16 visual channels:
         // Dry1L, dry1R
         // DryNL, dryNR
         // Dry16L, dry16R
@@ -192,9 +193,9 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         const data = new Float32Array(BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT);
         let byteOffset = 0;
         // Effects
-        const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const outL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const outR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
 
         // Convolver
@@ -212,7 +213,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         byteOffset += byteStep;
 
         // Channels
-        const dry: AudioChunks = [];
+        const visual: AudioChunks = [];
         for (let i = 0; i < 16; i++) {
             const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
@@ -220,12 +221,12 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
 
-            dry.push([dryL, dryR]);
+            visual.push([dryL, dryR]);
         }
         for (const seq of this.sequencers) {
             seq.processTick();
         }
-        this.synthesizer.processSplit(dry, wetL, wetR);
+        this.synthesizer.process(outL, outR, undefined, undefined, visual);
         // Extract reverb capture data
         if (this.reverbCapture) {
             convolverL.set(this.reverbCapture.capturedData);

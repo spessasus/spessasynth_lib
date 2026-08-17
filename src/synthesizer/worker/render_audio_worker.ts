@@ -57,18 +57,20 @@ type StereoAudioChunk = [Float32Array, Float32Array];
 
 export interface RenderedAudioWorkerChunks {
     /**
-     * The wet effects output from spessasynth_core
+     * The output from spessasynth_core
      */
-    effects: StereoAudioChunk;
+    output: StereoAudioChunk;
     /**
-     * The dry channel output from spessasynth_core
+     * The dry channel output for visualization
      */
-    dry: StereoAudioChunk[];
+    visual: StereoAudioChunk[];
     /**
      * The convolver dry output for rendering in the main thread (optional)
      */
     convolver?: StereoAudioChunk;
 }
+
+// TODO: Ensure that everything works with the new architecture
 
 export function renderAudioWorker(
     this: WorkerSynthesizerCore,
@@ -131,14 +133,14 @@ export function renderAudioWorker(
     rendererSeq.play();
 
     // Allocate memory
-    // Effects
-    const wetL = new Float32Array(sampleDuration);
-    const wetR = new Float32Array(sampleDuration);
-    const effects: StereoAudioChunk = [wetL, wetR];
+    // Output
+    const outL = new Float32Array(sampleDuration);
+    const outR = new Float32Array(sampleDuration);
+    const output: StereoAudioChunk = [outL, outR];
     // Final output
     const returnedChunks: RenderedAudioWorkerChunks = {
-        effects,
-        dry: []
+        output,
+        visual: []
     };
     let convolver: StereoAudioChunk | undefined = undefined;
     if (reverbCapture) {
@@ -155,7 +157,7 @@ export function renderAudioWorker(
             new Float32Array(sampleDuration),
             new Float32Array(sampleDuration)
         ];
-        returnedChunks.dry.push(d);
+        returnedChunks.visual.push(d);
     }
 
     // Render the audio here
@@ -166,13 +168,13 @@ export function renderAudioWorker(
             // 128 samples for the middle blocks, the remainder for the last one
             const sampleCount =
                 Math.min(index + BLOCK_SIZE, sampleDuration) - index;
-            rendererSynth.processSplit(
-                // Automatically wraps the channels for us!
-                returnedChunks.dry,
-                wetL,
-                wetR,
+            rendererSynth.process(
+                outL,
+                outR,
                 index,
-                sampleCount
+                sampleCount,
+                // Automatically wraps the channels for us!
+                returnedChunks.visual
             );
             if (convolver) {
                 const tail = reverbCapture!.capturedData.subarray(

@@ -13,7 +13,7 @@ import {
     BasicSynthesizerCore,
     SEQUENCER_SYNC_INTERVAL
 } from "../basic/basic_synthesizer_core.ts";
-import { CHANNEL_OUTPUTS_START } from "../basic/synth_config.ts";
+import { VISUAL_CHANNEL_OUTPUTS_START } from "../basic/synth_config.ts";
 import type { SynthCoreConfig } from "../basic/types.ts";
 import type {
     BasicSynthesizerMessage,
@@ -65,10 +65,12 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         // 2: channel 1
         // 3: channel 2
         // And so on
-        this.synthesizer.processSplit(
-            outputs.slice(CHANNEL_OUTPUTS_START),
+        this.synthesizer.process(
             outputs[0][0],
-            outputs[0][1]
+            outputs[0][1],
+            undefined,
+            undefined,
+            outputs.slice(VISUAL_CHANNEL_OUTPUTS_START)
         );
 
         // Send reverb

@@ -28,10 +28,10 @@ import { LibMIDIChannel } from "./lib_midi_channel.ts";
 import { SoundBankManager } from "./sound_bank_manager.ts";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
-    CHANNEL_OUTPUTS_START,
     CONVOLVER_OUTPUT,
-    EFFECTS_OUTPUT,
-    TOTAL_OUTPUT_COUNT
+    MAIN_OUTPUT,
+    TOTAL_OUTPUT_COUNT,
+    VISUAL_CHANNEL_OUTPUTS_START
 } from "./synth_config.ts";
 import {
     type ProcessorEventCallback,
@@ -311,12 +311,8 @@ export abstract class BasicSynthesizer {
      * @param destinationNode The node to connect to.
      */
     public connect(destinationNode: AudioNode) {
-        // Connect all MIDI Worklet outputs
-        for (let i = 0; i < 16; i++) {
-            this.connectChannel(destinationNode, i);
-        }
-        // Connect effects output
-        this.worklet.connect(destinationNode, EFFECTS_OUTPUT);
+        // Connect main
+        this.worklet.connect(destinationNode, MAIN_OUTPUT);
 
         // Connect convolver (optional)
         this.convolverNode?.connect(destinationNode);
@@ -328,22 +324,9 @@ export abstract class BasicSynthesizer {
      * Disconnects from a given node.
      * @param destinationNode The node to disconnect from.
      */
-    public disconnect(destinationNode?: AudioNode) {
-        if (!destinationNode) {
-            this.worklet.disconnect();
-            if (this.convolverNode) {
-                // Reconnect to convolver
-                this.worklet.connect(this.convolverNode, CONVOLVER_OUTPUT);
-                this.convolverNode.disconnect();
-            }
-            return undefined;
-        }
-        // Disconnect all MIDI Worklet outputs
-        for (let i = 0; i < 16; i++) {
-            this.disconnectChannel(destinationNode, i);
-        }
-        // Connect effects output
-        this.worklet.disconnect(destinationNode, EFFECTS_OUTPUT);
+    public disconnect(destinationNode: AudioNode) {
+        // Disconnect main output
+        this.worklet.disconnect(destinationNode, MAIN_OUTPUT);
 
         // Connect convolver (optional)
         this.convolverNode?.disconnect(destinationNode);
@@ -456,7 +439,7 @@ export abstract class BasicSynthesizer {
     public connectChannel(targetNode: AudioNode, channelNumber: number) {
         this.worklet.connect(
             targetNode,
-            (channelNumber % 16) + CHANNEL_OUTPUTS_START
+            (channelNumber % 16) + VISUAL_CHANNEL_OUTPUTS_START
         );
         return targetNode;
     }
@@ -469,7 +452,7 @@ export abstract class BasicSynthesizer {
     public disconnectChannel(targetNode: AudioNode, channelNumber: number) {
         this.worklet.disconnect(
             targetNode,
-            (channelNumber % 16) + CHANNEL_OUTPUTS_START
+            (channelNumber % 16) + VISUAL_CHANNEL_OUTPUTS_START
         );
     }
 
