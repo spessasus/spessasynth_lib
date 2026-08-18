@@ -192,7 +192,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
         const data = new Float32Array(BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT);
         let byteOffset = 0;
-        // Effects
+        // Main output
         const outL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
         const outR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);

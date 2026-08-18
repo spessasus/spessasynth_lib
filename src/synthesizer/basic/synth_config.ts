@@ -18,12 +18,12 @@ export const ALL_CHANNELS_OR_DIFFERENT_ACTION = -1;
  * MIDI Channel 2
  * ...
  * MIDI Channel 16
- * First the effects, then the convolver, then 16 channels
+ * First the main output, then the convolver, then 16 channels
  */
 export const TOTAL_OUTPUT_COUNT = 18;
 // The number at which channels start
 export const VISUAL_CHANNEL_OUTPUTS_START = 2;
-// The output of the effects from spessasynth_core
+// The output of the main output from spessasynth_core
 export const MAIN_OUTPUT = 0;
 // The output number of convolver
 export const CONVOLVER_OUTPUT = 1;

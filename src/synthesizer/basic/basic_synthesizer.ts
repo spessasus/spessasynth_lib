@@ -148,7 +148,7 @@ export abstract class BasicSynthesizer {
                     return new AudioWorkletNode(context, name, options);
                 });
             this.worklet = workletConstructor(context, workletName, {
-                // Effects + convolver, potentially unused + 16 channels, all stereo pairs
+                // Main output + convolver, potentially unused + 16 visual channels, all stereo pairs
                 outputChannelCount: new Array<number>(TOTAL_OUTPUT_COUNT).fill(
                     2
                 ),

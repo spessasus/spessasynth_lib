@@ -223,12 +223,12 @@ const rendered = synth.renderAudio(sampleRate, renderOptions);
     - loopCount - the amount of times to loop the song.
     - progressCallback - the function that tracks the rendering progress. It takes two arguments:
         - progress - mapped 0 to 1.
-        - stage - 0 is a dry pass, 1 is adding effects.
+        - stage - always 0, the complete output is rendered in a single pass.
     - preserveSynthParams - if the current parameters of the synthesizer should be preserved.
     - enableEffects - if the effects should be enabled.
     - sequencerID - which sequencer to render. Defaults to the first one (0).
 
-The returned value is an `AudioBuffer` with the complete audio.
+The returned value is an `AudioBuffer` with the complete audio, including the effects and convolver.
 
 !!! Info
 
@@ -236,7 +236,7 @@ The returned value is an `AudioBuffer` with the complete audio.
 
 ### renderAudioSplit
 
-Renders the current song in the connected sequencer to separate channel buffers plus the effects.
+Renders the current song in the connected sequencer to the complete stereo output plus separate channel buffers.
 This pauses the playback if it is playing.
 
 ```ts
@@ -248,8 +248,8 @@ const rendered = synth.renderAudioSplit(sampleRate, renderOptions);
 
 The returned value is an object:
 
-- channels - an array of 16 `AudioBuffer`s, one for each MIDI channel.
-- effects - an optional `AudioBuffer` with the effects output. `undefined` if effects are disabled.
+- output - an `AudioBuffer` with the complete stereo mix, including the effects and convolver.
+- visual - an array of 16 `AudioBuffer`s, one for each MIDI channel. These are the dry channel outputs and are intended for visualization only.
 
 !!! Info
 

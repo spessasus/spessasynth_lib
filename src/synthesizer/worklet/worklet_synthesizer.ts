@@ -78,7 +78,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * - Channel16L, Channel16R
      *
      * This is intended for offline audio rendering via OfflineAudioContext to allow extraction of separate channels.
-     * Note that the effects output is not included, as Web Audio caps the number of channels at 32.
+     * Note that the main output is not included, as Web Audio caps the number of channels at 32.
      */
     public getMergedOutput(): ChannelMergerNode {
         // 16 stereo pairs to stay within the 32 channel cap
@@ -87,7 +87,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // Connect channels
         for (let i = 0; i < 16; i++) {
             const splitter = this.context.createChannelSplitter(2);
-            // +2 because outputs 0 and 1 are the effects and convolver
+            // +2 because outputs 0 and 1 are the main output and the convolver
             const output = i + 2;
             this.worklet.connect(splitter, output);
             splitter.connect(merger, 0, i * 2);

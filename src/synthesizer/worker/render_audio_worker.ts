@@ -20,7 +20,7 @@ export interface WorkerRenderAudioOptions {
     /**
      * The function that tracks the rendering progress.
      * @param progress mapped 0 to 1.
-     * @param stage 0 is a dry pass, 1 is adding effects.
+     * @param stage always 0, the output and visuals are rendered in a single pass.
      */
     progressCallback?: (progress: number, stage: number) => unknown;
 
@@ -57,20 +57,18 @@ type StereoAudioChunk = [Float32Array, Float32Array];
 
 export interface RenderedAudioWorkerChunks {
     /**
-     * The output from spessasynth_core
+     * The complete output from spessasynth_core, with effects mixed in.
      */
     output: StereoAudioChunk;
     /**
-     * The dry channel output for visualization
+     * The dry channel outputs for visualization only.
      */
     visual: StereoAudioChunk[];
     /**
-     * The convolver dry output for rendering in the main thread (optional)
+     * The convolver dry output for rendering in the main thread (optional).
      */
     convolver?: StereoAudioChunk;
 }
-
-// TODO: Ensure that everything works with the new architecture
 
 export function renderAudioWorker(
     this: WorkerSynthesizerCore,
@@ -127,6 +125,8 @@ export function renderAudioWorker(
 
     // Apply no voice cap (applying snapshot resets system parameters)
     rendererSynth.setSystemParameter("autoAllocateVoices", true);
+    // The main output always has the effects mixed in, so disable them if requested
+    rendererSynth.setSystemParameter("effectsEnabled", options.enableEffects);
 
     // Begin playing
     rendererSeq.loadNewSongList([parsedMid]);

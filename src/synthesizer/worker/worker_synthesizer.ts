@@ -292,7 +292,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * Renders the current song to a single stereo AudioBuffer.
      * @param sampleRate The sample rate to use, in Hertz.
      * @param renderOptions Extra options for the render.
-     * @returns The dry output merged with the effects and convolver output.
+     * @returns The complete stereo output, including the effects and convolver.
      * @remarks
      * This stops the synthesizer while rendering.
      */
@@ -315,7 +315,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * Renders the current song to separate channel buffers plus the effects.
      * @param sampleRate The sample rate to use, in Hertz.
      * @param renderOptions Extra options for the render.
-     * @returns The dry channels and the effects if they are enabled.
+     * @returns The complete stereo output and the separate visualization channels.
      * @remarks
      * This stops the synthesizer while rendering.
      */
@@ -342,23 +342,24 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         options: WorkerRenderAudioOptions
     ): Promise<RenderAudioInternalResult> {
         return new Promise((resolve) => {
-            // First pass: Worker renders the dry audio
+            // Worker renders the complete output and the visualization channels
             this.awaitWorkerResponse("renderAudio", async (data) => {
                 this.revokeProgressTracker("renderAudio");
                 const convolverData = data.convolver;
                 const visual = data.visual.map((dryPair) =>
                     makeAudioBuffer(dryPair, sampleRate)
                 );
-                let output = makeAudioBuffer(data.output, sampleRate);
-                if (options.enableEffects) {
-                    output = makeAudioBuffer(data.output, sampleRate);
-                    if (convolverData && this.convolverNode?.buffer) {
-                        const convolver = await this.renderConvolverBuffer(
-                            convolverData,
-                            sampleRate
-                        );
-                        mergeStereoAudioBuffer(output, convolver);
-                    }
+                const output = makeAudioBuffer(data.output, sampleRate);
+                if (
+                    options.enableEffects &&
+                    convolverData &&
+                    this.convolverNode?.buffer
+                ) {
+                    const convolver = await this.renderConvolverBuffer(
+                        convolverData,
+                        sampleRate
+                    );
+                    mergeStereoAudioBuffer(output, convolver);
                 }
                 resolve({ visual, output });
                 return;

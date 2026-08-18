@@ -19,7 +19,7 @@ If the convolver mode should be enabled.
 In the convolver mode, the synthesizer captures its reverb output and feeds it into a Web Audio `ConvolverNode`.
 This lets you use a custom impulse response for the synth's reverb tail instead of the built-in reverb engine.
 
-- When enabled, the reverb is removed from the effects output and exposed as a separate stream that is processed by the `ConvolverNode`.
+- When enabled, the reverb is removed from the main output and exposed as a separate stream that is processed by the `ConvolverNode`.
 - The impulse response is loaded internally from the library and can be replaced by assigning a new buffer to the synthesizer's `convolverNode`.
 
 ### eventsEnabled

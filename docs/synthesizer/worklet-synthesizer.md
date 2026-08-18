@@ -114,12 +114,12 @@ The channels are layered as follows:
 - ...
 - Channel16L, Channel16R
 
-This is intended for offline audio rendering via `OfflineAudioContext` to allow extraction of separate channels,
-and is the replacement for one output mode.
+This is intended for offline audio rendering via `OfflineAudioContext` to allow extraction of separate channels.
+The channel outputs are the dry signal for visualization only.
 
 !!! Note
 
-    The effects output is not included in the merged output,
+    The main output is not included in the merged output,
     as Web Audio caps the number of channels at 32 (16 stereo pairs).
 
 !!! Warning

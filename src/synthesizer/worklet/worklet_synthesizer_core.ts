@@ -60,11 +60,9 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         }
 
         // 18 outputs, each a stereo one
-        // 0: Effects
-        // 1: Convolver
-        // 2: channel 1
-        // 3: channel 2
-        // And so on
+        // 0: Main output (the complete audio, with effects)
+        // 1: Convolver dry (for main thread convolution, unused without convolverMode)
+        // 2-17: MIDI Channel outputs (visualization only, not to be connected to audio output!)
         this.synthesizer.process(
             outputs[0][0],
             outputs[0][1],

@@ -25,6 +25,7 @@ multichannel buffer:
 After rendering, we extract each stereo pair from the rendered buffer and convert it to a wave file.
 
 Note that the `OfflineAudioContext` is created with 32 channels (16 stereo channel pairs).
-The effects output is not included, as Web Audio caps the number of channels at 32.
+These channel outputs are the dry signal, intended for visualization only,
+and the main output is not included (such as system effects or insertion effects), as Web Audio caps the number of channels at 32.
 
 For more info about writing WAV files, see [writing wave files](../writing-files/writing-wav-files.md).
