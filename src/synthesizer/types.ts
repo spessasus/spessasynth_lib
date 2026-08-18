@@ -5,7 +5,6 @@ import {
     type DLSWriteOptions,
     type GlobalMIDIParameter,
     type GlobalSystemParameter,
-    type KeyModifier,
     type MIDIController,
     type RMIDIWriteOptions,
     type SoundFont2WriteOptions,
@@ -71,19 +70,6 @@ export interface WorkletSBKManagerData {
     deleteSoundBank: string;
     // NewOrder<string[]> // where string is the id
     rearrangeSoundBanks: string[];
-}
-
-export interface WorkletKMManagerData {
-    addMapping: {
-        channel: number;
-        midiNote: number;
-        mapping: KeyModifier;
-    };
-    deleteMapping: {
-        channel: number;
-        midiNote: number;
-    };
-    clearMappings: null;
 }
 
 export type BasicSynthesizerMessage = {
@@ -230,12 +216,6 @@ interface BasicSynthesizerMessageData {
             data: WorkletSBKManagerData[K];
         };
     }[keyof WorkletSBKManagerData];
-    keyModifierManager: {
-        [K in keyof WorkletKMManagerData]: {
-            type: K;
-            data: WorkletKMManagerData[K];
-        };
-    }[keyof WorkletKMManagerData];
     destroyWorklet: null;
 }
 

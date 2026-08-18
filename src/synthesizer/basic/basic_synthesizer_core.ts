@@ -450,38 +450,6 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "keyModifierManager": {
-                const kmMsg = m.data;
-                const man = this.synthesizer.keyModifierManager;
-                switch (kmMsg.type) {
-                    default: {
-                        return;
-                    }
-
-                    case "addMapping": {
-                        man.addMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote,
-                            kmMsg.data.mapping
-                        );
-                        break;
-                    }
-
-                    case "clearMappings": {
-                        man.clearMappings();
-                        break;
-                    }
-
-                    case "deleteMapping": {
-                        man.deleteMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote
-                        );
-                    }
-                }
-                break;
-            }
-
             case "requestSynthesizerSnapshot": {
                 const snapshot = this.synthesizer.getSnapshot();
                 this.postReady("synthesizerSnapshot", snapshot);

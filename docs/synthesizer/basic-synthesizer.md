@@ -63,10 +63,6 @@ An example function that creates the standard worklet node looks like this:
 
 The synthesizer's [sound bank manager](sound-bank-manager.md).
 
-### keyModifierManager
-
-The synthesizer's [key modifier manager](key-modifier-manager.md).
-
 ### eventHandler
 
 The synthesizer's [event handler](synth-event-handler.md).

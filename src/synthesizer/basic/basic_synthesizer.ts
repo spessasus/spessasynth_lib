@@ -23,7 +23,6 @@ import type {
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
-import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.ts";
 import { LibMIDIChannel } from "./lib_midi_channel.ts";
 import { SoundBankManager } from "./sound_bank_manager.ts";
 import {
@@ -57,12 +56,6 @@ export abstract class BasicSynthesizer {
      * Allows managing the sound bank list.
      */
     public readonly soundBankManager = new SoundBankManager(this);
-    /**
-     * Allows managing key modifications.
-     */
-    public readonly keyModifierManager = new WorkletKeyModifierManagerWrapper(
-        this
-    );
     /**
      * Allows setting up custom event listeners for the synthesizer.
      */
