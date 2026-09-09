@@ -11,8 +11,8 @@ This example adapts the Advanced example.
 
 Nothing new here.
 
-```js title='worker_synth.js'
---8<-- "worker_synth.js"
+```ts title='worker_synth.ts'
+--8<-- "worker_synth.ts"
 ```
 
 Note how we have to create our own worker and pass its `postMessage` bound to the Worker to the WorkerSynthesizer.
@@ -21,8 +21,8 @@ Other than that, the code is identical.
 
 Now let's take a look at the worker itself:
 
-```js title='worker_synth_worker.js'
---8<-- "worker_synth_worker.js"
+```ts title='worker_synth_worker.ts'
+--8<-- "worker_synth_worker.ts"
 ```
 
 Since this is a simple example, we just forward the data to the worker, but it allows us to intercept the messages when needed, and to send our own.

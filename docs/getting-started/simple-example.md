@@ -15,8 +15,8 @@ The example uses two classes:
 
     Note the type="module" in the script tag.
 
-```js title='simple_demo.js'
---8<-- "simple_demo.js"
+```ts title='simple_demo.ts'
+--8<-- "simple_demo.ts"
 ```
 
 What the script does:

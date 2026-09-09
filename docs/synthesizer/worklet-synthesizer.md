@@ -54,6 +54,10 @@ Starts an offline audio render.
 await synth.startOfflineRender(config);
 ```
 
+!!! Info
+
+    This method is *asynchronous.*
+
 - config - a configuration object, described below:
 
 #### midiSequence
@@ -94,6 +98,37 @@ The options to pass to the sequencer. The same options as with [initializing the
     Call this method immediately after you've set up the synthesizer.
     Do NOT call any other methods after initializing before this one.
     Chromium seems to ignore worklet messages for OfflineAudioContext.
+
+### getMergedOutput
+
+Returns a `ChannelMergerNode` with all 16 channel outputs merged into a single one.
+
+```ts
+const merger = synth.getMergedOutput();
+merger.connect(context.destination);
+```
+
+The channels are layered as follows:
+
+- Channel1L, Channel1R
+- ...
+- Channel16L, Channel16R
+
+This is intended for offline audio rendering via `OfflineAudioContext` to allow extraction of separate channels.
+The channel outputs are the dry signal for visualization only.
+
+!!! Note
+
+    The main output is not included in the merged output,
+    as Web Audio caps the number of channels at 32 (16 stereo pairs).
+
+!!! Warning
+
+    Make sure the `OfflineAudioContext` is created with 32 channels, otherwise the channels will be downmixed.
+
+!!! Info
+
+    An example demonstrating this [can be found here](../getting-started/render-split-example.md).
 
 ### destroy
 

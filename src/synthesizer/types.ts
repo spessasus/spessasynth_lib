@@ -5,7 +5,6 @@ import {
     type DLSWriteOptions,
     type GlobalMIDIParameter,
     type GlobalSystemParameter,
-    type KeyModifier,
     type MIDIController,
     type RMIDIWriteOptions,
     type SoundFont2WriteOptions,
@@ -18,20 +17,22 @@ import type {
     SequencerOptions,
     SequencerReturnMessage
 } from "../sequencer/types";
-import type { WorkerRenderAudioOptions } from "./worker/render_audio_worker.ts";
+import type {
+    RenderedAudioWorkerChunks,
+    WorkerRenderAudioOptions
+} from "./worker/render_audio_worker.ts";
+import type { SynthCoreConfig } from "./basic/types.ts";
 
-export interface PassedProcessorParameters {
+export * from "./basic/types.ts";
+
+export interface LibSynthesizerSnapshot extends SynthesizerSnapshot {
     /**
-     * If the synthesizer should send events.
+     * Optional convolver impulse response stored on the main thread.
      */
-    eventsEnabled: boolean;
-    /**
-     * If the synth should use one output with 32 channels (2 audio channels for each midi channel).
-     */
-    oneOutput: boolean;
+    convolverImpulseResponse?: AudioBuffer;
 }
 
-export interface OfflineRenderWorkletData {
+export interface OfflineRenderWorkletData<T extends SynthesizerSnapshot> {
     /**
      * The MIDI to render.
      */
@@ -39,7 +40,7 @@ export interface OfflineRenderWorkletData {
     /**
      * The snapshot to apply.
      */
-    snapshot?: SynthesizerSnapshot;
+    snapshot?: T;
     /**
      * The amount times to loop the song.
      */
@@ -69,19 +70,6 @@ export interface WorkletSBKManagerData {
     deleteSoundBank: string;
     // NewOrder<string[]> // where string is the id
     rearrangeSoundBanks: string[];
-}
-
-export interface WorkletKMManagerData {
-    addMapping: {
-        channel: number;
-        midiNote: number;
-        mapping: KeyModifier;
-    };
-    deleteMapping: {
-        channel: number;
-        midiNote: number;
-    };
-    clearMappings: null;
 }
 
 export type BasicSynthesizerMessage = {
@@ -160,10 +148,7 @@ export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> & {
 
 interface BasicSynthesizerMessageData {
     // WORKER SPECIFIC
-    workerInitialization: {
-        sampleRate: number;
-        currentTime: number;
-    };
+    workerInitialization: SynthCoreConfig;
     renderAudio: {
         sampleRate: number;
         options: WorkerRenderAudioOptions;
@@ -173,7 +158,7 @@ interface BasicSynthesizerMessageData {
     writeRMIDI: WorkerRMIDIWriteOptions;
 
     // WORKLET SPECIFIC
-    startOfflineRender: OfflineRenderWorkletData;
+    startOfflineRender: OfflineRenderWorkletData<SynthesizerSnapshot>;
 
     // SHARED
     midiMessage: {
@@ -231,12 +216,6 @@ interface BasicSynthesizerMessageData {
             data: WorkletSBKManagerData[K];
         };
     }[keyof WorkletSBKManagerData];
-    keyModifierManager: {
-        [K in keyof WorkletKMManagerData]: {
-            type: K;
-            data: WorkletKMManagerData[K];
-        };
-    }[keyof WorkletKMManagerData];
     destroyWorklet: null;
 }
 
@@ -294,10 +273,7 @@ export interface SynthesizerReturn {
     soundBankManager: null;
     startOfflineRender: null;
     synthesizerSnapshot: SynthesizerSnapshot;
-    renderAudio: {
-        effects: [Float32Array, Float32Array];
-        dry: [Float32Array, Float32Array][];
-    };
+    renderAudio: RenderedAudioWorkerChunks;
     workerSynthWriteFile: {
         /**
          * The binary data of the file.

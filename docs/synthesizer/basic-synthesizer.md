@@ -13,10 +13,14 @@ The synthesizer uses `spessasynth_core`'s synthesizer as the core audio engine, 
 
 Below is the `SynthConfig` configuration object that can be passed to both synthesizers during configuration:
 
-### oneOutput
+### convolverMode
 
-Indicates if the [one output mode](#one-output-mode) should be enabled.
-A boolean.
+If the convolver mode should be enabled.
+In the convolver mode, the synthesizer captures its reverb output and feeds it into a Web Audio `ConvolverNode`.
+This lets you use a custom impulse response for the synth's reverb tail instead of the built-in reverb engine.
+
+- When enabled, the reverb is removed from the main output and exposed as a separate stream that is processed by the `ConvolverNode`.
+- The impulse response is loaded internally from the library and can be replaced by assigning a new buffer to the synthesizer's `convolverNode`.
 
 ### eventsEnabled
 
@@ -59,13 +63,17 @@ An example function that creates the standard worklet node looks like this:
 
 The synthesizer's [sound bank manager](sound-bank-manager.md).
 
-### keyModifierManager
-
-The synthesizer's [key modifier manager](key-modifier-manager.md).
-
 ### eventHandler
 
 The synthesizer's [event handler](synth-event-handler.md).
+
+### convolverNode
+
+The `AudioNode` that processes the synthesizer's captured reverb tail through a Web Audio `ConvolverNode`.
+
+!!! WARNING
+
+    `convolverNode` is only defined when `convolverMode` is enabled.
 
 ### context
 
@@ -231,44 +239,6 @@ synth.disconnectChannel(targetNode, channelNumber);
 ```js
 // Disconnect the analyzer from earlier
 synth.disconnectChannel(analyzer, 0);
-```
-
-### connectIndividualOutputs
-
-Connects the individual audio outputs to the given audio nodes.
-Note that these outputs is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
-
-```js
-synth.connectIndividualOutputs(audioNodes);
-```
-
-- audioNodes - `AudioNode[]` - an array of exactly 16 `AudioNodes` to connect each channel to.
-  The first node connects to the first channel and so on.
-
-**Example:**
-
-```js
-// Create 16 analyzers and connect them
-const analyzers = Array.from({ length: 16 }, () => context.createAnalyser());
-synth.connectIndividualOutputs(analyzers);
-```
-
-### disconnectIndividualOutputs
-
-Disconnects individual channel outputs from given audio nodes.
-
-```js
-synth.disconnectIndividualOutputs(audioNodes);
-```
-
-- audioNodes - `AudioNode[]` - an array of exactly 16 `AudioNodes` to disconnect each channel from.
-  The first node disconnects the first channel and so on.
-
-**Example:**
-
-```js
-// Disconnect the analyzers from earlier
-synth.disconnectIndividualOutputs(analyzers);
 ```
 
 ### sendMessage
@@ -543,36 +513,3 @@ synth.tuneKeys(81, [
 Yes please!
 
 Cranks the reverb up to the max and returns a string that says: `That's the spirit!`
-
-## One output mode
-
-This is a special synth mode, which causes the synth to have one output instead of 18, but 32 channels.
-
-In regular mode, the synthesizer's WorkletNode has 18 stereo outputs (16 channel outputs + dry signal for reverb and chorus effects).
-
-One output mode changes the synthesizer to have only a single output with 16 stereo pairs (no effects).
-
-Every midi channel has two audio channels. So it looks like this:
-
-- MIDI channel 0:
-    - audio output 0
-    - audio output 1
-- MIDI channel 1:
-    - audio output 2
-    - audio output 3
-- MIDI channel 2:
-    - audio output 4
-    - audio output 5
-
-etc.
-
-This allows for many things, such as exporting files of individual channels in a single OfflineAudioContext rendering pass.
-
-!!! Info
-
-    Chorus and reverb are **disabled** when the one output mode is on.
-
-!!! Warning
-
-    The AudioContext **must** be initialized with 32 channels when this mode is on!
-    Otherwise, there will be an error!

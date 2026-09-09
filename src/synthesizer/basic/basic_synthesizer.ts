@@ -1,9 +1,3 @@
-import { WorkletKeyModifierManagerWrapper } from "./key_modifier_manager.ts";
-import { SoundBankManager } from "./sound_bank_manager.ts";
-import {
-    type ProcessorEventCallback,
-    SynthEventHandler
-} from "./synth_event_handler.ts";
 import {
     type ChannelMIDIParameter,
     DEFAULT_GLOBAL_MIDI_PARAMETERS,
@@ -19,7 +13,9 @@ import {
     type SynthMethodOptions
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types.ts";
-import type { SynthConfig } from "./types.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { ConsoleColors } from "../../utils/other.ts";
+import { reverbBufferBinary } from "../reverb/compressed_reverb_decoder.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -27,10 +23,20 @@ import type {
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
-import { ConsoleColors } from "../../utils/other.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
 import { LibMIDIChannel } from "./lib_midi_channel.ts";
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
+import { SoundBankManager } from "./sound_bank_manager.ts";
+import {
+    ALL_CHANNELS_OR_DIFFERENT_ACTION,
+    CONVOLVER_OUTPUT,
+    MAIN_OUTPUT,
+    TOTAL_OUTPUT_COUNT,
+    VISUAL_CHANNEL_OUTPUTS_START
+} from "./synth_config.ts";
+import {
+    type ProcessorEventCallback,
+    SynthEventHandler
+} from "./synth_event_handler.ts";
+import type { AudioNodeCreators, SynthConfig } from "./types.ts";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
@@ -39,18 +45,17 @@ const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
 const SPESSASYNTH_LIB_HANDLER = (event: string) =>
     `SPESSASYNTH_LIB_HANDLE_${event}_${Math.random()}`;
 
+type SynthesizerPostFunction = (
+    data: BasicSynthesizerMessage,
+    transfer?: Transferable[]
+) => unknown;
+
 // The "remote controller" of a given processor and abstraction for both synth engines.
 export abstract class BasicSynthesizer {
     /**
      * Allows managing the sound bank list.
      */
     public readonly soundBankManager = new SoundBankManager(this);
-    /**
-     * Allows managing key modifications.
-     */
-    public readonly keyModifierManager = new WorkletKeyModifierManagerWrapper(
-        this
-    );
     /**
      * Allows setting up custom event listeners for the synthesizer.
      */
@@ -82,17 +87,13 @@ export abstract class BasicSynthesizer {
      * INTERNAL USE ONLY!
      * @internal
      */
-    public readonly post: (
-        data: BasicSynthesizerMessage,
-        transfer?: Transferable[]
-    ) => unknown;
+    public readonly post: SynthesizerPostFunction;
+    public readonly convolverNode: ConvolverNode | undefined;
     protected readonly worklet: AudioWorkletNode;
+    protected readonly convolverReady?: Promise<AudioBuffer>;
     /**
-     * The new channels will have their audio sent to the modulated output by this constant.
-     * what does that mean?
-     * e.g., if outputsAmount is 16, then channel's 16 audio data will be sent to channel 0
+     * Spessasynth_core system parameters
      */
-    protected readonly _outputCount = 16;
     protected readonly _systemParameters: GlobalSystemParameter = {
         ...DEFAULT_GLOBAL_SYSTEM_PARAMETERS
     };
@@ -115,37 +116,86 @@ export abstract class BasicSynthesizer {
 
     /**
      * Creates a new instance of a synthesizer.
-     * @param worklet The AudioWorkletNode to use.
-     * @param postFunction The internal post function.
-     * @param config Optional configuration for the synthesizer.
+     * @param context The audio context.
+     * @param workletName The worklet processor name to use.
+     * @param postFunction The internal post function. Leave undefined to use worklet's post message.
+     * @param synthConfig Optional configuration for the synthesizer.
      */
     protected constructor(
-        worklet: AudioWorkletNode,
-        postFunction: (
-            data: BasicSynthesizerMessage,
-            transfer?: Transferable[]
-        ) => unknown,
-        config: SynthConfig
+        context: BaseAudioContext,
+        workletName: string,
+        synthConfig: SynthConfig,
+        postFunction?: SynthesizerPostFunction
     ) {
         SpessaLog.info(
             "%cInitializing SpessaSynth synthesizer...",
             ConsoleColors.info
         );
-        this.context = worklet.context;
-        this.worklet = worklet;
-        this.post = postFunction;
+        this.context = context;
+        // Create worklet
+        // Create the audio worklet node
+        try {
+            const workletConstructor: AudioNodeCreators["worklet"] =
+                synthConfig?.audioNodeCreators?.worklet ??
+                ((context, name, options) => {
+                    return new AudioWorkletNode(context, name, options);
+                });
+            this.worklet = workletConstructor(context, workletName, {
+                // Main output + convolver, potentially unused + 16 visual channels, all stereo pairs
+                outputChannelCount: new Array<number>(TOTAL_OUTPUT_COUNT).fill(
+                    2
+                ),
+                // 1 output
+                numberOfOutputs: TOTAL_OUTPUT_COUNT,
+                processorOptions: {
+                    convolverMode: synthConfig.convolverMode,
+                    sampleRate: context.sampleRate,
+                    initialTime: context.currentTime,
+                    processorConfig: {
+                        eventsEnabled: synthConfig.eventsEnabled
+                    }
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            throw new Error(
+                "Could not create the AudioWorkletNode. Did you forget to addModule()?",
+                { cause: error }
+            );
+        }
 
-        // Used in child classes
-        void config;
+        let convolverPromise: Promise<AudioBuffer> | undefined = undefined;
 
-        this.isReady = new Promise((resolve) =>
+        // Create convolver if needed
+        if (synthConfig.convolverMode) {
+            convolverPromise = context.decodeAudioData(reverbBufferBinary);
+
+            this.convolverNode = context.createConvolver();
+            this.worklet.connect(this.convolverNode, CONVOLVER_OUTPUT);
+            this.convolverReady = convolverPromise.then((buffer) => {
+                this.convolverNode!.buffer = buffer;
+                return buffer;
+            });
+        }
+
+        this.post =
+            postFunction ??
+            (((data, transfer = []) => {
+                this.worklet.port.postMessage(data, transfer);
+            }) as SynthesizerPostFunction);
+
+        const backendPromise = new Promise((resolve) =>
             this.awaitWorkerResponse("sf3Decoder", resolve)
         );
+        // Wait for both
+        this.isReady = convolverPromise
+            ? Promise.all([convolverPromise, backendPromise])
+            : backendPromise;
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (
-            e: MessageEvent<BasicSynthesizerReturnMessage>
-        ) => this.handleMessage(e.data);
+            e: MessageEvent<BasicSynthesizerReturnMessage[]>
+        ) => this.handleMessages(e.data);
 
         // Create initial channels
         for (let i = 0; i < 16; i++) this.addNewChannelInternal(false);
@@ -254,10 +304,11 @@ export abstract class BasicSynthesizer {
      * @param destinationNode The node to connect to.
      */
     public connect(destinationNode: AudioNode) {
-        // Connect all other worklet outputs (effects + 16 channels)
-        for (let i = 0; i < 17; i++) {
-            this.worklet.connect(destinationNode, i);
-        }
+        // Connect main
+        this.worklet.connect(destinationNode, MAIN_OUTPUT);
+
+        // Connect convolver (optional)
+        this.convolverNode?.connect(destinationNode);
         return destinationNode;
     }
 
@@ -266,15 +317,12 @@ export abstract class BasicSynthesizer {
      * Disconnects from a given node.
      * @param destinationNode The node to disconnect from.
      */
-    public disconnect(destinationNode?: AudioNode) {
-        if (!destinationNode) {
-            this.worklet.disconnect();
-            return undefined;
-        }
-        // Disconnect all other worklet outputs
-        for (let i = 0; i < 17; i++) {
-            this.worklet.disconnect(destinationNode, i);
-        }
+    public disconnect(destinationNode: AudioNode) {
+        // Disconnect main output
+        this.worklet.disconnect(destinationNode, MAIN_OUTPUT);
+
+        // Connect convolver (optional)
+        this.convolverNode?.disconnect(destinationNode);
         return destinationNode;
     }
 
@@ -353,8 +401,8 @@ export abstract class BasicSynthesizer {
     /**
      * Gets a complete snapshot of the synthesizer, effects.
      */
-    public async getSnapshot(): Promise<SynthesizerSnapshot> {
-        return new Promise((resolve) => {
+    public async getSnapshot() {
+        return await new Promise<SynthesizerSnapshot>((resolve) => {
             this.awaitWorkerResponse("synthesizerSnapshot", (s) => {
                 resolve(s);
             });
@@ -382,7 +430,10 @@ export abstract class BasicSynthesizer {
      * @returns The target node.
      */
     public connectChannel(targetNode: AudioNode, channelNumber: number) {
-        this.worklet.connect(targetNode, (channelNumber % 16) + 1);
+        this.worklet.connect(
+            targetNode,
+            (channelNumber % 16) + VISUAL_CHANNEL_OUTPUTS_START
+        );
         return targetNode;
     }
 
@@ -392,38 +443,10 @@ export abstract class BasicSynthesizer {
      * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
      */
     public disconnectChannel(targetNode: AudioNode, channelNumber: number) {
-        this.worklet.disconnect(targetNode, (channelNumber % 16) + 1);
-    }
-
-    /**
-     * Connects the individual audio outputs to the given audio nodes.
-     * Note that these outputs is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
-     * @param audioNodes Exactly 16 outputs.
-     */
-    public connectIndividualOutputs(audioNodes: AudioNode[]) {
-        if (audioNodes.length !== this._outputCount) {
-            throw new Error(`input nodes amount differs from the system's outputs amount!
-            Expected ${this._outputCount} got ${audioNodes.length}`);
-        }
-        for (let channel = 0; channel < this._outputCount; channel++) {
-            // + 1 because effects come first!
-            this.connectChannel(audioNodes[channel], channel);
-        }
-    }
-
-    /**
-     * Disconnects the individual audio outputs from the given audio nodes.
-     * @param audioNodes Exactly 16 outputs.
-     */
-    public disconnectIndividualOutputs(audioNodes: AudioNode[]) {
-        if (audioNodes.length !== this._outputCount) {
-            throw new Error(`input nodes amount differs from the system's outputs amount!
-            Expected ${this._outputCount} got ${audioNodes.length}`);
-        }
-        for (let channel = 0; channel < this._outputCount; channel++) {
-            // + 1 because effects come first!
-            this.disconnectChannel(audioNodes[channel], channel);
-        }
+        this.worklet.disconnect(
+            targetNode,
+            (channelNumber % 16) + VISUAL_CHANNEL_OUTPUTS_START
+        );
     }
 
     /**
@@ -818,41 +841,50 @@ export abstract class BasicSynthesizer {
     /**
      * Handles the messages received from the worklet.
      */
-    protected handleMessage(m: BasicSynthesizerReturnMessage) {
-        switch (m.type) {
-            case "eventCall": {
-                this.eventHandler.callEventInternal(m.data.type, m.data.data);
-                break;
-            }
-
-            case "sequencerReturn": {
-                this.sequencers[m.data.id]?.(m.data);
-                break;
-            }
-
-            case "voiceCountChange": {
-                for (let i = 0; i < m.data.length; i++) {
-                    this.midiChannels[i].voiceCount = m.data[i];
-                    this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+    protected handleMessages(messages: BasicSynthesizerReturnMessage[]) {
+        for (const m of messages)
+            switch (m.type) {
+                case "eventCall": {
+                    this.eventHandler.callEventInternal(
+                        m.data.type,
+                        m.data.data
+                    );
+                    break;
                 }
-                break;
-            }
 
-            case "isFullyInitialized": {
-                this.workletResponds(m.data.type, m.data.data);
-                break;
-            }
+                case "sequencerReturn": {
+                    this.sequencers[m.data.id]?.(m.data);
+                    break;
+                }
 
-            case "soundBankError": {
-                SpessaLog.warn(m.data);
-                this.eventHandler.callEventInternal("soundBankError", m.data);
-                break;
-            }
+                case "voiceCountChange": {
+                    for (let i = 0; i < m.data.length; i++) {
+                        this.midiChannels[i].voiceCount = m.data[i];
+                        this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+                    }
+                    break;
+                }
 
-            case "renderingProgress": {
-                this.renderingProgressTracker.get(m.data.type)?.(m.data.data);
+                case "isFullyInitialized": {
+                    this.workletResponds(m.data.type, m.data.data);
+                    break;
+                }
+
+                case "soundBankError": {
+                    SpessaLog.warn(m.data);
+                    this.eventHandler.callEventInternal(
+                        "soundBankError",
+                        m.data
+                    );
+                    break;
+                }
+
+                case "renderingProgress": {
+                    this.renderingProgressTracker.get(m.data.type)?.(
+                        m.data.data
+                    );
+                }
             }
-        }
     }
 
     protected addNewChannelInternal(post: boolean) {

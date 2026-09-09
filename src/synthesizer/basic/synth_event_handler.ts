@@ -54,7 +54,11 @@ export class SynthEventHandler {
             string,
             ProcessorEventCallback<"channelParamChange">
         >(), // Called when a MIDI channel parameter changes
-        effectChange: new Map<string, ProcessorEventCallback<"effectChange">>() // Called when an effect processor parameter is changed
+        effectChange: new Map<string, ProcessorEventCallback<"effectChange">>(), // Called when an effect processor parameter is changed
+        userDrumSetChange: new Map<
+            string,
+            ProcessorEventCallback<"userDrumSetChange">
+        >() // Called when a GS User Drum Set changes
     };
 
     /**

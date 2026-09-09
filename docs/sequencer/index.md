@@ -118,6 +118,10 @@ If true, the sequencer will play the songs in a random order.
 
 Songs are shuffled on a `loadNewSongList` call.
 
+### externalMIDIPlayback
+
+Enables or disables sending MIDI messages to the attached MIDI ports.
+
 ### currentTime
 
 The current playback time of the song in seconds.
@@ -168,14 +172,25 @@ sequencer.loadNewSongList(midiBuffers);
 Connect a given MIDI output port and play the sequence to it.
 
 ```ts
-sequencer.connectMIDIOutput(output);
+sequencer.connectMIDIOutput(output, (channelOffset = 0));
 ```
 
-- output - a [`MIDIOutput`](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API) object, the output port to play to. Pass undefined to use the connected synthesizer.
+- output - a [`MIDIOutput`](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API) object, the output port to play to.
+- channelOffset - the channel offset of this output for multi-port files. For example 0 means the first port, 16 means the second port and so on.
 
 !!! Info
 
     You can also use the [MIDIDeviceHandler](../midi/web-midi-api.md).
+
+### connectMIDIOutput
+
+Disconnect a given MIDI output port from the sequencer.
+
+- output - a [`MIDIOutput`](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API) object, the output port to disconnect from.
+
+!!! Warning
+
+    Remember to enable [`externalMIDIPlayback`!](#externalmidiplayback)
 
 ### pause
 

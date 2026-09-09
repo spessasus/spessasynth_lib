@@ -1,31 +1,22 @@
 // Import the modules
-import { audioBufferToWav, WorkletSynthesizer } from "../../src/index.ts";
-import { EXAMPLE_WORKLET_PATH } from "../examples_common.js";
+import { audioBufferToWav, WorkletSynthesizer } from "../../src";
+import { EXAMPLE_WORKLET_PATH } from "../examples_common.ts";
 import { BasicMIDI } from "spessasynth_core";
 
-/**
- * @type {ArrayBuffer}
- */
-let sfFile;
-/**
- * @type {BasicMIDI}
- */
-let parsedMIDI;
+let sfFile: ArrayBuffer;
+let parsedMIDI: BasicMIDI;
 
 document
-    .querySelector("#midi_input")
+    .querySelector("#midi_input")!
     .addEventListener("change", async (event) => {
-        /**
-         * @type {HTMLInputElement}
-         */
-        const input = event.target;
+        const input = event.target as HTMLInputElement;
         // Check if any files are added
-        if (!input.files[0]) {
+        const file = input.files?.[0];
+        if (!file) {
             return;
         }
         // Hide the input
-        document.querySelector("#midi_input").style.display = "none";
-        const file = input.files[0];
+        input.style.display = "none";
         const buffer = await file.arrayBuffer();
 
         // Parse the MIDI to get its duration
@@ -33,23 +24,20 @@ document
     });
 
 document
-    .querySelector("#sound_bank_input")
+    .querySelector("#sound_bank_input")!
     .addEventListener("change", async (event) => {
-        /**
-         * @type {HTMLInputElement}
-         */
-        const input = event.target;
+        const input = event.target as HTMLInputElement;
         // Check if any files are added
-        if (!input.files[0]) {
+        const file = input.files?.[0];
+        if (!file) {
             return;
         }
         // Hide the input
-        document.querySelector("#sound_bank_input").style.display = "none";
-        const file = input.files[0];
+        input.style.display = "none";
         sfFile = await file.arrayBuffer();
     });
 
-document.querySelector("#render").addEventListener("click", async () => {
+document.querySelector("#render")!.addEventListener("click", async () => {
     // Return if something hasn't been selected
     if (sfFile === undefined || parsedMIDI === undefined) {
         return;
@@ -93,7 +81,7 @@ document.querySelector("#render").addEventListener("click", async () => {
         const progress = Math.floor(
             (synth.currentTime / parsedMIDI.duration) * 100
         );
-        document.querySelector("#message").textContent =
+        document.querySelector("#message")!.textContent =
             `Rendering "${midiName}"... ${progress}%`;
     }, 500);
 
@@ -101,7 +89,7 @@ document.querySelector("#render").addEventListener("click", async () => {
     const outputBuffer = await context.startRendering();
     clearInterval(showRendering);
 
-    document.querySelector("#message").textContent = "Complete!";
+    document.querySelector("#message")!.textContent = "Complete!";
     // Convert the buffer to a wave file and create URL for it
     const wavFile = audioBufferToWav(outputBuffer);
     const fileURL = URL.createObjectURL(wavFile);

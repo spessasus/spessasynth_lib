@@ -4,21 +4,22 @@ import {
     SoundBankLoader,
     SpessaLog,
     SpessaSynthProcessor,
-    SpessaSynthSequencer,
-    type SynthProcessorOptions
+    SpessaSynthSequencer
 } from "spessasynth_core";
+import { songChangeType } from "../../sequencer/enums.ts";
+import { MIDIData } from "../../sequencer/midi_data.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types.ts";
-import { MIDIData } from "../../sequencer/midi_data.ts";
-import { songChangeType } from "../../sequencer/enums.ts";
+import { ReverbCapture } from "./reverb_passthrough.ts";
 import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
+import type { SynthCoreConfig } from "./types.ts";
 
 export type PostMessageSynthCore = (
-    data: BasicSynthesizerReturnMessage,
+    data: BasicSynthesizerReturnMessage[],
     transfer?: Transferable[]
 ) => unknown;
 
@@ -31,28 +32,64 @@ export const SEQUENCER_SYNC_INTERVAL = 1;
 export abstract class BasicSynthesizerCore {
     public readonly synthesizer: SpessaSynthProcessor;
     public readonly sequencers = new Array<SpessaSynthSequencer>();
-    protected readonly post: PostMessageSynthCore;
-    protected lastSequencerSync = 0;
+
+    protected readonly postInternal: PostMessageSynthCore;
+
     /**
      * For syncing voice counts, implemented separately in the `process()` method.
      * @protected
      */
     protected readonly voiceCounts = new Array<number>(16).fill(0);
+
+    protected readonly eventsEnabled;
+
+    /**
+     * In this mode, the reverb is captured and sent to the main thread for a ConvolverNode to process.
+     * @protected
+     */
+    protected readonly convolverMode;
+
+    protected readonly reverbCapture: ReverbCapture | undefined;
     /**
      * Indicates if the processor is alive.
      * @protected
      */
     protected alive = false;
-    protected readonly eventsEnabled;
+    protected lastSequencerSync = 0;
+    /**
+     * A message queue for sending bulk many messages as one.
+     * @protected
+     */
+    protected messageQueue = new Array<BasicSynthesizerReturnMessage>();
+    /**
+     * The transferable part of the queue.
+     * @protected
+     */
+    protected messageQueueTransferable = new Array<Transferable>();
+    /**
+     * If the queue is active, all messages will be queued. If not, they will be sent immediately.
+     * @protected
+     */
+    protected messageQueueActive = false;
 
     protected constructor(
-        sampleRate: number,
-        options: Partial<SynthProcessorOptions>,
+        synthCoreConfig: SynthCoreConfig,
         postMessage: PostMessageSynthCore
     ) {
-        this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.eventsEnabled = options.eventsEnabled ?? false;
-        this.post = postMessage;
+        this.reverbCapture = synthCoreConfig.convolverMode
+            ? new ReverbCapture()
+            : undefined;
+        this.synthesizer = new SpessaSynthProcessor(
+            synthCoreConfig.sampleRate,
+            {
+                ...synthCoreConfig,
+                reverbProcessor: this.reverbCapture
+            }
+        );
+        this.eventsEnabled =
+            synthCoreConfig.processorConfig.eventsEnabled ?? false;
+        this.convolverMode = synthCoreConfig.convolverMode;
+        this.postInternal = postMessage;
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
@@ -67,6 +104,26 @@ export abstract class BasicSynthesizerCore {
                 currentTime: this.synthesizer.currentTime
             });
         };
+    }
+
+    protected flushQueue() {
+        this.messageQueueActive = false;
+        if (this.messageQueue.length > 0)
+            this.postInternal(this.messageQueue, this.messageQueueTransferable);
+        this.messageQueue.length = 0;
+        this.messageQueueTransferable.length = 0;
+    }
+
+    protected post(
+        data: BasicSynthesizerReturnMessage,
+        transfer?: Transferable[]
+    ) {
+        if (this.messageQueueActive) {
+            this.messageQueue.push(data);
+            if (transfer) this.messageQueueTransferable.push(...transfer);
+        } else {
+            this.postInternal([data], transfer);
+        }
     }
 
     protected createNewSequencer() {
@@ -389,38 +446,6 @@ export abstract class BasicSynthesizerCore {
                         data: error as Error,
                         currentTime: this.synthesizer.currentTime
                     });
-                }
-                break;
-            }
-
-            case "keyModifierManager": {
-                const kmMsg = m.data;
-                const man = this.synthesizer.keyModifierManager;
-                switch (kmMsg.type) {
-                    default: {
-                        return;
-                    }
-
-                    case "addMapping": {
-                        man.addMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote,
-                            kmMsg.data.mapping
-                        );
-                        break;
-                    }
-
-                    case "clearMappings": {
-                        man.clearMappings();
-                        break;
-                    }
-
-                    case "deleteMapping": {
-                        man.deleteMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote
-                        );
-                    }
                 }
                 break;
             }

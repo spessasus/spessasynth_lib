@@ -43,9 +43,13 @@ export class Sequencer {
      */
     public midiData?: MIDIData;
     /**
-     * The MIDI port to play to.
+     * The MIDI ports to play to.
+     * Key is channel offset, value is the port.
      */
-    private midiOut?: { send: (data: number[]) => unknown };
+    private midiOutputs = new Map<
+        number,
+        { send: (data: number[]) => unknown }
+    >();
     private isLoading = false;
     /**
      * Indicates if the sequencer is paused.
@@ -249,6 +253,23 @@ export class Sequencer {
         }
     }
 
+    private _externalMIDIPlayback = false;
+
+    /**
+     * Enables or disables sending MIDI messages to the attached MIDI ports.
+     */
+    public get externalMIDIPlayback() {
+        return this._externalMIDIPlayback;
+    }
+
+    /**
+     * Enables or disables sending MIDI messages to the attached MIDI ports.
+     */
+    public set externalMIDIPlayback(value: boolean) {
+        this._externalMIDIPlayback = value;
+        this.sendMessage("changeMIDIMessageSending", value);
+    }
+
     /**
      * Current playback time, in seconds.
      */
@@ -335,12 +356,32 @@ export class Sequencer {
 
     /**
      * Connects a given output to the sequencer.
-     * @param output The output to connect. Pass undefined to use the connected synthesizer.
+     * @param output The output to connect.
+     * @param channelOffset The channel offset of this output for multi-port files. For example 0 means the first port, 16 means the second port and so on.
      */
-    public connectMIDIOutput(output?: { send: (data: number[]) => unknown }) {
+    public connectMIDIOutput(
+        output: { send: (data: number[]) => unknown },
+        channelOffset = 0
+    ) {
         this.resetMIDIOutput();
-        this.midiOut = output;
-        this.sendMessage("changeMIDIMessageSending", output !== undefined);
+        if (output) {
+            this.midiOutputs.set(channelOffset, output);
+        } else {
+            this.midiOutputs.clear();
+        }
+    }
+
+    /**
+     * Disconnects a given output from the sequencer.
+     * @param output The output to disconnect.
+     */
+    public disconnectMIDIOutput(output: { send: (data: number[]) => unknown }) {
+        for (const [key, value] of this.midiOutputs) {
+            if (value === output) {
+                this.midiOutputs.delete(key);
+                return;
+            }
+        }
     }
 
     /**
@@ -367,9 +408,13 @@ export class Sequencer {
     private handleMessage(m: SequencerReturnMessage) {
         switch (m.type) {
             case "midiMessage": {
-                const midiEventData = m.data.message as number[];
-                if (this.midiOut && midiEventData[0] >= 0x80) {
-                    this.midiOut.send(midiEventData);
+                const midiEvent = m.data;
+                const midiEventData = midiEvent.message as number[];
+                if (this.midiOutputs.size > 0 && midiEventData[0] >= 0x80) {
+                    const output =
+                        this.midiOutputs.get(midiEvent.channelOffset) ??
+                        this.midiOutputs.values().next().value!;
+                    output.send(midiEventData);
                     return;
                 }
                 break;
@@ -516,30 +561,29 @@ export class Sequencer {
     }
 
     private resetMIDIOutput() {
-        if (!this.midiOut) {
-            return;
+        for (const output of this.midiOutputs.values()) {
+            for (let i = 0; i < 16; i++) {
+                output.send([
+                    MIDIMessageTypes.controllerChange | i,
+                    MIDIControllers.allNotesOff,
+                    0
+                ]); // All notes off
+                output.send([
+                    MIDIMessageTypes.controllerChange | i,
+                    MIDIControllers.resetAllControllers,
+                    0
+                ]); // Reset all controllers
+            }
+            output.send([
+                MIDIMessageTypes.systemExclusive,
+                ...MIDIUtils.gs(
+                    0x40, // System parameter - Address
+                    0x00, // Global mode parameter -  Address
+                    0x7f, // MODE SET - Address
+                    [0x00] // 00 = GS Reset - Data
+                )
+            ]);
         }
-        for (let i = 0; i < 16; i++) {
-            this.midiOut.send([
-                MIDIMessageTypes.controllerChange | i,
-                MIDIControllers.allNotesOff,
-                0
-            ]); // All notes off
-            this.midiOut.send([
-                MIDIMessageTypes.controllerChange | i,
-                MIDIControllers.resetAllControllers,
-                0
-            ]); // Reset all controllers
-        }
-        this.midiOut.send([
-            MIDIMessageTypes.systemExclusive,
-            ...MIDIUtils.gs(
-                0x40, // System parameter - Address
-                0x00, // Global mode parameter -  Address
-                0x7f, // MODE SET - Address
-                [0x00] // 00 = GS Reset - Data
-            )
-        ]);
     }
 
     private recalculateStartTime(time: number) {

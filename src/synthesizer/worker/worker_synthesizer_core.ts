@@ -12,6 +12,8 @@ import {
 } from "../basic/basic_synthesizer_core.ts";
 import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
 import { writeRMIDIWorker } from "./write_rmi_worker.ts";
+import type { SynthCoreConfig } from "../basic/types.ts";
+import { TOTAL_OUTPUT_COUNT } from "../basic/synth_config.ts";
 
 const BLOCK_SIZE = 128;
 
@@ -30,35 +32,24 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     /**
      * Creates a new worker synthesizer core: the synthesizer that runs in the worker.
      * Most parameters here are provided with the first message that is posted to the worker by the WorkerSynthesizer.
-     * @param synthesizerConfiguration The data from the first message sent from WorkerSynthesizer.
+     * @param synthCoreConfig The data from the first message sent from WorkerSynthesizer.
      * Listen for the first event and use its data to initialize this class.
      * @param workletMessagePort The first port from the first message sent from WorkerSynthesizer.
      * @param mainThreadCallback postMessage function or similar.
      * @param compressionFunction Optional function for compressing SF3 banks.
      */
     public constructor(
-        synthesizerConfiguration: {
-            sampleRate: number;
-            initialTime: number;
-        },
+        synthCoreConfig: SynthCoreConfig,
         workletMessagePort: MessagePort,
         mainThreadCallback: typeof Worker.prototype.postMessage,
         compressionFunction?: WorkerSampleEncodingFunction
     ) {
-        super(
-            synthesizerConfiguration.sampleRate,
-            {
-                effectsEnabled: true,
-                eventsEnabled: true,
-                initialTime: synthesizerConfiguration.initialTime
-            },
-            mainThreadCallback as PostMessageSynthCore
-        );
+        super(synthCoreConfig, mainThreadCallback as PostMessageSynthCore);
 
         this.workletMessagePort = workletMessagePort;
         this.workletMessagePort.onmessage = this.process.bind(this);
         this.compressionFunction = compressionFunction;
-        void this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.ready.then(() => {
             this.postReady("sf3Decoder", null);
             this.startAudioLoop();
         });
@@ -77,8 +68,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     m.data.options
                 );
                 const transferable: Transferable[] = [];
-                for (const r of rendered.effects) transferable.push(r.buffer);
-                for (const d of rendered.dry)
+                for (const r of rendered.output) transferable.push(r.buffer);
+                for (const d of rendered.visual)
                     transferable.push(...d.map((c) => c.buffer));
                 this.postReady("renderAudio", rendered, transferable);
                 break;
@@ -187,20 +178,42 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         if (!this.alive) {
             return;
         }
+        // Start the queue
+        this.messageQueueActive = true;
+
         // Data is encoded into a single f32 array as follows
-        // WetL, WetR,
+        // OutL, OutR
+        // ConvolverL, ConvolverR
+        // 16 visual channels:
         // Dry1L, dry1R
         // DryNL, dryNR
         // Dry16L, dry16R
         // To improve performance
         const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
-        const data = new Float32Array(BLOCK_SIZE * 34);
+        const data = new Float32Array(BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT);
         let byteOffset = 0;
-        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        // Main output
+        const outL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const outR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const dry: AudioChunks = [];
+
+        // Convolver
+        const convolverL = new Float32Array(
+            data.buffer,
+            byteOffset,
+            BLOCK_SIZE
+        );
+        byteOffset += byteStep;
+        const convolverR = new Float32Array(
+            data.buffer,
+            byteOffset,
+            BLOCK_SIZE
+        );
+        byteOffset += byteStep;
+
+        // Channels
+        const visual: AudioChunks = [];
         for (let i = 0; i < 16; i++) {
             const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
@@ -208,12 +221,17 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
 
-            dry.push([dryL, dryR]);
+            visual.push([dryL, dryR]);
         }
         for (const seq of this.sequencers) {
             seq.processTick();
         }
-        this.synthesizer.processSplit(dry, wetL, wetR);
+        this.synthesizer.process(outL, outR, undefined, undefined, visual);
+        // Extract reverb capture data
+        if (this.reverbCapture) {
+            convolverL.set(this.reverbCapture.capturedData);
+            convolverR.set(this.reverbCapture.capturedData);
+        }
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
         const t = this.synthesizer.currentTime;
@@ -250,5 +268,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 data: cv
             });
         }
+
+        this.flushQueue();
     }
 }

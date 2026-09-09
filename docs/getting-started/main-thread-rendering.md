@@ -23,7 +23,7 @@ while rendering in the main thread and having the full access to the audio engin
 
 A simple audio loop that achieves this is as follows:
 
-1. Create the `Float32Array` buffers for the dry, chorus and reverb outputs.
+1. Create the `Float32Array` buffers for the stereo output (and optionally the per-channel outputs for visualization).
 2. Perform any custom tasks needed and then render the audio
 3. Send the processed audio to playback nodes, like a custom audio worklet or `AudioBufferSourceNode`s
 4. The node plays back to the target node (a simple `BufferSource`)
@@ -41,8 +41,8 @@ which is something that cannot be achieved with just the `WorkletSynthesizer` cl
 
 Nothing special here.
 
-```js title='main_thread_rendering.js'
---8<-- "main_thread_rendering.js"
+```ts title='main_thread_rendering.ts'
+--8<-- "main_thread_rendering.ts"
 ```
 
 The audio loop presented in this script is very similar to the one shown above:

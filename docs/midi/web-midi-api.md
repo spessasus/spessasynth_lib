@@ -70,14 +70,19 @@ input.disconnect(synth);
 Connects a given sequencer to the output, playing back the MIDI file to it.
 
 ```ts
-output.connect(seq);
+output.connect(seq, (channelOffset = 0));
 ```
 
 - seq - the sequencer to connect to.
+- channelOffset - the channel offset of this output for multi-port files. For example 0 means the first port, 16 means the second port and so on.
+
+!!! Warning
+
+    Remember to enable [`externalMIDIPlayback`!](../sequencer#externalmidiplayback)
 
 ### disconnect
 
-Disconnects the sequencer from the output, making it play to the attached Synthesizer instead.
+Disconnects sequencer from the output.o
 
 ```ts
 output.disconnect(seq);

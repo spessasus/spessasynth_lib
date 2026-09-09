@@ -1,49 +1,36 @@
 // A worklet processor for the WorkletSynthesizer
-import { BasicMIDI, SoundBankLoader, SpessaLog } from "spessasynth_core";
-import type {
-    BasicSynthesizerMessage,
-    OfflineRenderWorkletData,
-    PassedProcessorParameters
-} from "../types.ts";
-import type { SequencerOptions } from "../../sequencer/types.ts";
-import { ConsoleColors } from "../../utils/other.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import {
+    BasicMIDI,
+    SoundBankLoader,
+    SpessaLog,
+    type SynthesizerSnapshot
+} from "spessasynth_core";
 import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
+import type { SequencerOptions } from "../../sequencer/types.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { ConsoleColors } from "../../utils/other.ts";
 import {
     BasicSynthesizerCore,
     SEQUENCER_SYNC_INTERVAL
 } from "../basic/basic_synthesizer_core.ts";
+import { VISUAL_CHANNEL_OUTPUTS_START } from "../basic/synth_config.ts";
+import type { SynthCoreConfig } from "../basic/types.ts";
+import type {
+    BasicSynthesizerMessage,
+    OfflineRenderWorkletData
+} from "../types.ts";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     protected alive = true;
-    /**
-     * Instead of 18 stereo outputs, there's one with 32 channels (no effects).
-     */
-    private readonly oneOutputMode: boolean;
     private readonly port: MessagePort;
 
-    public constructor(
-        sampleRate: number,
-        currentTime: number,
-        port: MessagePort,
-        opts: PassedProcessorParameters
-    ) {
-        super(
-            sampleRate,
-            {
-                effectsEnabled: !opts.oneOutput, // One output mode disables effects
-                eventsEnabled: opts?.eventsEnabled, // Enable message port?
-                initialTime: currentTime
-            },
-            (data, transfer) => {
-                port.postMessage(data, transfer!);
-            }
-        );
+    public constructor(synthCoreConfig: SynthCoreConfig, port: MessagePort) {
+        super(synthCoreConfig, (data, transfer) => {
+            port.postMessage(data, transfer!);
+        });
         this.port = port;
 
-        this.oneOutputMode = opts.oneOutput;
-
-        void this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.ready.then(() => {
             // Receive messages from the main thread
             this.port.onmessage = (e: MessageEvent<BasicSynthesizerMessage>) =>
                 this.handleMessage(e.data);
@@ -65,37 +52,31 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         if (!this.alive) {
             return false;
         }
+        // Start the queue
+        this.messageQueueActive = true;
         // Process sequencer
         for (const sq of this.sequencers) {
             sq.processTick();
         }
 
-        if (this.oneOutputMode) {
-            const out = outputs[0];
-            // 1 output with 32 channels.
-            // Channels are ordered as follows:
-            // MidiChannel1L, midiChannel1R,
-            // MidiChannel2L, midiChannel2R
-            // And so on
-            const channelMap: Float32Array[][] = [];
-            for (let i = 0; i < 32; i += 2) {
-                channelMap.push([out[i], out[i + 1]]);
-            }
-            this.synthesizer.setSystemParameter("effectsEnabled", false);
-            // Effects are disabled
-            this.synthesizer.processSplit(channelMap, out[0], out[0]);
-        } else {
-            // 17 outputs, each a stereo one
-            // 0: Effects
-            // 2: channel 1
-            // 3: channel 2
-            // And so on
-            this.synthesizer.processSplit(
-                outputs.slice(1),
-                outputs[0][0],
-                outputs[0][1]
-            );
+        // 18 outputs, each a stereo one
+        // 0: Main output (the complete audio, with effects)
+        // 1: Convolver dry (for main thread convolution, unused without convolverMode)
+        // 2-17: MIDI Channel outputs (visualization only, not to be connected to audio output!)
+        this.synthesizer.process(
+            outputs[0][0],
+            outputs[0][1],
+            undefined,
+            undefined,
+            outputs.slice(VISUAL_CHANNEL_OUTPUTS_START)
+        );
+
+        // Send reverb
+        if (this.reverbCapture) {
+            outputs[1][0].set(this.reverbCapture.capturedData);
+            outputs[1][1].set(this.reverbCapture.capturedData);
         }
+
         const t = this.synthesizer.currentTime;
         if (
             this.eventsEnabled &&
@@ -130,6 +111,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
                 data: cv
             });
 
+        this.flushQueue();
         return true;
     }
 
@@ -141,7 +123,9 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         super.handleMessage(m);
     }
 
-    private startOfflineRender(config: OfflineRenderWorkletData) {
+    private startOfflineRender(
+        config: OfflineRenderWorkletData<SynthesizerSnapshot>
+    ) {
         // Create a new sequencer if there are none
         // (common use case, example  offline_audio.js)
         if (this.sequencers.length === 0) this.createNewSequencer();

@@ -1,9 +1,13 @@
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
-import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
-import type { SynthConfig } from "../basic/types.ts";
-import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import type { OfflineRenderWorkletData } from "../types.ts";
+import type { SynthesizerSnapshot } from "spessasynth_core";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
+import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
+import type { SynthConfig } from "../basic/types.ts";
+import type {
+    LibSynthesizerSnapshot,
+    OfflineRenderWorkletData
+} from "../types.ts";
+import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
 
 /**
  * This synthesizer uses an audio worklet node containing the processor.
@@ -19,46 +23,10 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
         // Ensure default values for options
-        const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
-
-        let outputChannelCount = new Array<number>(17).fill(2);
-        let numberOfOutputs = 17;
-
-        if (synthConfig.oneOutput) {
-            // One output with 34 channels
-            outputChannelCount = [34];
-            numberOfOutputs = 1;
-        }
-
-        let worklet: AudioWorkletNode;
-        // Create the audio worklet node
-        try {
-            const workletConstructor =
-                synthConfig?.audioNodeCreators?.worklet ??
-                ((context, name, options) => {
-                    return new AudioWorkletNode(context, name, options);
-                });
-            worklet = workletConstructor(context, WORKLET_PROCESSOR_NAME, {
-                outputChannelCount,
-                numberOfOutputs,
-                processorOptions: {
-                    oneOutput: synthConfig.oneOutput,
-                    eventsEnabled: synthConfig.eventsEnabled
-                }
-            });
-        } catch (error) {
-            console.error(error);
-            throw new Error(
-                "Could not create the AudioWorkletNode. Did you forget to addModule()?",
-                { cause: error }
-            );
-        }
         super(
-            worklet,
-            (data, transfer = []) => {
-                worklet.port.postMessage(data, transfer);
-            },
-            synthConfig
+            context,
+            WORKLET_PROCESSOR_NAME,
+            fillWithDefaults(config, DEFAULT_SYNTH_CONFIG)
         );
     }
 
@@ -70,11 +38,28 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * Do NOT call any other methods after initializing before this one.
      * Chromium seems to ignore worklet messages for OfflineAudioContext.
      */
-    public async startOfflineRender(config: OfflineRenderWorkletData) {
+    public async startOfflineRender(
+        config: OfflineRenderWorkletData<LibSynthesizerSnapshot>
+    ) {
+        if (config.snapshot?.convolverImpulseResponse) {
+            if (!this.convolverNode) {
+                throw new Error(
+                    "Snapshot has impulse response provided but convolverMode is disabled!"
+                );
+            }
+            this.convolverNode.buffer =
+                config.snapshot.convolverImpulseResponse;
+        }
+
+        const configToSend = {
+            ...config,
+            snapshot: this.stripConvolverFromSnapshot(config.snapshot)
+        };
+
         this.post(
             {
                 type: "startOfflineRender",
-                data: config,
+                data: configToSend,
                 channelNumber: -1
             },
             config.soundBankList.map((b) => b.soundBankBuffer)
@@ -86,10 +71,37 @@ export class WorkletSynthesizer extends BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
+     * Returns a `ChannelMergerNode` with all 16 channel outputs merged into a single one, with multiple channels, layered as follows:
+     *
+     * - Channel1L, Channel1R
+     * - ...
+     * - Channel16L, Channel16R
+     *
+     * This is intended for offline audio rendering via OfflineAudioContext to allow extraction of separate channels.
+     * Note that the main output is not included, as Web Audio caps the number of channels at 32.
+     */
+    public getMergedOutput(): ChannelMergerNode {
+        // 16 stereo pairs to stay within the 32 channel cap
+        const merger = this.context.createChannelMerger(16 * 2);
+
+        // Connect channels
+        for (let i = 0; i < 16; i++) {
+            const splitter = this.context.createChannelSplitter(2);
+            // +2 because outputs 0 and 1 are the main output and the convolver
+            const output = i + 2;
+            this.worklet.connect(splitter, output);
+            splitter.connect(merger, 0, i * 2);
+            splitter.connect(merger, 1, i * 2 + 1);
+        }
+
+        return merger;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
      * Destroys the synthesizer instance.
      */
     public destroy() {
-        // noinspection JSCheckFunctionSignatures
         this.post({
             channelNumber: 0,
             type: "destroyWorklet",
@@ -99,5 +111,19 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // @ts-expect-error destruction!
         // noinspection JSConstantReassignment
         delete this.worklet;
+    }
+
+    private stripConvolverFromSnapshot(
+        snapshot?: LibSynthesizerSnapshot
+    ): SynthesizerSnapshot | undefined {
+        if (!snapshot) return undefined;
+        // Remove this, so it's not sent to the worklet
+        const snapshotCopy = { ...snapshot } as Omit<
+            LibSynthesizerSnapshot,
+            "convolverImpulseResponse"
+        >;
+        delete (snapshotCopy as { convolverImpulseResponse?: unknown })
+            .convolverImpulseResponse;
+        return snapshotCopy;
     }
 }

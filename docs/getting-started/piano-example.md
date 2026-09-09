@@ -14,6 +14,6 @@ We need to add an input for uploading the sound bank and the table for our piano
 We create a 36-key keyboard and add pointer events to it
 which control the note-on and note-off messages.
 
-```js title='piano.js'
---8<-- "piano.js"
+```ts title='piano.ts'
+--8<-- "piano.ts"
 ```

@@ -91,18 +91,19 @@ class LibMIDIOutput extends LibMIDIPort {
     /**
      * Connects a given sequencer to the output, playing back the MIDI file to it.
      * @param seq The sequencer to connect.
+     * @param channelOffset The channel offset of this output for multi-port files. For example 0 means the first port, 16 means the second port and so on.
      */
-    public connect(seq: Sequencer) {
-        seq.connectMIDIOutput(this.port);
+    public connect(seq: Sequencer, channelOffset = 0) {
+        seq.connectMIDIOutput(this.port, channelOffset);
     }
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Disconnects sequencer from the output, making it play to the attached Synthesizer instead.
+     * Disconnects sequencer from the output.
      * @param seq The sequencer to disconnect.
      */
     public disconnect(seq: Sequencer) {
-        seq.connectMIDIOutput(undefined);
+        seq.disconnectMIDIOutput(this.port);
     }
 }
 

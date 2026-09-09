@@ -17,7 +17,8 @@
         "release": "tsx build_scripts/debug_disable.ts",
         "prepack": "npm run build:npm",
         "prepublishOnly": "npm run release",
-        "prepare": "husky install"
+        "prepare": "husky install",
+        "serve": "npm run build:fast && npx --yes serve gh-pages"
     },
     "repository": {
         "type": "git",
@@ -86,6 +87,6 @@
         "esbuild@0.28.0": true
     },
     "dependencies": {
-        "spessasynth_core": "latest"
+        "spessasynth_core": "file:../spessasynth_core"
     }
 }

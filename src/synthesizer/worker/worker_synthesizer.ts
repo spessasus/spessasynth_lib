@@ -1,11 +1,7 @@
-import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import type { SynthConfig } from "../basic/types.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
 import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import {
-    getPlaybackWorkletURL,
-    PLAYBACK_WORKLET_PROCESSOR_NAME
-} from "./playback_worklet.ts";
+import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
+import type { SynthConfig } from "../basic/types.ts";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -17,9 +13,14 @@ import type {
     WorkerSoundFont2WriteOptions
 } from "../types.ts";
 import {
+    getPlaybackWorkletURL,
+    PLAYBACK_WORKLET_PROCESSOR_NAME
+} from "./playback_worklet.ts";
+import {
     DEFAULT_WORKER_RENDER_AUDIO_OPTIONS,
     type WorkerRenderAudioOptions
 } from "./render_audio_worker.ts";
+import { resampleAudioBuffer } from "../../utils/resample_audio_buffer.ts";
 
 const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
     trim: true,
@@ -58,6 +59,48 @@ type WorkerSynthWriteOptions<K> = K & {
     ) => unknown;
 };
 
+interface RenderAudioResult {
+    output: AudioBuffer;
+    visual: AudioBuffer[];
+}
+
+interface RenderAudioInternalResult {
+    visual: AudioBuffer[];
+    output: AudioBuffer;
+}
+
+type RenderAudioOptions = Omit<
+    Partial<WorkerRenderAudioOptions>,
+    "separateChannels"
+>;
+
+type StereoAudioChunk = [Float32Array, Float32Array];
+
+function makeAudioBuffer(
+    pair: StereoAudioChunk,
+    sampleRate: number
+): AudioBuffer {
+    const buffer = new AudioBuffer({
+        sampleRate,
+        numberOfChannels: 2,
+        length: pair[0].length
+    });
+    buffer.copyToChannel(pair[0] as Float32Array<ArrayBuffer>, 0);
+    buffer.copyToChannel(pair[1] as Float32Array<ArrayBuffer>, 1);
+    return buffer;
+}
+
+function mergeStereoAudioBuffer(into: AudioBuffer, from: AudioBuffer): void {
+    const channelCount = Math.min(into.numberOfChannels, from.numberOfChannels);
+    for (let ch = 0; ch < channelCount; ch++) {
+        const data = into.getChannelData(ch);
+        const src = from.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) {
+            data[i] += src[i];
+        }
+    }
+}
+
 /**
  * This synthesizer uses a Worker containing the processor and an audio worklet node for playback.
  */
@@ -75,52 +118,21 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @param config Optional configuration for the synthesizer.
      */
     public constructor(
-        context: BaseAudioContext,
+        // Disallow the use of OfflineAudioContext here
+        context: AudioContext,
         workerPostMessage: typeof Worker.prototype.postMessage,
         config: Partial<SynthConfig> = DEFAULT_SYNTH_CONFIG
     ) {
-        // Ensure default values for options
         const synthConfig = fillWithDefaults(config, DEFAULT_SYNTH_CONFIG);
-        if (synthConfig.oneOutput) {
-            throw new Error(
-                "One output mode is not supported in the WorkerSynthesizer."
-            );
-        }
-
-        let worklet: AudioWorkletNode;
-        // Create the audio worklet node
-        try {
-            const workletConstructor =
-                synthConfig?.audioNodeCreators?.worklet ??
-                ((context, name, options) => {
-                    return new AudioWorkletNode(context, name, options);
-                });
-            worklet = workletConstructor(
-                context,
-                PLAYBACK_WORKLET_PROCESSOR_NAME,
-                {
-                    outputChannelCount: new Array<number>(18).fill(2),
-                    numberOfOutputs: 18,
-                    processorOptions: {
-                        oneOutput: synthConfig.oneOutput,
-                        eventsEnabled: synthConfig.eventsEnabled
-                    }
-                }
-            );
-        } catch (error) {
-            console.error(error);
-            throw new Error(
-                "Could not create the AudioWorkletNode. Did you forget to registerPlaybackWorklet()?",
-                { cause: error }
-            );
-        }
+        // Ensure default values for options
         super(
-            worklet,
+            context,
+            PLAYBACK_WORKLET_PROCESSOR_NAME,
+            synthConfig,
             workerPostMessage as (
                 data: BasicSynthesizerMessage,
                 transfer?: Transferable[]
-            ) => unknown,
-            synthConfig
+            ) => unknown
         );
 
         // Create a message channel for communication between the worker and the worklet
@@ -133,7 +145,11 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         workerPostMessage(
             {
                 initialTime: this.context.currentTime,
-                sampleRate: this.context.sampleRate
+                sampleRate: this.context.sampleRate,
+                convolverMode: synthConfig.convolverMode,
+                processorConfig: {
+                    eventsEnabled: synthConfig.eventsEnabled
+                }
             },
             [workerPort]
         );
@@ -162,11 +178,12 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Handles a return message from the Worker.
-     * @param e The event received from the Worker.
+     * @param events The events received from the Worker.
      */
-    public handleWorkerMessage(e: BasicSynthesizerReturnMessage) {
-        this.timeOffset = e.currentTime - this.context.currentTime;
-        this.handleMessage(e);
+    public handleWorkerMessage(events: BasicSynthesizerReturnMessage[]) {
+        if (events.length > 0)
+            this.timeOffset = events[0].currentTime - this.context.currentTime;
+        this.handleMessages(events);
     }
 
     /**
@@ -272,64 +289,79 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Renders the current song in the connected sequencer to Float32 buffers.
+     * Renders the current song to a single stereo AudioBuffer.
      * @param sampleRate The sample rate to use, in Hertz.
      * @param renderOptions Extra options for the render.
-     * @returns A single audioBuffer if separate channels were not enabled, otherwise 16.
+     * @returns The complete stereo output, including the effects and convolver.
      * @remarks
-     * This stops the synthesizer.
+     * This stops the synthesizer while rendering.
      */
     public async renderAudio(
         sampleRate: number,
-        renderOptions: Partial<WorkerRenderAudioOptions> = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
-    ): Promise<AudioBuffer[]> {
-        const options = fillWithDefaults(
-            renderOptions,
-            DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
-        );
-        if (options.enableEffects && options.separateChannels) {
-            throw new Error("Effects cannot be applied to separate channels.");
-        }
+        renderOptions: RenderAudioOptions = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+    ): Promise<AudioBuffer> {
+        const options: WorkerRenderAudioOptions = {
+            ...fillWithDefaults(
+                renderOptions,
+                DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+            ),
+            separateChannels: false
+        };
+        const rendered = await this.renderAudioInternal(sampleRate, options);
+        return rendered.output;
+    }
+
+    /**
+     * Renders the current song to separate channel buffers plus the effects.
+     * @param sampleRate The sample rate to use, in Hertz.
+     * @param renderOptions Extra options for the render.
+     * @returns The complete stereo output and the separate visualization channels.
+     * @remarks
+     * This stops the synthesizer while rendering.
+     */
+    public async renderAudioSplit(
+        sampleRate: number,
+        renderOptions: RenderAudioOptions = DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+    ): Promise<RenderAudioResult> {
+        const options: WorkerRenderAudioOptions = {
+            ...fillWithDefaults(
+                renderOptions,
+                DEFAULT_WORKER_RENDER_AUDIO_OPTIONS
+            ),
+            separateChannels: true
+        };
+        const rendered = await this.renderAudioInternal(sampleRate, options);
+        return {
+            output: rendered.output,
+            visual: rendered.visual
+        };
+    }
+
+    private async renderAudioInternal(
+        sampleRate: number,
+        options: WorkerRenderAudioOptions
+    ): Promise<RenderAudioInternalResult> {
         return new Promise((resolve) => {
-            // First pass: Worker renders the dry audio
-            this.awaitWorkerResponse("renderAudio", (data) => {
+            // Worker renders the complete output and the visualization channels
+            this.awaitWorkerResponse("renderAudio", async (data) => {
                 this.revokeProgressTracker("renderAudio");
-                const bufferLength = data.dry[0][0].length;
-                // Convert to audio buffers
-                const dryChannels = data.dry.map((dryPair) => {
-                    const buffer = new AudioBuffer({
-                        sampleRate,
-                        numberOfChannels: 2,
-                        length: bufferLength
-                    });
-                    buffer.copyToChannel(
-                        dryPair[0] as Float32Array<ArrayBuffer>,
-                        0
+                const convolverData = data.convolver;
+                const visual = data.visual.map((dryPair) =>
+                    makeAudioBuffer(dryPair, sampleRate)
+                );
+                const output = makeAudioBuffer(data.output, sampleRate);
+                if (
+                    options.enableEffects &&
+                    convolverData &&
+                    this.convolverNode?.buffer
+                ) {
+                    const convolver = await this.renderConvolverBuffer(
+                        convolverData,
+                        sampleRate
                     );
-                    buffer.copyToChannel(
-                        dryPair[1] as Float32Array<ArrayBuffer>,
-                        1
-                    );
-                    return buffer;
-                });
-                if (options.enableEffects) {
-                    // Append effects
-                    const buffer = new AudioBuffer({
-                        sampleRate,
-                        numberOfChannels: 2,
-                        length: bufferLength
-                    });
-                    buffer.copyToChannel(
-                        data.effects[0] as Float32Array<ArrayBuffer>,
-                        0
-                    );
-                    buffer.copyToChannel(
-                        data.effects[1] as Float32Array<ArrayBuffer>,
-                        1
-                    );
-                    dryChannels.push(buffer);
+                    mergeStereoAudioBuffer(output, convolver);
                 }
-                resolve(dryChannels);
+                resolve({ visual, output });
                 return;
             });
             // Assign progress tracker and render
@@ -351,5 +383,39 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 channelNumber: -1
             });
         });
+    }
+
+    /**
+     * Render the convolver buffer with the current impulse response we have
+     * @param convolverData
+     * @param sampleRate
+     * @private
+     */
+    private async renderConvolverBuffer(
+        convolverData: StereoAudioChunk,
+        sampleRate: number
+    ) {
+        const convolverSource = makeAudioBuffer(convolverData, sampleRate);
+        const offline = new OfflineAudioContext({
+            numberOfChannels: 2,
+            length: convolverData[0].length,
+            sampleRate
+        });
+        const source = offline.createBufferSource();
+        source.buffer = convolverSource;
+        const convolver = offline.createConvolver();
+        // Different sample rates crash the thread
+        let impulseResponse = this.convolverNode!.buffer!;
+        if (impulseResponse.sampleRate !== sampleRate) {
+            impulseResponse = await resampleAudioBuffer(
+                impulseResponse,
+                sampleRate
+            );
+        }
+        convolver.buffer = impulseResponse;
+        source.connect(convolver);
+        convolver.connect(offline.destination);
+        source.start(0);
+        return offline.startRendering();
     }
 }

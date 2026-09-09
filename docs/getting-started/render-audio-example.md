@@ -10,8 +10,8 @@ Let's make use of a feature introduced in SpessaSynth v3.0. It allows us to rend
 
 Nothing new here.
 
-```js title='offline_audio.js'
---8<-- "offline_audio.js"
+```ts title='offline_audio.ts'
+--8<-- "offline_audio.ts"
 ```
 
 Here we use [`OfflineAudioContext`](https://developer.mozilla.org/en-US/Web/API/OfflineAudioContext)
@@ -20,3 +20,8 @@ This example uses the [`WorkletSynthesizer`](../synthesizer/worklet-synthesizer.
 the MIDI and sound bank are passed directly to the render call, so no sequencer is needed.
 
 For more info about writing WAV files, see [writing wave files](../writing-files/writing-wav-files.md).
+
+!!! Tip
+
+    Want each channel as a separate file instead?
+    See [Rendering Separate Channels To File](render-split-example.md).
