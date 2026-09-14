@@ -2,7 +2,7 @@ import { type SongChangeType } from "./enums";
 import {
     type BasicMIDI,
     type MIDIMessage,
-    type SequencerEvent
+    type SequencerEventCallback
 } from "spessasynth_core";
 import type { MIDIData } from "./midi_data";
 
@@ -50,8 +50,10 @@ export interface SequencerMessageData {
 }
 
 export type SequencerReturnMessage =
-    | (Exclude<SequencerEvent, { type: "songListChange" }> & { id: number })
-    | (Extract<SequencerEvent, { type: "songListChange" }> & {
+    | (Exclude<SequencerEventCallback, { type: "songListChange" }> & {
+          id: number;
+      })
+    | (Extract<SequencerEventCallback, { type: "songListChange" }> & {
           data: { shuffledSongIndexes: number[] };
           id: number;
       })

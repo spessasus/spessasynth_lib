@@ -409,7 +409,7 @@ export class Sequencer {
         switch (m.type) {
             case "midiMessage": {
                 const midiEvent = m.data;
-                const midiEventData = midiEvent.message as number[];
+                const midiEventData = midiEvent.message;
                 if (this.midiOutputs.size > 0 && midiEventData[0] >= 0x80) {
                     const output =
                         this.midiOutputs.get(midiEvent.channelOffset) ??
@@ -447,12 +447,10 @@ export class Sequencer {
                 break;
             }
 
-            case "pause": {
+            case "songEnded": {
                 this.pausedTime = this.currentTime;
-                this.isFinished = m.data.isFinished;
-                if (this.isFinished) {
-                    this.callEventInternal("songEnded", null);
-                }
+                this.isFinished = true;
+                this.callEventInternal("songEnded", null);
                 break;
             }
 

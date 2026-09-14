@@ -199,7 +199,7 @@ export abstract class BasicSynthesizerCore {
     }
 
     protected destroy() {
-        this.synthesizer.destroySynthProcessor();
+        this.synthesizer.destroy();
         // @ts-expect-error JS Deletion
         // noinspection JSConstantReassignment
         delete this.synthesizer;
@@ -472,7 +472,6 @@ export abstract class BasicSynthesizerCore {
 
             case "destroyWorklet": {
                 this.alive = false;
-                this.synthesizer.destroySynthProcessor();
                 this.destroy();
                 break;
             }

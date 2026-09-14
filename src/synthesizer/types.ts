@@ -2,15 +2,15 @@ import {
     type BasicMIDI,
     type ChannelMIDIParameter,
     type ChannelSystemParameter,
-    type DLSWriteOptions,
     type GlobalMIDIParameter,
     type GlobalSystemParameter,
     type MIDIController,
     type RMIDIWriteOptions,
+    type SoundBankWriteOptions,
     type SoundFont2WriteOptions,
+    type SynthesizerEvent as CoreSynthesizerEvent,
     type SynthesizerSnapshot,
-    type SynthMethodOptions,
-    type SynthProcessorEventData
+    type SynthMethodOptions
 } from "spessasynth_core";
 import type {
     SequencerMessage,
@@ -104,7 +104,10 @@ export interface WorkerBankWriteOptions {
     writeEmbeddedSoundBank: boolean;
 }
 
-export type WorkerDLSWriteOptions = Omit<DLSWriteOptions, "progressFunction"> &
+export type WorkerDLSWriteOptions = Omit<
+    SoundBankWriteOptions,
+    "progressFunction"
+> &
     WorkerBankWriteOptions;
 
 export type WorkerSoundFont2WriteOptions = Omit<
@@ -219,7 +222,7 @@ interface BasicSynthesizerMessageData {
     destroyWorklet: null;
 }
 
-export interface SynthesizerEventData extends SynthProcessorEventData {
+export interface SynthesizerEventData extends CoreSynthesizerEvent {
     /**
      * This event gets called when an error occurs while parsing the sound bank.
      */
