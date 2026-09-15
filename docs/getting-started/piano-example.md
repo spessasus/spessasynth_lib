@@ -1,3 +1,7 @@
+---
+title: Clickable Piano Example
+---
+
 # Clickable Piano Example
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/piano.html)**

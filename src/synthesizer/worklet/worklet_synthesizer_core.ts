@@ -5,20 +5,20 @@ import {
     SpessaLog,
     type SynthesizerSnapshot
 } from "spessasynth_core";
-import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options.ts";
-import type { SequencerOptions } from "../../sequencer/types.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { ConsoleColors } from "../../utils/other.ts";
+import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_options";
+import type { SequencerOptions } from "../../sequencer/types";
+import { fillWithDefaults } from "../../utils/fill_with_defaults";
+import { ConsoleColors } from "../../utils/other";
 import {
     BasicSynthesizerCore,
     SEQUENCER_SYNC_INTERVAL
-} from "../basic/basic_synthesizer_core.ts";
-import { VISUAL_CHANNEL_OUTPUTS_START } from "../basic/synth_config.ts";
-import type { SynthCoreConfig } from "../basic/types.ts";
+} from "../basic/basic_synthesizer_core";
+import { VISUAL_CHANNEL_OUTPUTS_START } from "../basic/synth_config";
+import type { SynthCoreConfig } from "../basic/types";
 import type {
     BasicSynthesizerMessage,
     OfflineRenderWorkletData
-} from "../types.ts";
+} from "../types";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
     protected alive = true;

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import esbuild from "esbuild";
 import url from "node:url";
-import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util.ts";
+import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util";
 
 export const buildExamples = () => {
     // File paths and directories

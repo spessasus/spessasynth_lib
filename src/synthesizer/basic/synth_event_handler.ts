@@ -1,13 +1,22 @@
-import type { SynthesizerEventData } from "../types.ts";
+import type { LibSynthesizerEvent } from "../types";
 
-export type ProcessorEventCallback<T extends keyof SynthesizerEventData> = (
-    callbackData: SynthesizerEventData[T]
+export type ProcessorEventCallback<T extends keyof LibSynthesizerEvent> = (
+    callbackData: LibSynthesizerEvent[T]
 ) => unknown;
 
 type EventsMap = {
-    [K in keyof SynthesizerEventData]: Map<string, ProcessorEventCallback<K>>;
+    [K in keyof LibSynthesizerEvent]: Map<string, ProcessorEventCallback<K>>;
 };
 
+/**
+ * The synthesizer supports event handling.
+ * For example, the MIDI Keyboard in the demo uses handling to visualize key-presses.
+ *
+ * It is accessible via the {@link BasicSynthesizer.eventHandler} property.
+ *
+ * Event types can be found in {@link LibSynthesizerEvent}.
+ * @group Synthesizer.Events
+ */
 export class SynthEventHandler {
     /**
      * The time delay before an event is called.
@@ -63,11 +72,11 @@ export class SynthEventHandler {
 
     /**
      * Adds a new event listener.
-     * @param event The event to listen to.
+     * @param event The event type to listen for.
      * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
      * @param callback The callback for the event.
      */
-    public addEvent<T extends keyof SynthesizerEventData>(
+    public addEvent<T extends keyof LibSynthesizerEvent>(
         event: T,
         id: string,
         callback: ProcessorEventCallback<T>
@@ -77,11 +86,11 @@ export class SynthEventHandler {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Removes an event listener
-     * @param name The event to remove a listener from.
+     * Removes an event listener.
+     * @param name The event type to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
-    public removeEvent<T extends keyof SynthesizerEventData>(
+    public removeEvent<T extends keyof LibSynthesizerEvent>(
         name: T,
         id: string
     ) {
@@ -93,9 +102,9 @@ export class SynthEventHandler {
      * INTERNAL USE ONLY!
      * @internal
      */
-    public callEventInternal<T extends keyof SynthesizerEventData>(
+    public callEventInternal<T extends keyof LibSynthesizerEvent>(
         name: T,
-        eventData: SynthesizerEventData[T]
+        eventData: LibSynthesizerEvent[T]
     ) {
         const eventList = this.events[name];
         const callback = () => {

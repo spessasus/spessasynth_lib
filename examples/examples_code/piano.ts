@@ -1,6 +1,6 @@
 // Import the modules
 import { WorkletSynthesizer } from "../../src";
-import { EXAMPLE_WORKLET_PATH } from "../examples_common.ts";
+import { EXAMPLE_WORKLET_PATH } from "../examples_common";
 
 document
     .querySelector("#sound_bank_input")!

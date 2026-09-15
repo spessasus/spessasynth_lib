@@ -1,8 +1,12 @@
+---
+title: Worker Synthesizer Example
+---
+
 # Worker Synthesizer Example
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/worker_synth.html)**
 
-This example shows how to use the new `WorkerSynthesizer` class introduced in SpessaSynth 4.0.
+This example shows how to use the new {@link WorkerSynthesizer} class introduced in SpessaSynth 4.0.
 This example adapts the Advanced example.
 
 ```html title='worker_synth.html'
@@ -16,7 +20,7 @@ Nothing new here.
 ```
 
 Note how we have to create our own worker and pass its `postMessage` bound to the Worker to the WorkerSynthesizer.
-We can also make use of the convenient `renderAudio` method which renders the current sequence.
+We can also make use of the convenient {@link WorkerSynthesizer.renderAudio} method which renders the current sequence.
 Other than that, the code is identical.
 
 Now let's take a look at the worker itself:

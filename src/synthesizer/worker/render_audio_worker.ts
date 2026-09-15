@@ -1,7 +1,12 @@
 import { SpessaSynthProcessor, SpessaSynthSequencer } from "spessasynth_core";
-import { ReverbCapture } from "../basic/reverb_passthrough.ts";
-import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
+import { ReverbCapture } from "../basic/reverb_passthrough";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
 
+/**
+ * Options for rendering audio in a {@link WorkerSynthesizer}
+ *
+ * @group Synthesizer.Worker
+ */
 export interface WorkerRenderAudioOptions {
     /**
      * Extra fadeout time after the song finishes, in seconds.

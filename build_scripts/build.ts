@@ -1,4 +1,4 @@
-import { runCommandSync } from "./run_command.ts";
+import { runCommandSync } from "./run_command";
 
 console.log("Building spessasynth_lib...");
 runCommandSync("npm run build:npm");

@@ -1,7 +1,7 @@
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
-import type { SynthConfig } from "../basic/types.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults";
+import { BasicSynthesizer } from "../basic/basic_synthesizer";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config";
+import type { SynthConfig } from "../basic/types";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -11,16 +11,16 @@ import type {
     WorkerDLSWriteOptions,
     WorkerRMIDIWriteOptions,
     WorkerSoundFont2WriteOptions
-} from "../types.ts";
+} from "../types";
 import {
     getPlaybackWorkletURL,
     PLAYBACK_WORKLET_PROCESSOR_NAME
-} from "./playback_worklet.ts";
+} from "./playback_worklet";
 import {
     DEFAULT_WORKER_RENDER_AUDIO_OPTIONS,
     type WorkerRenderAudioOptions
-} from "./render_audio_worker.ts";
-import { resampleAudioBuffer } from "../../utils/resample_audio_buffer.ts";
+} from "./render_audio_worker";
+import { resampleAudioBuffer } from "../../utils/resample_audio_buffer";
 
 const DEFAULT_BANK_WRITE_OPTIONS: WorkerBankWriteOptions = {
     trim: true,
@@ -53,14 +53,31 @@ const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {
     software: "SpessaSynth"
 };
 
-type WorkerSynthWriteOptions<K> = K & {
+/**
+ * Options for writing a file with the {@link WorkerSynthesizer}.
+ *
+ * @group Synthesizer.Worker
+ */
+export type WorkerSynthWriteOptions<K> = K & {
     progressFunction?: (
         args: SynthesizerProgress["workerSynthWriteFile"]
     ) => unknown;
 };
 
-interface RenderAudioResult {
+/**
+ * Result of split rendered audio.
+ *
+ * @group Synthesizer.Worker
+ */
+export interface RenderAudioResult {
+    /**
+     * The complete stereo mix, including the effects and convolver.
+     */
     output: AudioBuffer;
+    /**
+     * An array of 16 `AudioBuffer`s, one for each MIDI channel.
+     * These are the dry channel outputs and are intended for visualization only.
+     */
     visual: AudioBuffer[];
 }
 
@@ -69,7 +86,12 @@ interface RenderAudioInternalResult {
     output: AudioBuffer;
 }
 
-type RenderAudioOptions = Omit<
+/**
+ * Options for rendering the audio data in {@link WorkerSynthesizer}.
+ *
+ * @group Synthesizer.Worker
+ */
+export type RenderAudioOptions = Omit<
     Partial<WorkerRenderAudioOptions>,
     "separateChannels"
 >;
@@ -102,7 +124,17 @@ function mergeStereoAudioBuffer(into: AudioBuffer, from: AudioBuffer): void {
 }
 
 /**
- * This synthesizer uses a Worker containing the processor and an audio worklet node for playback.
+ * This synthesizer uses a Worker communicating with an AudioWorklet to provide real-time playback along with methods to export the data in various formats.
+ *
+ * > **Tip**
+ * >
+ * > A comparison of both synthesizers [can be found here.](../../../docs/extra/comparing-synthesizers.md).
+ *
+ * > **Note**
+ * >
+ * > An example demonstrating capabilities of this synthesizer [can be found here](../../../docs/getting-started/worker-synth-example.md).
+ *
+ * @group Synthesizer.Worker
  */
 export class WorkerSynthesizer extends BasicSynthesizer {
     /**
@@ -113,9 +145,64 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Creates a new instance of a Worker-based synthesizer.
-     * @param context The audio context.
-     * @param workerPostMessage The postMessage for the worker containing the synthesizer core.
+     *
+     * > **Warning**
+     * >
+     * > Make sure to {@link WorkerSynthesizer.registerPlaybackWorklet}!
+     *
+     * > **Important**
+     * >
+     * > Also see {@link WorkerSynthesizerCore} for initializing the worker side of the synthesizer.
+     *
+     *
+     * @example
+     * Below is a simple example of creating a new synthesizer.
+     * Note that the two snippets are two files, one for the worker and one in the main thread.
+     *
+     * ```js
+     * // worker
+     * let workerSynthCore;
+     * // Wait for the first message with parameters
+     * onmessage = (e) => {
+     *     if (e.ports[0]) {
+     *         // Initialize
+     *         workerSynthCore = new WorkerSynthesizerCore(
+     *             e.data,
+     *             e.ports[0],
+     *             postMessage.bind(this)
+     *         );
+     *     } else {
+     *         // Handle all other messages
+     *         void workerSynthCore.handleMessage(e.data);
+     *     }
+     * };
+     * ```
+     *
+     * ```ts
+     * // main thread
+     * // create audio context
+     * const context = new AudioContext({
+     *     sampleRate: 44100
+     * });
+     * // register worklet
+     * WorkerSynthesizer.registerPlaybackWorklet(context);
+     * // create the worker
+     * const worker = new Worker(
+     *     // make sure that your path is correct
+     *     new URL("worker.js", import.meta.url)
+     * );
+     * // create the synthesizer and bind it to the worker
+     * const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker));
+     * worker.onmessage = (e) => synth.handleWorkerMessage(e.data);
+     * ```
+     *
+     * @param context The audio context for the synthesizer to use.
+     * @param workerPostMessage The `postMessage` function of the Worker synthesizer will use.
+     * The raw `Worker.postMessage` can be passed here.
+     * This can be used for intercepting messages.
      * @param config Optional configuration for the synthesizer.
+     *
+     * @group Synthesizer.Worker
      */
     public constructor(
         // Disallow the use of OfflineAudioContext here
@@ -155,6 +242,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         );
     }
 
+    /**
+     * Returns the adjusted time, in sync with worker's internal time which may differ from the AudioContext time.
+     */
     public get currentTime() {
         return this.context.currentTime + this.timeOffset;
     }
@@ -162,7 +252,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     /**
      * Registers an audio worklet for the WorkerSynthesizer.
      * @param context The context to register the worklet for.
-     * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet. Higher values result in less breakups but higher latency.
+     * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet.
+     * Higher values result in less breakups but higher latency.
      */
     public static async registerPlaybackWorklet(
         context: BaseAudioContext,
@@ -177,7 +268,13 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Handles a return message from the Worker.
+     * Handles a return message from the worker.
+     *
+     * Usually you're going to do
+     * ```ts
+     * yourWorker.onmessage = (e) => synth.handleWorkerMessage(e.data);
+     * ```
+     * but this can also be used to intercept return messages if needed.
      * @param events The events received from the Worker.
      */
     public handleWorkerMessage(events: BasicSynthesizerReturnMessage[]) {
@@ -188,8 +285,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Writes a DLS file directly in the worker.
-     * @param options Options for writing the file.
-     * @returns The file array buffer and its corresponding name.
+     * This pauses the playback if it is playing.
+     *
+     * @param options Optional configuration for writing the DLS file.
+     * @returns The file array buffer and its suggested name.
      */
     public async writeDLS(
         options: Partial<
@@ -222,8 +321,10 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Writes an SF2/SF3 file directly in the worker.
-     * @param options Options for writing the file.
-     * @returns The file array buffer and its corresponding name.
+     * This pauses the playback if it is playing.
+     *
+     * @param options Optional configuration for writing the SF2 file.
+     * @returns The file array buffer and its suggested name.
      */
     public async writeSF2(
         options: Partial<
@@ -256,7 +357,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Writes an embedded MIDI (RMIDI) file directly in the worker.
-     * @param options Options for writing the file.
+     * This pauses the playback if it is playing.
+     *
+     * @param options Optional configuration for writing the RMIDI file.
      * @returns The file array buffer.
      */
     public async writeRMIDI(
@@ -289,12 +392,11 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Renders the current song to a single stereo AudioBuffer.
+     * Renders the current song in the connected sequencer to a single stereo `AudioBuffer`.
+     * This pauses the playback if it is playing.
      * @param sampleRate The sample rate to use, in Hertz.
-     * @param renderOptions Extra options for the render.
+     * @param renderOptions Options for rendering the audio data.
      * @returns The complete stereo output, including the effects and convolver.
-     * @remarks
-     * This stops the synthesizer while rendering.
      */
     public async renderAudio(
         sampleRate: number,
@@ -312,12 +414,11 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Renders the current song to separate channel buffers plus the effects.
+     * Renders the current song in the connected sequencer to the complete stereo output plus separate channel buffers.
+     * This pauses the playback if it is playing
      * @param sampleRate The sample rate to use, in Hertz.
-     * @param renderOptions Extra options for the render.
+     * @param renderOptions Options for rendering the audio data.
      * @returns The complete stereo output and the separate visualization channels.
-     * @remarks
-     * This stops the synthesizer while rendering.
      */
     public async renderAudioSplit(
         sampleRate: number,

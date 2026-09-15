@@ -1,14 +1,22 @@
 import { SpessaLog } from "spessasynth_core";
-import { ConsoleColors } from "../utils/other.js";
+import { ConsoleColors } from "../utils/other";
 import type { Sequencer } from "../sequencer/sequencer";
-import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
+import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer";
 
 /**
  * Midi_handler.js
  * purpose: handles the connection between MIDI devices and synthesizer/sequencer via Web MIDI API
  */
 
-class LibMIDIPort {
+/**
+ * Wrapper around the Web MIDI API's `MIDIPort`.
+ *
+ * @group Web MIDI
+ */
+export class LibMIDIPort {
+    /**
+     * The actual Web MIDI API port.
+     */
     public readonly port: MIDIPort;
 
     protected constructor(port: MIDIPort) {
@@ -17,7 +25,7 @@ class LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     *
+     * The `id` read-only property of the MIDIPort interface returns the unique ID of the port.
      */
     public get id() {
         return this.port.id;
@@ -25,7 +33,7 @@ class LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     *
+     * The `name` read-only property of the MIDIPort interface returns the system name of the port.
      */
     public get name() {
         return this.port.name;
@@ -33,7 +41,7 @@ class LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     *
+     * The `manufacturer` read-only property of the MIDIPort interface returns the manufacturer of the port.
      */
     public get manufacturer() {
         return this.port.manufacturer;
@@ -41,16 +49,25 @@ class LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     *
+     * The `version` read-only property of the MIDIPort interface returns the version of the port.
      */
     public get version() {
         return this.port.version;
     }
 }
 
-class LibMIDIInput extends LibMIDIPort {
+/**
+ * Wrapper around the Web MIDI API's `MIDIInput`.
+ *
+ * @group Web MIDI
+ */
+export class LibMIDIInput extends LibMIDIPort {
     private readonly connectedSynths = new Set<BasicSynthesizer>();
 
+    /**
+     * @internal
+     * @param input
+     */
     public constructor(input: MIDIInput) {
         super(input);
         input.onmidimessage = (e) => {
@@ -79,22 +96,29 @@ class LibMIDIInput extends LibMIDIPort {
     }
 }
 
-class LibMIDIOutput extends LibMIDIPort {
-    public readonly port: MIDIOutput;
-
+/**
+ * Wrapper around the Web MIDI API's `MIDIOutput`.
+ *
+ * @group Web MIDI
+ */
+export class LibMIDIOutput extends LibMIDIPort {
+    /**
+     * @internal
+     * @param output
+     */
     public constructor(output: MIDIOutput) {
         super(output);
-        this.port = output;
     }
 
     // noinspection JSUnusedGlobalSymbols
     /**
      * Connects a given sequencer to the output, playing back the MIDI file to it.
      * @param seq The sequencer to connect.
-     * @param channelOffset The channel offset of this output for multi-port files. For example 0 means the first port, 16 means the second port and so on.
+     * @param channelOffset The channel offset of this output for multi-port files.
+     * For example 0 means the first port, 16 means the second port and so on.
      */
     public connect(seq: Sequencer, channelOffset = 0) {
-        seq.connectMIDIOutput(this.port, channelOffset);
+        seq.connectMIDIOutput(this.port as MIDIOutput, channelOffset);
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -103,13 +127,16 @@ class LibMIDIOutput extends LibMIDIPort {
      * @param seq The sequencer to disconnect.
      */
     public disconnect(seq: Sequencer) {
-        seq.disconnectMIDIOutput(this.port);
+        seq.disconnectMIDIOutput(this.port as MIDIOutput);
     }
 }
 
 // noinspection JSUnusedGlobalSymbols
 /**
- * A class for handling physical MIDI devices.
+ * SpessaSynth provides an easy way to connect physical MIDI Devices
+ * to it and back using the Web MIDI API via `MIDIDeviceHandler`.
+ *
+ * @group Web MIDI
  */
 export class MIDIDeviceHandler {
     /**
@@ -131,9 +158,9 @@ export class MIDIDeviceHandler {
     }
 
     /**
-     * Attempts to initialize the MIDI Device Handler.
-     * @returns The handler.
-     * @throws An error if the MIDI Devices fail to initialize.
+     * Initializes the connection to physical MIDI Devices.
+     * @returns The MIDI Device handler.
+     * @throws Error An error if the MIDI Devices fail to initialize or the Web MIDI API is not supported.
      */
     public static async createMIDIDeviceHandler(): Promise<MIDIDeviceHandler> {
         if (navigator.requestMIDIAccess) {

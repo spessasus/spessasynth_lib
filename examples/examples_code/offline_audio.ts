@@ -1,6 +1,6 @@
 // Import the modules
 import { audioBufferToWav, WorkletSynthesizer } from "../../src";
-import { EXAMPLE_WORKLET_PATH } from "../examples_common.ts";
+import { EXAMPLE_WORKLET_PATH } from "../examples_common";
 import { BasicMIDI } from "spessasynth_core";
 
 let sfFile: ArrayBuffer;

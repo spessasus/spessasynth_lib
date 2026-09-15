@@ -1,3 +1,6 @@
+// Import for {@link}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { MIDITrack } from "spessasynth_core";
 import {
     BasicMIDI,
     MIDIControllers,
@@ -5,29 +8,36 @@ import {
     MIDIUtils,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
-import { songChangeType } from "./enums.js";
-import { MIDIData } from "./midi_data.js";
-import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options.js";
+import { songChangeType } from "./enums";
+import { MIDIData } from "./midi_data";
+import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options";
 import type {
+    LibSequencerEvent,
     SequencerMessage,
     SequencerMessageData,
     SequencerOptions,
     SequencerReturnMessage,
-    SuppliedMIDIData,
-    WorkletSequencerEventType
+    SuppliedMIDIData
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
-import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer.ts";
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_config.ts"; // noinspection JSUnusedGlobalSymbols
+import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_config"; // noinspection JSUnusedGlobalSymbols
 
 // noinspection JSUnusedGlobalSymbols
+/**
+ * This is the module that plays MIDI sequences using a {@link WorkletSynthesizer} or {@link WorkerSynthesizer}
+ *
+ * @group Sequencer
+ */
 export class Sequencer {
     /**
-     * The current MIDI data for all songs, like the midiData property.
+     * The data of all the sequences, stored like the {@link Sequencer.midiData} property, but for all songs.
+     * Allows creating playlists with the decoded titles and metadata.
      */
     public songListData: MIDIData[] = [];
     /**
-     * Allows setting up custom event listeners for the sequencer.
+     * The sequencer's event handler.
+     * It allows setting up custom event listeners for the sequencer.
      */
     public eventHandler = new SeqEventHandler();
     /**
@@ -39,7 +49,21 @@ export class Sequencer {
      */
     public readonly synth: BasicSynthesizer;
     /**
-     * The current MIDI data, with the exclusion of the embedded sound bank and event data.
+     * The data of the current sequence.
+     * Undefined if the data is currently loading or if no song is playing.
+     *
+     * The {@link BasicMIDI.embeddedSoundBank} and {@link BasicMIDI.timeline} properties
+     * and {@link MIDITrack.events} in the tracks are all empty to avoid copying the entire file between threads.
+     *
+     * > **Tip**
+     * >
+     * > To get the actual MIDI data, use the {@Sequencer.getMIDI} method.
+     *
+     * > **Danger**
+     * >
+     * > The sequencer doesn't instantly get the new MIDI information.
+     * > Make sure to listen for the {@SynthEventData.songChange} instead of waiting or assuming that the data is available instantly.
+     * > Also keep in mind that The sequencer _preloads_ the samples for the MIDI (this can be disabled with {@Sequencer.preload})
      */
     public midiData?: MIDIData;
     /**
@@ -69,8 +93,13 @@ export class Sequencer {
 
     /**
      * Creates a new MIDI sequencer for playing back MIDI files.
-     * @param synth synth to send events to.
-     * @param options the sequencer's options.
+     *
+     * > **Tip**
+     * >
+     * > As of `v4.1.0` you can connect more than 1 {@link Sequencer} to a synthesizer!
+     *
+     * @param synth The synthesizer instance to play back to.
+     * @param options Optional configuration for the sequencer.
      */
     public constructor(
         synth: BasicSynthesizer,
@@ -102,7 +131,7 @@ export class Sequencer {
     private _shuffledSongIndexes: number[] = [];
 
     /**
-     * The shuffled song indexes.
+     * The shuffled song indexes, pointing to songs in {@link Sequencer.songListData}.
      * This is used when shuffleMode is enabled.
      */
     public get shuffledSongIndexes() {
@@ -113,15 +142,16 @@ export class Sequencer {
 
     /**
      * The current song number in the playlist.
-     * If shuffle Mode is enabled, this is the index of the shuffled song list.
+     * If shuffle mode is enabled, this is the index of the shuffled song list.
      */
     public get songIndex() {
         return this._songIndex;
     }
 
     /**
-     * The current song number in the playlist.
+     * Sets the current song number in the playlist.
      * If shuffle Mode is enabled, this is the index of the shuffled song list.
+     * @param value The new song index to set.
      */
     public set songIndex(value: number) {
         /**
@@ -149,7 +179,8 @@ export class Sequencer {
     }
 
     /**
-     * The current sequence's length, in seconds.
+     * The current song's length, in seconds.
+     * 0 if no track is currently loaded.
      */
     public get duration() {
         return this.midiData?.duration ?? 0;
@@ -157,7 +188,9 @@ export class Sequencer {
 
     private _songCount = 0;
 
-    // The amount of songs in the list.
+    /**
+     * The number of songs in the playlist.
+     */
     public get songCount() {
         return this._songCount;
     }
@@ -165,14 +198,15 @@ export class Sequencer {
     private _skipToFirstNoteOn: boolean;
 
     /**
-     * Indicates if the sequencer should skip to first note on.
+     * Indicates if the sequencer should skip to first note on when the time is set below it.
      */
     public get skipToFirstNoteOn(): boolean {
         return this._skipToFirstNoteOn;
     }
 
     /**
-     * Indicates if the sequencer should skip to first note on.
+     * Indicates if the sequencer should skip to first note on when the time is set below it.
+     * @param val The new value for this parameter.
      */
     public set skipToFirstNoteOn(val: boolean) {
         this._skipToFirstNoteOn = val;
@@ -185,14 +219,18 @@ export class Sequencer {
     private _loopCount = -1;
 
     /**
-     * The current remaining number of loops. -1 means infinite looping.
+     * The number of loops remaining until the loop is disabled.
      */
     public get loopCount() {
         return this._loopCount;
     }
 
     /**
-     * The current remaining number of loops. -1 means infinite looping.
+     * The number of loops remaining until the loop is disabled.
+     * Set to `Infinity` to loop forever.
+     * It will automatically decrease by one every loop.
+     * Set to 0 to disable loops.
+     * @param val The new loop count.
      */
     public set loopCount(val) {
         this._loopCount = val;
@@ -205,14 +243,15 @@ export class Sequencer {
     private _playbackRate = 1;
 
     /**
-     * Controls the playback's rate.
+     * Controls how fast the song plays (1 is normal, 0.5 is half speed etc.)
      */
     public get playbackRate() {
         return this._playbackRate;
     }
 
     /**
-     * Controls the playback's rate.
+     * Controls how fast the song plays (1 is normal, 0.5 is half speed etc.)
+     * @param value The new playback rate.
      */
     public set playbackRate(value: number) {
         const t = this.currentTime;
@@ -228,7 +267,7 @@ export class Sequencer {
      * Controls if the sequencer should shuffle the songs in the song list.
      * If true, the sequencer will play the songs in a random order.
      *
-     * Songs are shuffled on a `loadNewSongList` call.
+     * Songs are shuffled on a {@Sequencer.loadNewSongList} call.
      */
     public get shuffleSongs() {
         return this._shuffleSongs;
@@ -238,7 +277,8 @@ export class Sequencer {
      * Controls if the sequencer should shuffle the songs in the song list.
      * If true, the sequencer will play the songs in a random order.
      *
-     * Songs are shuffled on a `loadNewSongList` call.
+     * Songs are shuffled on a {@Sequencer.loadNewSongList} call.
+     * @param value The new value for this parameter.
      */
     public set shuffleSongs(value: boolean) {
         this._shuffleSongs = value;
@@ -257,6 +297,10 @@ export class Sequencer {
 
     /**
      * Enables or disables sending MIDI messages to the attached MIDI ports.
+     *
+     * > **Tip**
+     * >
+     * > Also see {@link MIDIDeviceHandler}.
      */
     public get externalMIDIPlayback() {
         return this._externalMIDIPlayback;
@@ -264,6 +308,11 @@ export class Sequencer {
 
     /**
      * Enables or disables sending MIDI messages to the attached MIDI ports.
+     *
+     * > **Tip**
+     * >
+     * > Also see {@link MIDIDeviceHandler}.
+     * @param value The new value for this parameter.
      */
     public set externalMIDIPlayback(value: boolean) {
         this._externalMIDIPlayback = value;
@@ -271,7 +320,7 @@ export class Sequencer {
     }
 
     /**
-     * Current playback time, in seconds.
+     * The current playback time of the song in seconds.
      */
     public get currentTime() {
         if (this.isLoading) {
@@ -289,14 +338,15 @@ export class Sequencer {
     }
 
     /**
-     * Current playback time, in seconds.
+     * Seeks to the specified time.
+     * @param time The new time in seconds.
      */
     public set currentTime(time) {
         this.sendMessage("setTime", time);
     }
 
     /**
-     * A smoothed version of currentTime.
+     * A smoothed version of {@link Sequencer.currentTime}.
      * Use for visualization as it's not affected by the audioContext stutter.
      */
     public get currentHighResolutionTime() {
@@ -333,7 +383,7 @@ export class Sequencer {
     }
 
     /**
-     * Gets the current MIDI File.
+     * Gets the actual {@link BasicMIDI} sequence, complete with track data.
      */
     public async getMIDI(): Promise<BasicMIDI> {
         return new Promise((resolve) => {
@@ -343,7 +393,8 @@ export class Sequencer {
     }
 
     /**
-     * Loads a new song list.
+     * Load a new song list.
+     * Note that this does not start playing the songs automatically
      * @param midiBuffers The MIDI files to play.
      */
     public loadNewSongList(midiBuffers: SuppliedMIDIData[]) {
@@ -355,7 +406,16 @@ export class Sequencer {
     }
 
     /**
-     * Connects a given output to the sequencer.
+     * Connects a given MIDI output port and plays the sequence to it.
+     *
+     * > **Note**
+     * >
+     * > You can also use the {@link MIDIDeviceHandler}.
+     *
+     * > **Warning**
+     * >
+     * > Remember to enable {@link Sequencer.externalMIDIPlayback}!
+     *
      * @param output The output to connect.
      * @param channelOffset The channel offset of this output for multi-port files. For example 0 means the first port, 16 means the second port and so on.
      */
@@ -372,7 +432,13 @@ export class Sequencer {
     }
 
     /**
-     * Disconnects a given output from the sequencer.
+     * Disconnects a given MIDI output port from the sequencer.
+     *
+     * > **Warning**
+     * >
+     * > Remember to disable {@link Sequencer.externalMIDIPlayback}
+     * > if you want to use the synthesizer for playback.
+     *
      * @param output The output to disconnect.
      */
     public disconnectMIDIOutput(output: { send: (data: number[]) => unknown }) {
@@ -385,7 +451,7 @@ export class Sequencer {
     }
 
     /**
-     * Pauses the playback.
+     * Pauses the playback of the sequence.
      */
     public pause() {
         if (this.paused) {
@@ -396,7 +462,7 @@ export class Sequencer {
     }
 
     /**
-     * Starts or resumes the playback.
+     * Starts playing or resumes the sequence.
      */
     public play() {
         this.recalculateStartTime(this.pausedTime ?? 0);
@@ -429,7 +495,10 @@ export class Sequencer {
                 this.midiData = songChangeData;
                 this.isLoading = false;
                 this.absoluteStartTime = 0;
-                this.callEventInternal("songChange", songChangeData);
+                this.callEventInternal("songChange", {
+                    songIndex: m.data.songIndex,
+                    midiData: songChangeData
+                });
                 break;
             }
 
@@ -443,14 +512,14 @@ export class Sequencer {
                 // Message data is absolute time
                 const time = m.data.newTime;
                 this.recalculateStartTime(time);
-                this.callEventInternal("timeChange", time);
+                this.callEventInternal("timeChange", m.data);
                 break;
             }
 
             case "songEnded": {
                 this.pausedTime = this.currentTime;
                 this.isFinished = true;
-                this.callEventInternal("songEnded", null);
+                this.callEventInternal("songEnded", m.data);
                 break;
             }
 
@@ -525,15 +594,13 @@ export class Sequencer {
                         break;
                     }
                 }
-                this.callEventInternal("metaEvent", {
-                    event: m.data.event,
-                    trackNumber: m.data.trackIndex
-                });
+                this.callEventInternal("metaEvent", m.data);
                 break;
             }
 
             case "loopCountChange": {
                 this._loopCount = m.data.newCount;
+                this.callEventInternal("loopCountChange", m.data);
                 break;
             }
 
@@ -552,9 +619,10 @@ export class Sequencer {
         }
     }
 
-    private callEventInternal<
-        EventType extends keyof WorkletSequencerEventType
-    >(type: EventType, data: WorkletSequencerEventType[EventType]) {
+    private callEventInternal<EventType extends keyof LibSequencerEvent>(
+        type: EventType,
+        data: LibSequencerEvent[EventType]
+    ) {
         this.eventHandler.callEventInternal(type, data);
     }
 

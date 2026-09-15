@@ -1,10 +1,13 @@
+---
+title: Rendering Separate Channels To File
+---
+
 # Rendering Separate Channels To File
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/offline_audio_split.html)**
 
 This example builds on [Rendering Audio To File](render-audio-example.md), but instead of a single stereo mix,
-it renders each MIDI channel separately using the `WorkletSynthesizer`'s
-[`getMergedOutput`](../synthesizer/worklet-synthesizer.md#getmergedoutput) method.
+it renders each MIDI channel separately using {@link WorkletSynthesizer.getMergedOutput} method.
 
 ```html title='offline_audio_split.html'
 --8<-- "offline_audio_split.html"
@@ -14,7 +17,7 @@ it renders each MIDI channel separately using the `WorkletSynthesizer`'s
 --8<-- "offline_audio_split.ts"
 ```
 
-Instead of connecting the synthesizer directly to the destination, we call `getMergedOutput` and connect the returned
+Instead of connecting the synthesizer directly to the destination, we call {@link WorkletSynthesizer.getMergedOutput `getMergedOutput`} and connect the returned
 `ChannelMergerNode` to the `OfflineAudioContext` destination. This layers all the channel outputs into a single
 multichannel buffer:
 
@@ -28,4 +31,4 @@ Note that the `OfflineAudioContext` is created with 32 channels (16 stereo chann
 These channel outputs are the dry signal, intended for visualization only,
 and the main output is not included (such as system effects or insertion effects), as Web Audio caps the number of channels at 32.
 
-For more info about writing WAV files, see [writing wave files](../writing-files/writing-wav-files.md).
+For more info about writing WAV files, see {@link audioBufferToWav}

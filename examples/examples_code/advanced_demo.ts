@@ -3,7 +3,7 @@ import { Sequencer, WorkletSynthesizer } from "../../src";
 import {
     EXAMPLE_SOUND_BANK_PATH,
     EXAMPLE_WORKLET_PATH
-} from "../examples_common.ts";
+} from "../examples_common";
 
 // Load the sound bank
 const response = await fetch(EXAMPLE_SOUND_BANK_PATH);
@@ -57,7 +57,7 @@ document
             "example-time-change",
             (event) => {
                 document.querySelector("#message")!.textContent =
-                    "Now playing: " + event.getName();
+                    "Now playing: " + event.midiData.getName();
             }
         ); // Make sure to add a unique id!
 

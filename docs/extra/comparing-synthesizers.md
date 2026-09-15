@@ -1,8 +1,12 @@
-# Comparing the types of the Synthesizer
+---
+title: Comparing Synthesizers
+---
 
-spessasynth_lib provides two synthesizers:
+# Comparing Synthesizers
 
-## Worklet Synthesizer
+`spessasynth_lib` provides two synthesizers:
+
+## {@link WorkletSynthesizer}
 
 This synthesizer uses a single AudioWorklet to provide real-time playback.
 
@@ -11,6 +15,7 @@ This synthesizer uses a single AudioWorklet to provide real-time playback.
 - Stable audio system: The processor lives in the worklet. As long as the system can keep up, there should be no dropouts.
 - Separate thread: The audio thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
 - Fast main thread communication: suitable for real-time playback from Web MIDI Inputs.
+- Simple to set up.
 
 ### Disadvantages
 
@@ -18,7 +23,7 @@ This synthesizer uses a single AudioWorklet to provide real-time playback.
 - Rendering audio requires another instance of the synthesizer. This potentially means copying a 4GB sound bank buffer twice.
 - No access to the audio engine or ability to intercept the messages.
 
-## Worker Synthesizer
+## {@link WorkerSynthesizer}
 
 This newer synthesizer uses a Worker communicating with an AudioWorklet through a MessageChannel to provide real-time playback.
 

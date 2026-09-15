@@ -11,14 +11,16 @@
         "build:fast": "npm run build:npm && npm run build:pages",
         "build:npm": "tsx build_scripts/build_npm.ts",
         "build:pages": "tsx build_scripts/build_pages.ts",
-        "format": "prettier . --write",
+        "docs": "tsx node_modules/typedoc/bin/typedoc src/index.ts --options typedoc.json",
+        "docs:watch": "tsx node_modules/typedoc/bin/typedoc src/index.ts --options typedoc.json --watch",
+        "docs:serve": "npx concurrently \"npm run docs:watch\" \"npx serve site/\"",
+        "format": "prettier . --write --list-different",
         "test:types": "eslint && tsc -b",
         "debug": "tsx build_scripts/debug_enable.ts",
         "release": "tsx build_scripts/debug_disable.ts",
         "prepack": "npm run build:npm",
         "prepublishOnly": "npm run release",
-        "prepare": "husky install",
-        "serve": "npm run build:fast && npx --yes serve gh-pages"
+        "prepare": "husky install"
     },
     "repository": {
         "type": "git",
@@ -62,6 +64,7 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@types/audioworklet": "^0.0.100",
+        "@types/markdown-it": "^14.2.0",
         "@types/node": "^25.9.1",
         "esbuild": "^0.28.0",
         "eslint": "^10.4.0",
@@ -73,6 +76,7 @@
         "prettier": "^3.8.3",
         "tsdown": "^0.22.0",
         "tsx": "^4.22.3",
+        "typedoc": "^0.28.20",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.59.4"
     },

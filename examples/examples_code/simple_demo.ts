@@ -3,7 +3,7 @@ import { Sequencer, WorkletSynthesizer } from "../../src";
 import {
     EXAMPLE_SOUND_BANK_PATH,
     EXAMPLE_WORKLET_PATH
-} from "../examples_common.ts";
+} from "../examples_common";
 
 // Load the sound bank (your path may vary)
 const response = await fetch(EXAMPLE_SOUND_BANK_PATH);

@@ -1,8 +1,8 @@
 import { SpessaLog } from "spessasynth_core";
-import { ConsoleColors } from "./utils/other.ts";
-import { WORKLET_PROCESSOR_NAME } from "./synthesizer/worklet/worklet_processor_name.ts";
-import { WorkletSynthesizerCore } from "./synthesizer/worklet/worklet_synthesizer_core.ts";
-import type { SynthCoreConfig } from "./synthesizer/basic/types.ts";
+import { ConsoleColors } from "./utils/other";
+import { WORKLET_PROCESSOR_NAME } from "./synthesizer/worklet/worklet_processor_name";
+import { WorkletSynthesizerCore } from "./synthesizer/worklet/worklet_synthesizer_core";
+import type { SynthCoreConfig } from "./synthesizer/basic/types";
 
 class WorkletSynthesizerProcessor extends AudioWorkletProcessor {
     private readonly core: WorkletSynthesizerCore;

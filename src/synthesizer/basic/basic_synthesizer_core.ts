@@ -6,17 +6,17 @@ import {
     SpessaSynthProcessor,
     SpessaSynthSequencer
 } from "spessasynth_core";
-import { songChangeType } from "../../sequencer/enums.ts";
-import { MIDIData } from "../../sequencer/midi_data.ts";
+import { songChangeType } from "../../sequencer/enums";
+import { MIDIData } from "../../sequencer/midi_data";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
     SynthesizerProgress,
     SynthesizerReturn
-} from "../types.ts";
-import { ReverbCapture } from "./reverb_passthrough.ts";
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
-import type { SynthCoreConfig } from "./types.ts";
+} from "../types";
+import { ReverbCapture } from "./reverb_passthrough";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config";
+import type { SynthCoreConfig } from "./types";
 
 export type PostMessageSynthCore = (
     data: BasicSynthesizerReturnMessage[],
@@ -27,10 +27,22 @@ export type PostMessageSynthCore = (
 export const SEQUENCER_SYNC_INTERVAL = 1;
 
 /**
- * The interface for the audio processing code that uses spessasynth_core and runs on a separate thread.
+ * The interface for the audio processing code that uses `spessasynth_core` and runs on a separate thread.
+ * It runs in a Web Worker for {@link WorkerSynthesizer} and in an AudioWorklet for {@link WorkletSynthesizer}.
+ *
+ * It provides raw access to `spessasynth_core` {@link SpessaSynthProcessor} and {@link SpessaSynthSequencer} instances.
+ * @group Synthesizer.Basic
  */
 export abstract class BasicSynthesizerCore {
+    /**
+     * The synthesizer instance.
+     * This property allows for direct access to the audio engine.
+     */
     public readonly synthesizer: SpessaSynthProcessor;
+    /**
+     * The array of sequencers to use with the synthesizer.
+     * This property allows for direct access to the sequencers and their MIDI data.
+     */
     public readonly sequencers = new Array<SpessaSynthSequencer>();
 
     protected readonly postInternal: PostMessageSynthCore;

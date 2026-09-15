@@ -1,4 +1,8 @@
-# Adding Visualizations
+---
+title: Adding Visualizations Example
+---
+
+# Adding Visualizations Example
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/visualizer.html)**
 
@@ -27,7 +31,7 @@ synth.eventHandler.addEvent("noteOn", (event) => {
 });
 ```
 
-[The event system](../synthesizer/synth-event-handler.md) allows us to hook up events
+{@link SynthEventHandler} allows us to hook up events
 (in this case, note on and off to visualize key presses)
 
 ```ts title='visualizer.ts'

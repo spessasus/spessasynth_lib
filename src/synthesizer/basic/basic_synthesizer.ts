@@ -12,31 +12,31 @@ import {
     type SynthesizerSnapshot,
     type SynthMethodOptions
 } from "spessasynth_core";
-import type { SequencerReturnMessage } from "../../sequencer/types.ts";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { ConsoleColors } from "../../utils/other.ts";
-import { reverbBufferBinary } from "../reverb/compressed_reverb_decoder.ts";
+import type { SequencerReturnMessage } from "../../sequencer/types";
+import { fillWithDefaults } from "../../utils/fill_with_defaults";
+import { ConsoleColors } from "../../utils/other";
+import { reverbBufferBinary } from "../reverb/compressed_reverb_decoder";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
-    SynthesizerEventData,
+    LibSynthesizerEvent,
     SynthesizerProgress,
     SynthesizerReturn
-} from "../types.ts";
-import { LibMIDIChannel } from "./lib_midi_channel.ts";
-import { SoundBankManager } from "./sound_bank_manager.ts";
+} from "../types";
+import { LibMIDIChannel } from "./lib_midi_channel";
+import { SoundBankManager } from "./sound_bank_manager";
 import {
     ALL_CHANNELS_OR_DIFFERENT_ACTION,
     CONVOLVER_OUTPUT,
     MAIN_OUTPUT,
     TOTAL_OUTPUT_COUNT,
     VISUAL_CHANNEL_OUTPUTS_START
-} from "./synth_config.ts";
+} from "./synth_config";
 import {
     type ProcessorEventCallback,
     SynthEventHandler
-} from "./synth_event_handler.ts";
-import type { AudioNodeCreators, SynthConfig } from "./types.ts";
+} from "./synth_event_handler";
+import type { AudioNodeCreators, SynthConfig } from "./types";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
@@ -50,26 +50,55 @@ type SynthesizerPostFunction = (
     transfer?: Transferable[]
 ) => unknown;
 
-// The "remote controller" of a given processor and abstraction for both synth engines.
+/**
+ *
+ * This abstract class contains shared methods between {@link WorkletSynthesizer} and {@link WorkerSynthesizer}.
+ *
+ * > **Warning**
+ * >
+ * > The synthesizer internally sends commands to the {@link BasicSynthesizerCore} where all the processing happens. (This can be a worklet or a worker depending on your synthesizer of choice.)
+ * > Keep that in mind as not all methods will immediately report values!
+ * > (E.g. {@link BasicSynthesizer.noteOn `noteOn`} won't instantly increase the voice count in {@link BasicSynthesizer.midiChannels `midiChannels`})
+ *
+ * ### Features
+ *
+ * The synthesizer uses `spessasynth_core`'s synthesizer as the core audio engine, providing extensive support for all supported audio formats and various MIDI extensions.
+ *
+ * [MIDI implementation chart can be found here](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/).
+ *
+ * [Comparison of both synthesizers can be found here.](../../../docs/extra/comparing-synthesizers.md)
+ * @group Synthesizer.Basic
+ */
 export abstract class BasicSynthesizer {
     /**
-     * Allows managing the sound bank list.
+     * The synthesizer's sound bank manager.
+     * It allows managing the sound bank list.
      */
     public readonly soundBankManager = new SoundBankManager(this);
     /**
-     * Allows setting up custom event listeners for the synthesizer.
+     * The synthesizer's event handler.
+     * It allows setting up custom event listeners for the synthesizer.
      */
-    public readonly eventHandler: SynthEventHandler = new SynthEventHandler();
+    public readonly eventHandler = new SynthEventHandler();
     /**
-     * Synthesizer's parent AudioContext instance.
+     * Synthesizer's parent audio context instance.
      */
     public readonly context: BaseAudioContext;
     /**
-     * Synth's current channel properties.
+     * The synthesizer's (virtual) MIDI channels.
+     *
+     * > **Note**
+     * >
+     * > The real channels live in {@link BasicSynthesizerCore}.
      */
     public readonly midiChannels: LibMIDIChannel[] = [];
     /**
-     * The current preset list.
+     * The current preset list of the synthesizer,
+     * including all soundbanks with their offsets set through the {@link SoundBankManager}.
+     *
+     * > **Tip**
+     * >
+     * > It is still recommended to use {@link LibSynthesizerEvent.presetListChange `presetListChange`} event as the data may not be immediately available.
      */
     public presetList: MIDIPatchFull[] = [];
 
@@ -80,7 +109,11 @@ export abstract class BasicSynthesizer {
      */
     public sequencers = new Array<(m: SequencerReturnMessage) => unknown>();
     /**
-     * Resolves when the synthesizer is ready.
+     * A promise that gets resolved when the synthesizer gets fully initialized.
+     *
+     * > **Warning**
+     * >
+     * > Remember to wait for this promise before playing anything or rendering audio!
      */
     public readonly isReady: Promise<unknown>;
     /**
@@ -88,6 +121,13 @@ export abstract class BasicSynthesizer {
      * @internal
      */
     public readonly post: SynthesizerPostFunction;
+    /**
+     * The `AudioNode` that processes the synthesizer's captured reverb tail through a Web Audio `ConvolverNode`.
+     *
+     * > **Warning**
+     * >
+     * > This property is only defined when {@link SynthConfig.convolverMode} is enabled.
+     */
     public readonly convolverNode: ConvolverNode | undefined;
     protected readonly worklet: AudioWorkletNode;
     protected readonly convolverReady?: Promise<AudioBuffer>;
@@ -120,6 +160,7 @@ export abstract class BasicSynthesizer {
      * @param workletName The worklet processor name to use.
      * @param postFunction The internal post function. Leave undefined to use worklet's post message.
      * @param synthConfig Optional configuration for the synthesizer.
+     * @internal
      */
     protected constructor(
         context: BaseAudioContext,
@@ -256,18 +297,11 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The global MIDI parameters of the synthesizer.
+     * The {@link GlobalMIDIParameter}s of the synthesizer.
      * These are only editable via MIDI messages.
      */
     public get midiParameters(): Readonly<GlobalMIDIParameter> {
         return this._midiParameters;
-    }
-
-    /**
-     * The current channel count of the synthesizer.
-     */
-    public get channelCount() {
-        return this.midiChannels.length;
     }
 
     /**
@@ -277,14 +311,14 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The current number of voices playing.
+     * The current amount of voices (notes) being synthesized. A real-time value.
      */
     public get voiceCount() {
         return this._voiceCount;
     }
 
     /**
-     * The audioContext's current time.
+     * The connected `BaseAudioContext`'s time.
      */
     public get currentTime() {
         return this.context.currentTime;
@@ -292,7 +326,7 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The global system parameters of the synthesizer.
+     * The {@link GlobalSystemParameter}s of the synthesizer.
      * These are only editable via the API.
      */
     public get systemParameters(): Readonly<GlobalSystemParameter> {
@@ -300,8 +334,9 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Connects from a given node.
+     * Connects the synthesizer to a given AudioNode.
      * @param destinationNode The node to connect to.
+     * @returns The destination node.
      */
     public connect(destinationNode: AudioNode) {
         // Connect main
@@ -314,8 +349,9 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Disconnects from a given node.
+     * Disconnects the synthesizer from a given AudioNode.
      * @param destinationNode The node to disconnect from.
+     * @returns THe destination node.
      */
     public disconnect(destinationNode: AudioNode) {
         // Disconnect main output
@@ -328,7 +364,13 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets the SpessaSynth's log level in the processor.
+     * Sets `spessasynth_core`'s log level in the processor.
+     * @example
+     * ```js
+     * // Enable all logs
+     * synth.setLogLevel(true, true, true);
+     * ```
+     *
      * @param enableInfo Enable info (verbose)
      * @param enableWarning Enable warnings (unrecognized messages)
      * @param enableGroup Enable groups (to group a lot of logs)
@@ -351,8 +393,14 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Locks or unlocks a given Global MIDI Parameter.
+     * Locks or unlocks a given {@link GlobalMIDIParameter}.
      * This prevents any changes to it until it's unlocked.
+     * @example
+     * ```js
+     * // Lock the MIDI system to GS
+     * synth.lockMIDIParameter("system", "gs");
+     * ```
+     *
      * @param parameter The Global MIDI Parameter to lock.
      * @param isLocked If the parameter should be locked.
      */
@@ -373,7 +421,13 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets a system parameter to a given value.
+     * Sets a {@link GlobalSystemParameter} to a given value.
+     * @example
+     * ```js
+     * // Set the master gain to 200%
+     * synth.setSystemParameter("gain", 2);
+     * ```
+     *
      * @param parameter The parameter to set.
      * @param value The value to set.
      */
@@ -399,7 +453,7 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Gets a complete snapshot of the synthesizer, effects.
+     * Get a current {@link SynthesizerSnapshot} of the synthesizer.
      */
     public async getSnapshot() {
         return await new Promise<SynthesizerSnapshot>((resolve) => {
@@ -425,6 +479,13 @@ export abstract class BasicSynthesizer {
     /**
      * Connects a given channel output to the given audio node.
      * Note that this output is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
+     * @example
+     * ```js
+     * // Create an analyzer for channel 1
+     * const analyzer = context.createAnalyser();
+     * synth.connectChannel(analyzer, 0);
+     * ```
+     *
      * @param targetNode The node to connect to.
      * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
      * @returns The target node.
@@ -437,8 +498,15 @@ export abstract class BasicSynthesizer {
         return targetNode;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Disconnects a given channel output to the given audio node.
+     * @example
+     * ```js
+     * // Disconnect the analyzer from earlier
+     * synth.disconnectChannel(analyzer, 0);
+     * ```
+     *
      * @param targetNode The node to disconnect from.
      * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
      */
@@ -451,9 +519,15 @@ export abstract class BasicSynthesizer {
 
     /**
      * Sends a raw MIDI message to the synthesizer.
-     * @param message the midi message, each number is a byte.
-     * @param channelOffset the channel offset of the message.
-     * @param eventOptions additional options for this command.
+     * @example
+     * ```js
+     * // send a MIDI note on message for channel 2 and a note 61 (C#) with velocity 120
+     * synth.sendMessage([0x92, 0x3d, 0x78]);
+     * ```
+     *
+     * @param message  The MIDI message to process.
+     * @param channelOffset Adds to the channel number of the message. It defaults to 0.
+     * @param eventOptions Additional options for this command.
      */
     public sendMessage(
         message: Iterable<number>,
@@ -464,10 +538,20 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Starts playing a note
-     * @param channel Usually 0-15: the channel to play the note.
-     * @param midiNote 0-127 the key number of the note.
-     * @param velocity 0-127 the velocity of the note (generally controls loudness).
+     * Starts playing a note.
+     *
+     * > **Note**
+     * >
+     * > That velocity of 0 is treated like a Note Off message.
+     * @example
+     * ```js
+     * // start the note 64 (E) on channel 0 with velocity of 120
+     * synth.noteOn(0, 64, 120);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param midiNote The MIDI note number to play. Ranges from 0 to 127.
+     * @param velocity Controls how loud the note is. Ranges from 0 to 127, where 127 is the loudest and 1 is the quietest.
      * @param eventOptions Additional options for this command.
      */
     public noteOn(
@@ -489,8 +573,14 @@ export abstract class BasicSynthesizer {
 
     /**
      * Stops playing a note.
-     * @param channel Usually 0-15: the channel of the note.
-     * @param midiNote {number} 0-127 the key number of the note.
+     * @example
+     * ```js
+     * // stop the note 78 (F) on channel 15
+     * synth.noteOff(15, 77);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param midiNote The MIDI note number to stop. Ranges from 0 to 127.
      * @param eventOptions Additional options for this command.
      */
     public noteOff(
@@ -510,7 +600,7 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Stops all notes.
+     * Stop all notes. Equivalent of MIDI "panic".
      * @param force If the notes should immediately be stopped, defaults to false.
      */
     public stopAll(force = false) {
@@ -522,10 +612,21 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Changes the given controller
-     * @param channel Usually 0-15: the channel to change the controller.
-     * @param controller 0-127 the MIDI CC number.
-     * @param value 0-127 the controller value.
+     * Set a given MIDI controller to a given value.
+     *
+     * > **Tip**
+     * >
+     * > Refer to [this table](https://spessasus.github.io/spessasynth_core/extra/midi-implementation#default-supported-controllers)
+     * > for the list of controllers supported by default.
+     * @example
+     * ```js
+     * // set controller 10 (Channel Pan) on channel 2 to 127 (Hard right)
+     * synth.controllerChange(2, 10, 127);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param controller The MIDI CC number of the controller to change.
+     * @param value The value to set the given controller to. Ranges from 0 to 127.
      * @param eventOptions Additional options for this command.
      */
     public controllerChange(
@@ -551,7 +652,7 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Fully resets the synthesizer.
+     * Fully resets the synthesizer to GS mode.
      */
     public reset() {
         this.post({
@@ -561,10 +662,17 @@ export abstract class BasicSynthesizer {
         });
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
-     * Applies pressure to a given channel.
-     * @param channel Usually 0-15: the channel to change the controller.
-     * @param pressure 0-127: the pressure to apply.
+     * Apply pressure to the given channel. It usually controls the vibrato amount.
+     * @example
+     * ```js
+     * // set channel 1 pressure to 64 (middle)
+     * synth.channelPressure(1, 64);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param pressure The pressure to apply. Ranges from 0 to 127. 0 means no pressure, 127 means max.
      * @param eventOptions Additional options for this command.
      */
     public channelPressure(
@@ -582,11 +690,20 @@ export abstract class BasicSynthesizer {
         );
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
-     * Applies pressure to a given note.
-     * @param channel Usually 0-15: the channel to change the controller.
-     * @param midiNote 0-127: the MIDI note.
-     * @param pressure 0-127: the pressure to apply.
+     * Apply pressure to the given note on a given channel.
+     * It may be bound to specific parameters with system exclusive messages to allow for
+     * extra controls, such as per-note pitch wheel.
+     * @example
+     * ```js
+     * // set channel 11 pressure on note 60 (C) to 127 (max)
+     * synth.polyPressure(11, 60, 127);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param midiNote The MIDI note number to apply pressure to. Ranges from 0 to 127.
+     * @param pressure The pressure to apply. Ranges from 0 to 127.
      * @param eventOptions Additional options for this command.
      */
     public polyPressure(
@@ -606,10 +723,17 @@ export abstract class BasicSynthesizer {
         );
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets the pitch of the given channel.
-     * @param channel Usually 0-15: the channel to change pitch.
-     * @param value The bend of the MIDI pitch wheel message. 0 - 16384
+     * Change the channel's pitch, including the currently playing notes.
+     * @example
+     * ```js
+     * // set pitch bend on channel 1 to middle (no change)
+     * synth.pitchWheel(0, 8192);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param value The 14-bit pitch value. Ranges from 0 to 16383 where 8192 is no pitch change.
      * @param eventOptions Additional options for this command.
      */
     public pitchWheel(
@@ -628,8 +752,20 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets the channel's pitch wheel range, in semitones.
-     * @param channel Usually 0-15: the channel to change.
+     * Change the channel's pitch bend range in semitones.
+     * It uses Registered Parameter Number controllers internally.
+     *
+     * > **Tip**
+     * >
+     * > The pitch bend range can be decimal, for example, 0.5 means +- half a semitone.
+     *
+     * @example
+     * ```js
+     * // set the pitch bend range on channel 0 to +-12 semitones (one octave)
+     * synth.pitchWheelRange(0, 12);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
      * @param range The bend range in semitones.
      * @param eventOptions Additional options for this command.
      */
@@ -675,9 +811,15 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Changes the program for a given channel
-     * @param channel Usually 0-15: the channel to change.
-     * @param programNumber 0-127 the MIDI patch number.
+     * Changes the program for the given channel.
+     * @example
+     * ```js
+     * // change the program on channel 1 to 16 (drawbar organ)
+     * synth.programChange(0, 16);
+     * ```
+     *
+     * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
+     * @param programNumber The MIDI program number to use. Ranges from 0 to 127.
      * @param eventOptions Additional options for this command.
      */
     public programChange(
@@ -697,8 +839,31 @@ export abstract class BasicSynthesizer {
 
     /**
      * Sends a MIDI Sysex message to the synthesizer.
+     *
+     * > **Tip**
+     * >
+     * > Refer to the
+     * > [MIDI Implementation](https://spessasus.github.io/spessasynth_core/extra/midi-implementation/#system-exclusives)
+     * > for the list of supported System Exclusives.
+     *
+     * @example
+     * ```js
+     * // send a GS DT1 Use Drums On Channel 10 (turn channel 10 into a drum channel)
+     * synth.systemExclusive([
+     *     0x41, 0x10, 0x42, 0x12, 0x40, 0x1a, 0x15, 0x01, 0x10, 0xf7
+     * ]);
+     *
+     * // send a GS DT1 Use Drums On Channel 10 (turn channel 20 into a drum channel)
+     * synth.systemExclusive(
+     *     [0x41, 0x10, 0x42, 0x12, 0x40, 0x1a, 0x15, 0x01, 0x10, 0xf7],
+     *     10
+     * );
+     * ```
+     *
      * @param messageData The message's data, excluding the F0 byte, but including the F7 at the end.
-     * @param channelOffset Channel offset for the system exclusive message, defaults to zero.
+     * @param channelOffset The channel offset for the message as they usually can only address the first 16 channels.
+     *   For example, to send a system exclusive on channel 16 (0-based),
+     *   send a system exclusive for channel 0 and specify the channel offset to be 16.
      * @param eventOptions Additional options for this command.
      */
     public systemExclusive(
@@ -715,14 +880,26 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Tune MIDI keys of a given program using the MIDI Tuning Standard.
-     * @param program  0 - 127 the MIDI program number to use.
-     * @param tunings The keys and their tunings.
-     * TargetPitch of -1 sets the tuning for this key to be tuned regularly.
+     * Tunes individual MIDI key numbers on a given program using the MIDI Tuning Standard.
+     * Think of it as a pitch wheel but for individual notes.
+     *
+     * > **Warning**
+     * >
+     * > This tuning is not applied per channel, but per MIDI program number.
+     *
+     * @param program The MIDI program to tune. Ranges from 0 to 127.
+     * @param tunings An array of tunings, each containing two properties:
+     * - `sourceKey` - the MIDI note number to tune.
+     * - `targetPitch` - The MIDI note number of the target pitch.
+     *  Note that floating values are allowed and they are specified in cents.
+     * `targetPitch` of `-1` sets the default tuning.
      */
     public tuneKeys(
         program: number,
-        tunings: { sourceKey: number; targetPitch: number }[]
+        tunings: {
+            sourceKey: number;
+            targetPitch: number;
+        }[]
     ) {
         if (tunings.length > 127) {
             throw new Error("Too many tunings. Maximum allowed is 127.");
@@ -759,6 +936,8 @@ export abstract class BasicSynthesizer {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Yes please!
+     *
+     * Cranks the reverb up to the max and returns a string that says: `That's the spirit!`
      */
     public reverbateEverythingBecauseWhyNot(): "That's the spirit!" {
         for (let i = 0; i < this.midiChannels.length; i++) {
@@ -908,7 +1087,7 @@ export abstract class BasicSynthesizer {
         this.resolveMap.delete(type);
     }
 
-    private registerInternalEvent<T extends keyof SynthesizerEventData>(
+    private registerInternalEvent<T extends keyof LibSynthesizerEvent>(
         event: T,
         callback: ProcessorEventCallback<T>
     ) {

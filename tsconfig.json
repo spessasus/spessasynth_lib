@@ -26,9 +26,8 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
         "noEmit": true,
-        "allowImportingTsExtensions": true,
         "types": ["node", "audioworklet"]
     },
-    "include": ["src", "examples", "build_scripts"],
-    "exclude": ["node_modules", "dist", "gh-pages"]
+    "include": ["src", "examples", "build_scripts", "docs"],
+    "exclude": ["node_modules", "dist", "site"]
 }

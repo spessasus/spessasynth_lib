@@ -1,3 +1,7 @@
+---
+title: Advanced Example
+---
+
 # Advanced Example
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/advanced_demo.html)**

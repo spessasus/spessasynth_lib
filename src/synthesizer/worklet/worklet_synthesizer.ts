@@ -1,20 +1,38 @@
 import type { SynthesizerSnapshot } from "spessasynth_core";
-import { fillWithDefaults } from "../../utils/fill_with_defaults.ts";
-import { BasicSynthesizer } from "../basic/basic_synthesizer.ts";
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config.ts";
-import type { SynthConfig } from "../basic/types.ts";
+import { fillWithDefaults } from "../../utils/fill_with_defaults";
+import { BasicSynthesizer } from "../basic/basic_synthesizer";
+import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config";
+import type { SynthConfig } from "../basic/types";
 import type {
     LibSynthesizerSnapshot,
     OfflineRenderWorkletData
-} from "../types.ts";
-import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name.js";
+} from "../types";
+import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name";
 
 /**
- * This synthesizer uses an audio worklet node containing the processor.
+ * This synthesizer uses anAudioWorklet node provide real-time playback.
+ *
+ * > **Tip**
+ * >
+ * > A comparison of both synthesizers [can be found here.](../../../docs/extra/comparing-synthesizers.md).
+ *
+ * > **Note**
+ * >
+ * > An example demonstrating capabilities of this synthesizer [can be found here](../../../docs/getting-started/advanced-example.md).
+ *
+ * @group Synthesizer.Worklet
  */
 export class WorkletSynthesizer extends BasicSynthesizer {
     /**
      * Creates a new instance of an AudioWorklet-based synthesizer.
+     *
+     * > **Warning**
+     * >
+     * > Avoid using multiple synthesizer instances.
+     * > The {@link SoundBankManager} and one instance should be sufficient, especially with using more than 16 channels.
+     * > See [this comment for more info.](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985)
+     *
+     *
      * @param context The audio context.
      * @param config Optional configuration for the synthesizer.
      */
@@ -32,11 +50,14 @@ export class WorkletSynthesizer extends BasicSynthesizer {
 
     /**
      * Starts an offline audio render.
-     * @param config The configuration to use.
-     * @remarks
-     * Call this method immediately after you've set up the synthesizer.
-     * Do NOT call any other methods after initializing before this one.
-     * Chromium seems to ignore worklet messages for OfflineAudioContext.
+     *
+     * > **Warning**
+     * >
+     * > Call this method immediately after you've set up the synthesizer.
+     * > Do NOT call any other methods after initializing before this one.
+     * > Chromium seems to ignore worklet messages for `OfflineAudioContext`.
+     *
+     * @param config The configuration to use for rendering.
      */
     public async startOfflineRender(
         config: OfflineRenderWorkletData<LibSynthesizerSnapshot>
@@ -77,8 +98,20 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * - ...
      * - Channel16L, Channel16R
      *
-     * This is intended for offline audio rendering via OfflineAudioContext to allow extraction of separate channels.
-     * Note that the main output is not included, as Web Audio caps the number of channels at 32.
+     * This is intended for offline audio rendering via `OfflineAudioContext` to allow extraction of separate channels.
+     *
+     * > **Note**
+     * >
+     * > The main output is not included in the merged output,
+     * > as Web Audio caps the number of channels at 32 (16 stereo pairs).
+     *
+     * > **Warning**
+     * >
+     * > Make sure the `OfflineAudioContext` is created with 32 channels, otherwise the channels will be downmixed.
+     *
+     * > **Tip**
+     * >
+     * > An example demonstrating this [can be found here](../../../docs/getting-started/render-split-example.md).
      */
     public getMergedOutput(): ChannelMergerNode {
         // 16 stereo pairs to stay within the 32 channel cap
@@ -99,7 +132,12 @@ export class WorkletSynthesizer extends BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Destroys the synthesizer instance.
+     * Properly disposes of the synthesizer along with its worklet.
+     *
+     * > **Warning**
+     * >
+     * > Remember, you **MUST** call this method after you're done with the synthesizer!
+     * > Otherwise it will keep processing and the performance will greatly suffer.
      */
     public destroy() {
         this.post({

@@ -71,7 +71,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 *.tgz
-/synthetizer/
-/spessasynth_lib.wiki/
+site/
 dist/
-/gh-pages/
