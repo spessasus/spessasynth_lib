@@ -91,6 +91,7 @@
         "esbuild@0.28.0": true
     },
     "dependencies": {
+        "fflate": "^0.8.3",
         "spessasynth_core": "file:../spessasynth_core"
     }
 }

@@ -49,7 +49,7 @@ and reworked, more powerful API!
 - **Modular design:** _Easy integration into other projects (load what you need)_
 - **[Detailed documentation:](https://spessasus.github.io/spessasynth_lib/)** _With [examples!](https://spessasus.github.io/spessasynth_lib/getting-started/#examples)_
 - **Easy to Use:** _Basic setup is just [two lines of code!](https://spessasus.github.io/spessasynth_lib/getting-started/#minimal-setup)_
-- **No external dependencies:** _Just spessasynth_core!_
+- **Minimal dependencies:** _Just spessasynth_core and reverb decompressor!_
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)!
 - **AudioWorklet synthesizer:**
     - Runs in a **separate thread** for maximum performance!
