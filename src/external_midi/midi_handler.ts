@@ -62,6 +62,11 @@ export class LibMIDIPort {
  * @group Web MIDI
  */
 export class LibMIDIInput extends LibMIDIPort {
+    /**
+     * The actual Web MIDI API port.
+     */
+    public readonly port: MIDIInput;
+
     private readonly connectedSynths = new Set<BasicSynthesizer>();
 
     /**
@@ -70,6 +75,7 @@ export class LibMIDIInput extends LibMIDIPort {
      */
     public constructor(input: MIDIInput) {
         super(input);
+        this.port = input;
         input.onmidimessage = (e) => {
             for (const s of this.connectedSynths) {
                 if (e.data) s.sendMessage(e.data);
@@ -103,11 +109,17 @@ export class LibMIDIInput extends LibMIDIPort {
  */
 export class LibMIDIOutput extends LibMIDIPort {
     /**
+     * The actual Web MIDI API port.
+     */
+    public readonly port: MIDIOutput;
+
+    /**
      * @internal
      * @param output
      */
     public constructor(output: MIDIOutput) {
         super(output);
+        this.port = output;
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -118,7 +130,7 @@ export class LibMIDIOutput extends LibMIDIPort {
      * For example 0 means the first port, 16 means the second port and so on.
      */
     public connect(seq: Sequencer, channelOffset = 0) {
-        seq.connectMIDIOutput(this.port as MIDIOutput, channelOffset);
+        seq.connectMIDIOutput(this.port, channelOffset);
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -127,7 +139,7 @@ export class LibMIDIOutput extends LibMIDIPort {
      * @param seq The sequencer to disconnect.
      */
     public disconnect(seq: Sequencer) {
-        seq.disconnectMIDIOutput(this.port as MIDIOutput);
+        seq.disconnectMIDIOutput(this.port);
     }
 }
 
