@@ -9,7 +9,6 @@ import {
     MIDIMessageTypes,
     type MIDIPatchFull,
     SpessaLog,
-    type SynthesizerSnapshot,
     type SynthMethodOptions
 } from "spessasynth_core";
 import type { SequencerReturnMessage } from "../../sequencer/types";
@@ -217,9 +216,7 @@ export abstract class BasicSynthesizer {
                 this.worklet.port.postMessage(data, transfer);
             }) as SynthesizerPostFunction);
 
-        this.isReady = new Promise((resolve) =>
-            this.awaitWorkerResponse("sf3Decoder", resolve)
-        );
+        this.isReady = this.awaitCoreResponse("sf3Decoder");
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (
@@ -444,16 +441,13 @@ export abstract class BasicSynthesizer {
      * Get a current {@link SynthesizerSnapshot} of the synthesizer.
      */
     public async getSnapshot() {
-        return await new Promise<SynthesizerSnapshot>((resolve) => {
-            this.awaitWorkerResponse("synthesizerSnapshot", (s) => {
-                resolve(s);
-            });
-            this.post({
-                type: "requestSynthesizerSnapshot",
-                data: null,
-                channelNumber: -1
-            });
+        const responsePromise = this.awaitCoreResponse("synthesizerSnapshot");
+        this.post({
+            type: "requestSynthesizerSnapshot",
+            data: null,
+            channelNumber: -1
         });
+        return await responsePromise;
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -940,16 +934,20 @@ export abstract class BasicSynthesizer {
 
     /**
      * INTERNAL USE ONLY!
+     * Registers a promise that resolves with the next core
+     * response of the given type.
+     *
+     * !! Call this before posting the request to avoid missing the response. !!
      * @param type INTERNAL USE ONLY!
-     * @param resolve INTERNAL USE ONLY!
      * @internal
      */
-    public awaitWorkerResponse<K extends keyof SynthesizerReturn>(
-        type: K,
-        resolve: (data: SynthesizerReturn[K]) => unknown
-    ) {
-        // @ts-expect-error I can't use generics with map
-        this.resolveMap.set(type, resolve);
+    public awaitCoreResponse<K extends keyof SynthesizerReturn>(
+        type: K
+    ): Promise<SynthesizerReturn[K]> {
+        return new Promise<SynthesizerReturn[K]>((resolve) => {
+            // @ts-expect-error I can't use generics with map
+            this.resolveMap.set(type, resolve);
+        });
     }
 
     /**
@@ -969,20 +967,29 @@ export abstract class BasicSynthesizer {
         return this.sequencers.length - 1;
     }
 
-    protected assignProgressTracker<K extends keyof SynthesizerProgress>(
+    /**
+     * INTERNAL USE ONLY!
+     * Runs the given task with progress reporting for the given type.
+     * Assigns the tracker before running and always revokes it afterward.
+     * @param type INTERNAL USE ONLY!
+     * @param progressFunction INTERNAL USE ONLY!
+     * @param task INTERNAL USE ONLY!
+     * @internal
+     */
+    protected async withProgress<K extends keyof SynthesizerProgress, T>(
         type: K,
-        progressFunction: (args: SynthesizerProgress[K]) => unknown
-    ) {
+        progressFunction: (args: SynthesizerProgress[K]) => unknown,
+        task: () => Promise<T>
+    ): Promise<T> {
         if (this.renderingProgressTracker.get(type)) {
-            throw new Error("Something is already being rendered!");
+            throw new Error(`Something is already being tracked for: ${type}!`);
         }
         this.renderingProgressTracker.set(type, progressFunction);
-    }
-
-    protected revokeProgressTracker<K extends keyof SynthesizerProgress>(
-        type: K
-    ) {
-        this.renderingProgressTracker.delete(type);
+        try {
+            return await task();
+        } finally {
+            this.renderingProgressTracker.delete(type);
+        }
     }
 
     protected _sendInternal(

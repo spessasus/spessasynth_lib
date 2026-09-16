@@ -299,24 +299,27 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             options,
             DEFAULT_DLS_WRITE_OPTIONS
         );
-        return new Promise((resolve) => {
-            this.assignProgressTracker("workerSynthWriteFile", (p) => {
+        const postOptions = {
+            ...writeOptions,
+            progressFunction: null
+        };
+        return this.withProgress(
+            "workerSynthWriteFile",
+            (p) => {
                 void options.progressFunction?.(p);
-            });
-            const postOptions = {
-                ...writeOptions,
-                progressFunction: null
-            };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
-                this.revokeProgressTracker("workerSynthWriteFile");
-                resolve(data);
-            });
-            this.post({
-                type: "writeDLS",
-                data: postOptions,
-                channelNumber: -1
-            });
-        });
+            },
+            async () => {
+                const responsePromise = this.awaitCoreResponse(
+                    "workerSynthWriteFile"
+                );
+                this.post({
+                    type: "writeDLS",
+                    data: postOptions,
+                    channelNumber: -1
+                });
+                return await responsePromise;
+            }
+        );
     }
 
     /**
@@ -335,24 +338,27 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             options,
             DEFAULT_SF2_WRITE_OPTIONS
         );
-        return new Promise((resolve) => {
-            this.assignProgressTracker("workerSynthWriteFile", (p) => {
+        const postOptions = {
+            ...writeOptions,
+            progressFunction: null
+        };
+        return this.withProgress(
+            "workerSynthWriteFile",
+            (p) => {
                 void options.progressFunction?.(p);
-            });
-            const postOptions = {
-                ...writeOptions,
-                progressFunction: null
-            };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
-                this.revokeProgressTracker("workerSynthWriteFile");
-                resolve(data);
-            });
-            this.post({
-                type: "writeSF2",
-                data: postOptions,
-                channelNumber: -1
-            });
-        });
+            },
+            async () => {
+                const responsePromise = this.awaitCoreResponse(
+                    "workerSynthWriteFile"
+                );
+                this.post({
+                    type: "writeSF2",
+                    data: postOptions,
+                    channelNumber: -1
+                });
+                return await responsePromise;
+            }
+        );
     }
 
     /**
@@ -371,24 +377,28 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             options,
             DEFAULT_RMIDI_WRITE_OPTIONS
         );
-        return new Promise((resolve) => {
-            this.assignProgressTracker("workerSynthWriteFile", (p) => {
+        const postOptions = {
+            ...writeOptions,
+            progressFunction: null
+        };
+        return this.withProgress(
+            "workerSynthWriteFile",
+            (p) => {
                 void options.progressFunction?.(p);
-            });
-            const postOptions = {
-                ...writeOptions,
-                progressFunction: null
-            };
-            this.awaitWorkerResponse("workerSynthWriteFile", (data) => {
-                this.revokeProgressTracker("workerSynthWriteFile");
-                resolve(data.binary);
-            });
-            this.post({
-                type: "writeRMIDI",
-                data: postOptions,
-                channelNumber: -1
-            });
-        });
+            },
+            async () => {
+                const responsePromise = this.awaitCoreResponse(
+                    "workerSynthWriteFile"
+                );
+                this.post({
+                    type: "writeRMIDI",
+                    data: postOptions,
+                    channelNumber: -1
+                });
+                const data = await responsePromise;
+                return data.binary;
+            }
+        );
     }
 
     /**
@@ -442,10 +452,30 @@ export class WorkerSynthesizer extends BasicSynthesizer {
         sampleRate: number,
         options: WorkerRenderAudioOptions
     ): Promise<RenderAudioInternalResult> {
-        return new Promise((resolve) => {
-            // Worker renders the complete output and the visualization channels
-            this.awaitWorkerResponse("renderAudio", async (data) => {
-                this.revokeProgressTracker("renderAudio");
+        // Worker renders the complete output and the visualization channels
+        return this.withProgress(
+            "renderAudio",
+            (p) => {
+                options.progressCallback?.(p, 0);
+            },
+            async () => {
+                const responsePromise = this.awaitCoreResponse("renderAudio");
+
+                // Functions cannot be cloned
+                const strippedOptions: WorkerRenderAudioOptions = {
+                    ...options,
+                    progressCallback: undefined
+                };
+                this.post({
+                    type: "renderAudio",
+                    data: {
+                        sampleRate,
+                        options: strippedOptions
+                    },
+                    channelNumber: -1
+                });
+
+                const data = await responsePromise;
                 const convolverData = data.convolver;
                 const visual = data.visual.map((dryPair) =>
                     makeAudioBuffer(dryPair, sampleRate)
@@ -462,28 +492,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                     );
                     mergeStereoAudioBuffer(output, convolver);
                 }
-                resolve({ visual, output });
-                return;
-            });
-            // Assign progress tracker and render
-            this.assignProgressTracker("renderAudio", (p) => {
-                options.progressCallback?.(p, 0);
-            });
-
-            // Functions cannot be cloned
-            const strippedOptions: WorkerRenderAudioOptions = {
-                ...options,
-                progressCallback: undefined
-            };
-            this.post({
-                type: "renderAudio",
-                data: {
-                    sampleRate,
-                    options: strippedOptions
-                },
-                channelNumber: -1
-            });
-        });
+                return { visual, output };
+            }
+        );
     }
 
     /**

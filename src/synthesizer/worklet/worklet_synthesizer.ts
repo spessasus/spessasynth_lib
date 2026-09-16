@@ -77,6 +77,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
             snapshot: this.stripConvolverFromSnapshot(config.snapshot)
         };
 
+        const responsePromise = this.awaitCoreResponse("startOfflineRender");
         this.post(
             {
                 type: "startOfflineRender",
@@ -85,9 +86,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
             },
             config.soundBankList.map((b) => b.soundBankBuffer)
         );
-        await new Promise((r) =>
-            this.awaitWorkerResponse("startOfflineRender", r)
-        );
+        await responsePromise;
     }
 
     // noinspection JSUnusedGlobalSymbols

@@ -70,6 +70,7 @@ export class SoundBankManager {
         id: string,
         bankOffset = 0
     ) {
+        const responsePromise = this.awaitResponse();
         this.sendToWorklet(
             "addSoundBank",
             {
@@ -79,7 +80,7 @@ export class SoundBankManager {
             },
             [soundBankBuffer]
         );
-        await this.awaitResponse();
+        await responsePromise;
         const found = this.soundBankList.find((s) => s.id === id);
         if (found === undefined) {
             this.soundBankList.push({
@@ -107,15 +108,14 @@ export class SoundBankManager {
             );
             return;
         }
+        const responsePromise = this.awaitResponse();
         this.sendToWorklet("deleteSoundBank", id);
         this.soundBankList = this.soundBankList.filter((s) => s.id !== id);
-        await this.awaitResponse();
+        await responsePromise;
     }
 
-    private async awaitResponse() {
-        return new Promise((r) =>
-            this.synth.awaitWorkerResponse("soundBankManager", r)
-        );
+    private awaitResponse() {
+        return this.synth.awaitCoreResponse("soundBankManager");
     }
 
     private sendToWorklet<T extends keyof WorkletSBKManagerData>(
