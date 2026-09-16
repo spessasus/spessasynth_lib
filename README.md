@@ -49,7 +49,7 @@ and reworked, more powerful API!
 - **Modular design:** _Easy integration into other projects (load what you need)_
 - **[Detailed documentation:](https://spessasus.github.io/spessasynth_lib/)** _With [examples!](https://spessasus.github.io/spessasynth_lib/getting-started/#examples)_
 - **Easy to Use:** _Basic setup is just [two lines of code!](https://spessasus.github.io/spessasynth_lib/getting-started/#minimal-setup)_
-- **Minimal dependencies:** _Just spessasynth_core and reverb decompressor!_
+- **No external dependencies:** _Just spessasynth_core!_
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)!
 - **AudioWorklet synthesizer:**
     - Runs in a **separate thread** for maximum performance!
@@ -69,7 +69,6 @@ and reworked, more powerful API!
 - [Meltysynth](https://github.com/sinshu/meltysynth) - for the initial low-pass filter implementation
 - [RecordingBlogs](https://www.recordingblogs.com/) - for detailed explanations on MIDI messages
 - [stbvorbis.js](https://github.com/hajimehoshi/stbvorbis.js) - for the Vorbis decoder
-- [fflate](https://github.com/101arrowz/fflate) - for the MIT DEFLATE implementation
 - [tsup](https://github.com/egoist/tsup) - for the TypeScript bundler
 - [foo_midi](https://github.com/stuerp/foo_midi) - for useful resources on XMF file format
 - [Falcosoft](https://falcosoft.hu) - for help with the RMIDI format
