@@ -202,7 +202,6 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * This can be used for intercepting messages.
      * @param config Optional configuration for the synthesizer.
      *
-     * @group Synthesizer.Worker
      */
     public constructor(
         // Disallow the use of OfflineAudioContext here
