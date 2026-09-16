@@ -6,30 +6,33 @@ hide:
 
 # Welcome to the spessasynth_lib wiki!
 
+<p align='center'>
+<img src='https://raw.githubusercontent.com/spessasus/SpessaSynth/refs/heads/master/src/website/spessasynth_logo_rounded.png' width='300' alt='SpessaSynth logo'>
+</p>
+
 You've reached the central documentation for the spessasynth_lib library, a powerful SF2/DLS/MIDI library for web browsers.
 
 _If you're looking for the SpessaSynth web app, it can be found [here](https://spessasus.github.io/SpessaSynth)._
 
-!!! DANGER
-
-    SpessaSynth below `4.3.0` is no longer supported!
-    Please consider updating to get the best performance and latest features.
+> **Danger**
+>
+> SpessaSynth below `4.4.0` is no longer supported!
+> Please consider updating to get the best performance and latest features.
 
 ## spessasynth_lib documentation
 
 - [Getting started with spessasynth_lib](getting-started/index.md)
-- [WorkletSynthesizer](synthesizer/worklet-synthesizer.md) - Responsible for generating sound using AudioWorklets.
-- [WorkerSynthesizer](synthesizer/worker-synthesizer.md) - Responsible for generating sound using Web Workers.
-- [Sequencer](sequencer/index.md) - Responsible for playing the parsed MIDI sequence.
-- [Writing Wave files](writing-files/writing-wav-files.md) - How to write WAV files from `AudioBuffer`.
-- [NPM Exports](extra/all-npm-exports.md) - a listing of all the NPM exports in the `spessasynth_lib` NPM package.
+- {@link WorkletSynthesizer} - Responsible for generating sound using AudioWorklets.
+- {@link WorkerSynthesizer} - Responsible for generating sound using Web Workers.
+- {@link Sequencer} - Responsible for playing the parsed MIDI sequence.
+- {@link audioBufferToWav Writing Wave files} - How to write WAV files from `AudioBuffer`.
 
-!!! Warning
-
-    This wiki only describes the WebAudio API wrappers that `spessasynth_lib` itself provides.
-    Most of the types (such as `BasicMIDI`, `BasicSoundbank` and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
-
-    If what you're looking for isn't in this wiki, it's probably there.
+> **Warning**
+>
+> This wiki only describes the WebAudio API wrappers that `spessasynth_lib` itself provides.
+> Most of the types (such as {@link BasicMIDI}, {@link BasicSoundBank} and more) are documented in [spessasynth_core documentation](https://spessasus.github.io/spessasynth_core/).
+>
+> If what you're looking for isn't in this wiki, it's probably there.
 
 ## Extra info
 
@@ -38,6 +41,6 @@ _If you're looking for the SpessaSynth web app, it can be found [here](https://s
 - [SF2 RMIDI Extension Specification](https://github.com/spessasus/sf2-rmidi-specification) - The specification for the SF2 RMIDI format that spessasynth supports.
 - [Multi-Port files explained](https://spessasus.github.io/spessasynth_core/extra/about-multi-port/) - Explanation of the Multi-Port MIDI feature.
 
-!!! Tip
-
-    If you encounter any errors in this documentation, please **open an issue!**
+> **Tip**
+>
+> If you encounter any errors in this documentation, please **open an issue!**

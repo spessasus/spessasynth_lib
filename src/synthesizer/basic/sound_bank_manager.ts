@@ -1,22 +1,27 @@
 import { type SoundBankManagerListEntry, SpessaLog } from "spessasynth_core";
-import type {
-    BasicSynthesizerMessage,
-    WorkletSBKManagerData
-} from "../types.ts";
-import type { BasicSynthesizer } from "./basic_synthesizer.ts";
+import type { BasicSynthesizerMessage, WorkletSBKManagerData } from "../types";
+import type { BasicSynthesizer } from "./basic_synthesizer";
 
-type LibSBKManagerEntry = Omit<SoundBankManagerListEntry, "soundBank">;
-
+/**
+ * The sound bank manager allows for handling multiple sound banks with a single synthesizer instance.
+ *
+ * It is accessible via the {@link BasicSynthesizer.soundBankManager} property.
+ *
+ * Every operation sends a new {@link SynthesizerEvent.presetListChange `presetListChange`} event.
+ * @group Synthesizer.Basic
+ */
 export class SoundBankManager {
     /**
      * All the sound banks, ordered from the most important to the least.
+     * @internal
      */
-    public soundBankList: LibSBKManagerEntry[];
+    public soundBankList: Omit<SoundBankManagerListEntry, "soundBank">[];
 
     private synth: BasicSynthesizer;
 
     /**
      * Creates a new instance of the sound bank manager.
+     * @internal
      */
     public constructor(synth: BasicSynthesizer) {
         this.soundBankList = [];
@@ -25,8 +30,9 @@ export class SoundBankManager {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The current sound bank priority order.
-     * @returns The IDs of the sound banks in the current order.
+     * The IDs of the sound banks in the current order. (from the most important to last)
+     * This can be used to set or retrieve the current order.
+     * Presets in the first bank override the second bank if they have the same MIDI patch and so on.
      */
     public get priorityOrder() {
         return this.soundBankList.map((s) => s.id);
@@ -46,16 +52,25 @@ export class SoundBankManager {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Adds a new sound bank buffer with a given ID.
-     * @param soundBankBuffer The sound bank's buffer
-     * @param id The sound bank's unique identifier.
-     * @param bankOffset The sound bank's bank offset. Default is 0.
+     * This method adds a new sound bank with a given ID to the list,
+     * or replaces an existing one.
+     *
+     *
+     * > **Warning**
+     * >
+     * > This method detaches the provided `ArrayBuffer` by transferring it to the synthesizer.
+     * > It can't be used after passing it to the object!
+     *
+     * @param soundBankBuffer The new sound bank to add, a binary data of the file.
+     * @param id The sound bank's unique identifier. If it already exists, it will be replaced.
+     * @param bankOffset The sound bank's bank MSB offset. Default is 0.
      */
     public async addSoundBank(
         soundBankBuffer: ArrayBuffer,
         id: string,
         bankOffset = 0
     ) {
+        const responsePromise = this.awaitResponse();
         this.sendToWorklet(
             "addSoundBank",
             {
@@ -65,7 +80,7 @@ export class SoundBankManager {
             },
             [soundBankBuffer]
         );
-        await this.awaitResponse();
+        await responsePromise;
         const found = this.soundBankList.find((s) => s.id === id);
         if (found === undefined) {
             this.soundBankList.push({
@@ -79,8 +94,8 @@ export class SoundBankManager {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Deletes a sound bank with the given ID.
-     * @param id The sound bank to delete.
+     * This method removes a sound bank with a given ID from the sound bank list.
+     * @param id The ID of the sound bank to remove.
      */
     public async deleteSoundBank(id: string) {
         if (this.soundBankList.length < 2) {
@@ -93,15 +108,14 @@ export class SoundBankManager {
             );
             return;
         }
+        const responsePromise = this.awaitResponse();
         this.sendToWorklet("deleteSoundBank", id);
         this.soundBankList = this.soundBankList.filter((s) => s.id !== id);
-        await this.awaitResponse();
+        await responsePromise;
     }
 
-    private async awaitResponse() {
-        return new Promise((r) =>
-            this.synth.awaitWorkerResponse("soundBankManager", r)
-        );
+    private awaitResponse() {
+        return this.synth.awaitCoreResponse("soundBankManager");
     }
 
     private sendToWorklet<T extends keyof WorkletSBKManagerData>(

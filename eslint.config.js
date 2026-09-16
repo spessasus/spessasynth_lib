@@ -5,7 +5,7 @@ import eslintConfigPrettier from "eslint-config-prettier/flat";
 import eslint from "@eslint/js";
 
 export default tseslint.config(
-    { ignores: ["dist", "gh-pages", "**/*.min.js"] },
+    { ignores: ["dist", "site", "**/*.min.js"] },
     {
         extends: [
             eslint.configs.recommended,
@@ -82,42 +82,6 @@ export default tseslint.config(
 
             // No need to hold function references
             "unicorn/prefer-add-event-listener": "off"
-        }
-    },
-
-    // For js, examples
-    {
-        files: ["**/*.js"],
-        extends: [
-            tseslint.configs.recommended,
-            eslintPluginUnicorn.configs.recommended,
-            eslintConfigPrettier
-        ],
-        languageOptions: {
-            ecmaVersion: "latest",
-            globals: globals.browser
-        },
-
-        rules: {
-            "@typescript-eslint/no-unused-vars": "error",
-            "@typescript-eslint/explicit-member-accessibility": "error",
-            "capitalized-comments": [
-                "error",
-                "always",
-                {
-                    ignorePattern: "noinspection"
-                }
-            ],
-
-            // Spessasynth uses snake_case
-            "unicorn/filename-case": [
-                "error",
-                {
-                    cases: {
-                        snakeCase: true
-                    }
-                }
-            ]
         }
     }
 );

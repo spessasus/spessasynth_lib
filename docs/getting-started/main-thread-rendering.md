@@ -1,20 +1,24 @@
-# Direct Audio Engine Access
+---
+title: Direct Audio Engine Access Example
+---
 
-!!! Warning
+# Direct Audio Engine Access Example
 
-    This is for the advanced users only.
+> **Warning**
+>
+> This is for the advanced users only.
 
-!!! Info
-
-    This demo only runs well in Firefox.
-    Chrome seems to have trouble with AudioBufferSourceNodes.
-
-    It is recommended to use a simple playback Audio Worklet such as [this one](https://github.com/spessasus/SpessaFont/blob/1b6e034cfefa2f964efc7cba5838a42ee26fcb0f/public/audio_worklet.js).
+> **Note**
+>
+> This demo only runs well in Firefox.
+> Chrome seems to have trouble with AudioBufferSourceNodes.
+>
+> It is recommended to use a simple playback Audio Worklet such as [this one](https://github.com/spessasus/SpessaFont/blob/1b6e034cfefa2f964efc7cba5838a42ee26fcb0f/public/audio_worklet.js).
 
 Sometimes, it is necessary for the script to have direct access to the synthesizer's audio engine for various reasons.
 While one can use `spessasynth_core` directly, this will require implementing the audio effects manually.
 
-This page is intended to show how to use both `spessasynth_core` and `spessasynth_lib` to maintain full feature set of the `Synthesizer` class,
+This page is intended to show how to use both `spessasynth_core` and `spessasynth_lib` to maintain full feature set of the {@link WorkletSynthesizer} class,
 while rendering in the main thread and having the full access to the audio engine.
 
 ### General Approach
@@ -23,7 +27,7 @@ while rendering in the main thread and having the full access to the audio engin
 
 A simple audio loop that achieves this is as follows:
 
-1. Create the `Float32Array` buffers for the dry, chorus and reverb outputs.
+1. Create the `Float32Array` buffers for the stereo output (and optionally the per-channel outputs for visualization).
 2. Perform any custom tasks needed and then render the audio
 3. Send the processed audio to playback nodes, like a custom audio worklet or `AudioBufferSourceNode`s
 4. The node plays back to the target node (a simple `BufferSource`)
@@ -33,7 +37,7 @@ A simple audio loop that achieves this is as follows:
 ### [See this demo live](https://spessasus.github.io/spessasynth_lib/examples/main_thread_rendering.html)
 
 Below is an example that shows the current channel status,
-which is something that cannot be achieved with just the `WorkletSynthesizer` class.
+which is something that cannot be achieved with just the {@link WorkletSynthesizer} class.
 
 ```html title='main_thread_rendering.html'
 --8<-- "main_thread_rendering.html"
@@ -41,8 +45,8 @@ which is something that cannot be achieved with just the `WorkletSynthesizer` cl
 
 Nothing special here.
 
-```js title='main_thread_rendering.js'
---8<-- "main_thread_rendering.js"
+```ts title='main_thread_rendering.ts'
+--8<-- "main_thread_rendering.ts"
 ```
 
 The audio loop presented in this script is very similar to the one shown above:

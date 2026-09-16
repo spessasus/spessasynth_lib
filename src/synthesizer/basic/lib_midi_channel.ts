@@ -6,8 +6,13 @@ import {
     type MIDIController,
     type MIDIPatchFull
 } from "spessasynth_core";
-import { type BasicSynthesizer } from "./basic_synthesizer.ts";
+import { type BasicSynthesizer } from "./basic_synthesizer";
 
+/**
+ * Represents a single MIDI Channel within a {@link BasicSynthesizer}.
+ *
+ * @group Synthesizer.Basic
+ */
 export class LibMIDIChannel {
     /**
      * This channel number.

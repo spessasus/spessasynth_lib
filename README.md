@@ -69,7 +69,6 @@ and reworked, more powerful API!
 - [Meltysynth](https://github.com/sinshu/meltysynth) - for the initial low-pass filter implementation
 - [RecordingBlogs](https://www.recordingblogs.com/) - for detailed explanations on MIDI messages
 - [stbvorbis.js](https://github.com/hajimehoshi/stbvorbis.js) - for the Vorbis decoder
-- [fflate](https://github.com/101arrowz/fflate) - for the MIT DEFLATE implementation
 - [tsup](https://github.com/egoist/tsup) - for the TypeScript bundler
 - [foo_midi](https://github.com/stuerp/foo_midi) - for useful resources on XMF file format
 - [Falcosoft](https://falcosoft.hu) - for help with the RMIDI format

@@ -4,21 +4,22 @@ import {
     SoundBankLoader,
     SpessaLog,
     SpessaSynthProcessor,
-    SpessaSynthSequencer,
-    type SynthProcessorOptions
+    SpessaSynthSequencer
 } from "spessasynth_core";
+import { songChangeType } from "../../sequencer/enums";
+import { MIDIData } from "../../sequencer/midi_data";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
     SynthesizerProgress,
     SynthesizerReturn
-} from "../types.ts";
-import { MIDIData } from "../../sequencer/midi_data.ts";
-import { songChangeType } from "../../sequencer/enums.ts";
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
+} from "../types";
+import { ReverbCapture } from "./reverb_passthrough";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config";
+import type { SynthCoreConfig } from "./types";
 
 export type PostMessageSynthCore = (
-    data: BasicSynthesizerReturnMessage,
+    data: BasicSynthesizerReturnMessage[],
     transfer?: Transferable[]
 ) => unknown;
 
@@ -26,33 +27,81 @@ export type PostMessageSynthCore = (
 export const SEQUENCER_SYNC_INTERVAL = 1;
 
 /**
- * The interface for the audio processing code that uses spessasynth_core and runs on a separate thread.
+ * The interface for the audio processing code that uses `spessasynth_core` and runs on a separate thread.
+ * It runs in a Web Worker for {@link WorkerSynthesizer} and in an AudioWorklet for {@link WorkletSynthesizer}.
+ *
+ * It provides raw access to `spessasynth_core` {@link SpessaSynthProcessor} and {@link SpessaSynthSequencer} instances.
+ * @group Synthesizer.Basic
  */
 export abstract class BasicSynthesizerCore {
+    /**
+     * The synthesizer instance.
+     * This property allows for direct access to the audio engine.
+     */
     public readonly synthesizer: SpessaSynthProcessor;
+    /**
+     * The array of sequencers to use with the synthesizer.
+     * This property allows for direct access to the sequencers and their MIDI data.
+     */
     public readonly sequencers = new Array<SpessaSynthSequencer>();
-    protected readonly post: PostMessageSynthCore;
-    protected lastSequencerSync = 0;
+
+    protected readonly postInternal: PostMessageSynthCore;
+
     /**
      * For syncing voice counts, implemented separately in the `process()` method.
      * @protected
      */
     protected readonly voiceCounts = new Array<number>(16).fill(0);
+
+    protected readonly eventsEnabled;
+
+    /**
+     * In this mode, the reverb is captured and sent to the main thread for a ConvolverNode to process.
+     * @protected
+     */
+    protected readonly convolverMode;
+
+    protected readonly reverbCapture: ReverbCapture | undefined;
     /**
      * Indicates if the processor is alive.
      * @protected
      */
     protected alive = false;
-    protected readonly eventsEnabled;
+    protected lastSequencerSync = 0;
+    /**
+     * A message queue for sending bulk many messages as one.
+     * @protected
+     */
+    protected messageQueue = new Array<BasicSynthesizerReturnMessage>();
+    /**
+     * The transferable part of the queue.
+     * @protected
+     */
+    protected messageQueueTransferable = new Array<Transferable>();
+    /**
+     * If the queue is active, all messages will be queued. If not, they will be sent immediately.
+     * @protected
+     */
+    protected messageQueueActive = false;
 
     protected constructor(
-        sampleRate: number,
-        options: Partial<SynthProcessorOptions>,
+        synthCoreConfig: SynthCoreConfig,
         postMessage: PostMessageSynthCore
     ) {
-        this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.eventsEnabled = options.eventsEnabled ?? false;
-        this.post = postMessage;
+        this.reverbCapture = synthCoreConfig.convolverMode
+            ? new ReverbCapture()
+            : undefined;
+        this.synthesizer = new SpessaSynthProcessor(
+            synthCoreConfig.sampleRate,
+            {
+                ...synthCoreConfig,
+                reverbProcessor: this.reverbCapture
+            }
+        );
+        this.eventsEnabled =
+            synthCoreConfig.processorConfig.eventsEnabled ?? false;
+        this.convolverMode = synthCoreConfig.convolverMode;
+        this.postInternal = postMessage;
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
@@ -67,6 +116,26 @@ export abstract class BasicSynthesizerCore {
                 currentTime: this.synthesizer.currentTime
             });
         };
+    }
+
+    protected flushQueue() {
+        this.messageQueueActive = false;
+        if (this.messageQueue.length > 0)
+            this.postInternal(this.messageQueue, this.messageQueueTransferable);
+        this.messageQueue.length = 0;
+        this.messageQueueTransferable.length = 0;
+    }
+
+    protected post(
+        data: BasicSynthesizerReturnMessage,
+        transfer?: Transferable[]
+    ) {
+        if (this.messageQueueActive) {
+            this.messageQueue.push(data);
+            if (transfer) this.messageQueueTransferable.push(...transfer);
+        } else {
+            this.postInternal([data], transfer);
+        }
     }
 
     protected createNewSequencer() {
@@ -142,7 +211,7 @@ export abstract class BasicSynthesizerCore {
     }
 
     protected destroy() {
-        this.synthesizer.destroySynthProcessor();
+        this.synthesizer.destroy();
         // @ts-expect-error JS Deletion
         // noinspection JSConstantReassignment
         delete this.synthesizer;
@@ -393,38 +462,6 @@ export abstract class BasicSynthesizerCore {
                 break;
             }
 
-            case "keyModifierManager": {
-                const kmMsg = m.data;
-                const man = this.synthesizer.keyModifierManager;
-                switch (kmMsg.type) {
-                    default: {
-                        return;
-                    }
-
-                    case "addMapping": {
-                        man.addMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote,
-                            kmMsg.data.mapping
-                        );
-                        break;
-                    }
-
-                    case "clearMappings": {
-                        man.clearMappings();
-                        break;
-                    }
-
-                    case "deleteMapping": {
-                        man.deleteMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote
-                        );
-                    }
-                }
-                break;
-            }
-
             case "requestSynthesizerSnapshot": {
                 const snapshot = this.synthesizer.getSnapshot();
                 this.postReady("synthesizerSnapshot", snapshot);
@@ -447,7 +484,6 @@ export abstract class BasicSynthesizerCore {
 
             case "destroyWorklet": {
                 this.alive = false;
-                this.synthesizer.destroySynthProcessor();
                 this.destroy();
                 break;
             }

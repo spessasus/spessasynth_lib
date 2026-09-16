@@ -3,62 +3,64 @@ import type {
     BasicSynthesizerMessage,
     WorkerBankWriteOptions,
     WorkerSampleEncodingFunction
-} from "../types.ts";
-import { renderAudioWorker } from "./render_audio_worker.ts";
+} from "../types";
+import { renderAudioWorker } from "./render_audio_worker";
 import {
     BasicSynthesizerCore,
     type PostMessageSynthCore,
     SEQUENCER_SYNC_INTERVAL
-} from "../basic/basic_synthesizer_core.ts";
-import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
-import { writeRMIDIWorker } from "./write_rmi_worker.ts";
+} from "../basic/basic_synthesizer_core";
+import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker";
+import { writeRMIDIWorker } from "./write_rmi_worker";
+import type { SynthCoreConfig } from "../basic/types";
+import { TOTAL_OUTPUT_COUNT } from "../basic/synth_config";
 
 const BLOCK_SIZE = 128;
 
 type AudioChunk = [Float32Array, Float32Array];
 type AudioChunks = AudioChunk[];
 
-// The core audio engine for the worker synthesizer.
+/**
+ * The core audio engine for the worker synthesizer.
+ *
+ * This part of the synthesizer runs in the Web Worker and contains the actual audio engine.
+ *
+ * @group Synthesizer.Worker
+ */
 export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     /**
      * The message port to the playback audio worklet.
      */
-    public readonly workletMessagePort: MessagePort;
+    protected readonly workletMessagePort: MessagePort;
 
     protected readonly compressionFunction?: WorkerSampleEncodingFunction;
 
     /**
      * Creates a new worker synthesizer core: the synthesizer that runs in the worker.
-     * Most parameters here are provided with the first message that is posted to the worker by the WorkerSynthesizer.
-     * @param synthesizerConfiguration The data from the first message sent from WorkerSynthesizer.
+     * Most parameters here are provided with the first message that is posted to the worker by the {@link WorkerSynthesizer}.
+     *
+     * > **Tip**
+     * >
+     * > For an example of setting up a worker synthesizer, see [Worker Synth Example](../../../docs/getting-started/worker-synth-example.md)
+     *
+     * @param synthCoreConfig The data from the first message sent from {@link WorkerSynthesizer}.
      * Listen for the first event and use its data to initialize this class.
-     * @param workletMessagePort The first port from the first message sent from WorkerSynthesizer.
-     * @param mainThreadCallback postMessage function or similar.
+     * @param workletMessagePort The first port from the first message sent from {@link WorkerSynthesizer}.
+     * @param mainThreadCallback The function to post a message back to the main thread. Usually `postMessage`.
      * @param compressionFunction Optional function for compressing SF3 banks.
      */
     public constructor(
-        synthesizerConfiguration: {
-            sampleRate: number;
-            initialTime: number;
-        },
+        synthCoreConfig: SynthCoreConfig,
         workletMessagePort: MessagePort,
         mainThreadCallback: typeof Worker.prototype.postMessage,
         compressionFunction?: WorkerSampleEncodingFunction
     ) {
-        super(
-            synthesizerConfiguration.sampleRate,
-            {
-                effectsEnabled: true,
-                eventsEnabled: true,
-                initialTime: synthesizerConfiguration.initialTime
-            },
-            mainThreadCallback as PostMessageSynthCore
-        );
+        super(synthCoreConfig, mainThreadCallback as PostMessageSynthCore);
 
         this.workletMessagePort = workletMessagePort;
         this.workletMessagePort.onmessage = this.process.bind(this);
         this.compressionFunction = compressionFunction;
-        void this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.ready.then(() => {
             this.postReady("sf3Decoder", null);
             this.startAudioLoop();
         });
@@ -66,6 +68,11 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     /**
      * Handles a message received from the main thread.
+     *
+     * > **Tip**
+     * >
+     * > For an example of setting up a worker synthesizer, see [Worker Synth Example](../../../docs/getting-started/worker-synth-example.md)
+     *
      * @param m The message received.
      */
     public handleMessage(m: BasicSynthesizerMessage) {
@@ -77,8 +84,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                     m.data.options
                 );
                 const transferable: Transferable[] = [];
-                for (const r of rendered.effects) transferable.push(r.buffer);
-                for (const d of rendered.dry)
+                for (const r of rendered.output) transferable.push(r.buffer);
+                for (const d of rendered.visual)
                     transferable.push(...d.map((c) => c.buffer));
                 this.postReady("renderAudio", rendered, transferable);
                 break;
@@ -187,20 +194,42 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         if (!this.alive) {
             return;
         }
+        // Start the queue
+        this.messageQueueActive = true;
+
         // Data is encoded into a single f32 array as follows
-        // WetL, WetR,
+        // OutLeft, OutRight
+        // ConvolverL, ConvolverR
+        // 16 visual channels:
         // Dry1L, dry1R
         // DryNL, dryNR
         // Dry16L, dry16R
         // To improve performance
         const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
-        const data = new Float32Array(BLOCK_SIZE * 34);
+        const data = new Float32Array(BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT);
         let byteOffset = 0;
-        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        // Main output
+        const outL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
+        const outR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
         byteOffset += byteStep;
-        const dry: AudioChunks = [];
+
+        // Convolver
+        const convolverL = new Float32Array(
+            data.buffer,
+            byteOffset,
+            BLOCK_SIZE
+        );
+        byteOffset += byteStep;
+        const convolverR = new Float32Array(
+            data.buffer,
+            byteOffset,
+            BLOCK_SIZE
+        );
+        byteOffset += byteStep;
+
+        // Channels
+        const visual: AudioChunks = [];
         for (let i = 0; i < 16; i++) {
             const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
@@ -208,12 +237,17 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
             const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
             byteOffset += byteStep;
 
-            dry.push([dryL, dryR]);
+            visual.push([dryL, dryR]);
         }
         for (const seq of this.sequencers) {
             seq.processTick();
         }
-        this.synthesizer.processSplit(dry, wetL, wetR);
+        this.synthesizer.process(outL, outR, undefined, undefined, visual);
+        // Extract reverb capture data
+        if (this.reverbCapture) {
+            convolverL.set(this.reverbCapture.capturedData);
+            convolverR.set(this.reverbCapture.capturedData);
+        }
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
         const t = this.synthesizer.currentTime;
@@ -250,5 +284,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                 data: cv
             });
         }
+
+        this.flushQueue();
     }
 }
