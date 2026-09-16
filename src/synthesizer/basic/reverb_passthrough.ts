@@ -1,14 +1,11 @@
-import type {
-    ReverbProcessor,
-    ReverbProcessorSnapshot
-} from "spessasynth_core";
+import type { GSReverbProcessor } from "spessasynth_core";
 
 const BLOCK_SIZE = 128;
 
 /**
  * Passthrough for capturing reverb (convolver mode)
  */
-export class ReverbCapture implements ReverbProcessor {
+export class ReverbCapture implements GSReverbProcessor {
     public character = 0;
     public delayFeedback = 0;
     public level = 64;
@@ -18,7 +15,7 @@ export class ReverbCapture implements ReverbProcessor {
 
     public readonly capturedData = new Float32Array(BLOCK_SIZE);
 
-    public getSnapshot(): ReverbProcessorSnapshot {
+    public getSnapshot() {
         return { ...this };
     }
 
