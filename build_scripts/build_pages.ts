@@ -7,8 +7,5 @@ try {
     buildExamples();
     console.log("Pages built successfully.");
 } catch (error) {
-    console.error(
-        error,
-        "\n\nFailed to build GitHub pages. Did you install MkDocs?"
-    );
+    console.error(error, "\n\nFailed to build GitHub pages.");
 }
