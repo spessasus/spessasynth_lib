@@ -15,7 +15,7 @@ import {
 import type { SequencerReturnMessage } from "../../sequencer/types";
 import { fillWithDefaults } from "../../utils/fill_with_defaults";
 import { ConsoleColors } from "../../utils/other";
-import { reverbBufferBinary } from "../reverb/compressed_reverb_decoder";
+import { generateReverbImpulse } from "../reverb/reverb_generator";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
@@ -130,7 +130,6 @@ export abstract class BasicSynthesizer {
      */
     public readonly convolverNode: ConvolverNode | undefined;
     protected readonly worklet: AudioWorkletNode;
-    protected readonly convolverReady?: Promise<AudioBuffer>;
     /**
      * Spessasynth_core system parameters
      */
@@ -205,18 +204,11 @@ export abstract class BasicSynthesizer {
             );
         }
 
-        let convolverPromise: Promise<AudioBuffer> | undefined = undefined;
-
         // Create convolver if needed
         if (synthConfig.convolverMode) {
-            convolverPromise = context.decodeAudioData(reverbBufferBinary);
-
             this.convolverNode = context.createConvolver();
             this.worklet.connect(this.convolverNode, CONVOLVER_OUTPUT);
-            this.convolverReady = convolverPromise.then((buffer) => {
-                this.convolverNode!.buffer = buffer;
-                return buffer;
-            });
+            this.convolverNode.buffer = generateReverbImpulse(context);
         }
 
         this.post =
@@ -225,13 +217,9 @@ export abstract class BasicSynthesizer {
                 this.worklet.port.postMessage(data, transfer);
             }) as SynthesizerPostFunction);
 
-        const backendPromise = new Promise((resolve) =>
+        this.isReady = new Promise((resolve) =>
             this.awaitWorkerResponse("sf3Decoder", resolve)
         );
-        // Wait for both
-        this.isReady = convolverPromise
-            ? Promise.all([convolverPromise, backendPromise])
-            : backendPromise;
 
         // Set up message handling and managers
         this.worklet.port.onmessage = (
