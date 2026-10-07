@@ -87,7 +87,7 @@ export function renderAudioWorker(
     const reverbCapture = this.convolverMode ? new ReverbCapture() : undefined;
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
         eventsEnabled: false,
-        reverbProcessor: reverbCapture
+        gsReverbProcessor: reverbCapture
     });
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)

@@ -171,7 +171,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     }
 
     protected stopAudioLoop() {
-        this.synthesizer.stopAllChannels(true);
+        this.synthesizer.stopAll(true);
         for (const seq of this.sequencers) {
             seq.pause();
         }

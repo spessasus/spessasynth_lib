@@ -95,7 +95,7 @@ export abstract class BasicSynthesizerCore {
             synthCoreConfig.sampleRate,
             {
                 ...synthCoreConfig,
-                reverbProcessor: this.reverbCapture
+                gsReverbProcessor: this.reverbCapture
             }
         );
         this.eventsEnabled =
@@ -250,7 +250,7 @@ export abstract class BasicSynthesizerCore {
 
             case "stopAll": {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION)
-                    this.synthesizer.stopAllChannels(m.data === 1);
+                    this.synthesizer.stopAll(m.data === 1);
                 else channelObject?.stopAllNotes(m.data === 1);
 
                 break;
