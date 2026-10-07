@@ -1,5 +1,5 @@
-import { buildDocs } from "./build_docs.ts";
-import { buildExamples } from "../examples/build_examples.ts";
+import { buildDocs } from "./build_docs";
+import { buildExamples } from "../examples/build_examples";
 
 console.log("Building for GitHub Pages...");
 try {
@@ -7,8 +7,5 @@ try {
     buildExamples();
     console.log("Pages built successfully.");
 } catch (error) {
-    console.error(
-        error,
-        "\n\nFailed to build GitHub pages. Did you install MkDocs?"
-    );
+    console.error(error, "\n\nFailed to build GitHub pages.");
 }

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { NPM_DIST_DIR } from "./util.ts";
+import { NPM_DIST_DIR } from "./util";
 import esbuild from "esbuild";
 import * as tsdown from "tsdown";
 

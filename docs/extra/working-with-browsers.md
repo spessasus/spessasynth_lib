@@ -1,15 +1,19 @@
-# Working with browsers
+---
+title: Working With Browsers
+---
+
+# Working With Browsers
 
 Since `spessasynth_lib` is a npm package, you need to do two things to make it work with browsers:
 
 1. Bundle the code
-2. Copy the processor (if you are using the `WorkletSynthesizer`)
+2. Copy the processor (if you are using the {@link WorkletSynthesizer})
 
 ## Copying the processor
 
-!!! Tip
-
-    This only applies to the `WorkletSynthesizer`. If you're using the `WorkerSynthesizer`, bundlers will take care of everything.
+> **Tip**
+>
+> This only applies to the {@link WorkletSynthesizer}. If you're using the {@link WorkerSynthesizer}, bundlers will take care of everything.
 
 Copy the `spessasynth_processor.min.js` from `spessasynth_lib/dist/spessasynth_processor.min.js` to the destination
 where the browsers can see it (for example, a `public` directory).
@@ -19,7 +23,7 @@ Make sure that the path set in `audioWorklet.addModule()` works correctly in the
 
 For example, you can make a basic script for building the project:
 
-**build.sh**
+`build.sh`
 
 ```shell
 # Copy the worklet
@@ -45,9 +49,9 @@ This is just an example, of course, make sure that your path is correct.
 
 ## Bundling the code
 
-!!! Tip
-
-    If you've worked with bundlers before, you don't have to read this.
+> **Tip**
+>
+> If you've worked with bundlers before, you don't have to read this.
 
 For that, you will need a bundler like `webpack` or `esbuild`. For simplicity, I recommend the latter.
 

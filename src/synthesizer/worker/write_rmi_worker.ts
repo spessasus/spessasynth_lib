@@ -1,7 +1,7 @@
-import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
-import type { WorkerRMIDIWriteOptions } from "../types.ts";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
+import type { WorkerRMIDIWriteOptions } from "../types";
 import { BasicMIDI, BasicSoundBank } from "spessasynth_core";
-import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
+import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker";
 
 export async function writeRMIDIWorker(
     this: WorkerSynthesizerCore,

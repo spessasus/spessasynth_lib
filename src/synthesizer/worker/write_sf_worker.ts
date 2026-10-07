@@ -1,8 +1,8 @@
-import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
 import type {
     WorkerDLSWriteOptions,
     WorkerSoundFont2WriteOptions
-} from "../types.ts";
+} from "../types";
 import { BasicSoundBank, type SampleEncodingFunction } from "spessasynth_core";
 
 export async function writeSF2Worker(
