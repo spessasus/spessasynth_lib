@@ -12,7 +12,9 @@ const MAX_QUEUED = ${maxQueuedChunks};
  */
 class PlaybackProcessor extends AudioWorkletProcessor
 {
-    /** @type {Float32Array[]} */
+    /** 
+     * @type {Float32Array[]}
+     */
     data = [];
     
     updateRequested = false;

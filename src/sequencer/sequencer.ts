@@ -8,7 +8,6 @@ import {
     MIDIUtils,
     SpessaSynthCoreUtils
 } from "spessasynth_core";
-import { songChangeType } from "./enums";
 import { MIDIData } from "./midi_data";
 import { DEFAULT_SEQUENCER_OPTIONS } from "./default_sequencer_options";
 import type {
@@ -164,7 +163,7 @@ export class Sequencer {
         this.isLoading = true;
         this.midiData = undefined;
         this.sendMessage("changeSong", {
-            changeType: songChangeType.index,
+            changeType: "index",
             data: clamped
         });
     }
@@ -284,11 +283,11 @@ export class Sequencer {
         this._shuffleSongs = value;
         if (value) {
             this.sendMessage("changeSong", {
-                changeType: songChangeType.shuffleOn
+                changeType: "shuffleOn"
             });
         } else {
             this.sendMessage("changeSong", {
-                changeType: songChangeType.shuffleOff
+                changeType: "shuffleOff"
             });
         }
     }

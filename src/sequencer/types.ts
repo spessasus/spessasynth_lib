@@ -1,4 +1,3 @@
-import { type SongChangeType } from "./enums";
 import {
     type BasicMIDI,
     type MIDIMessage,
@@ -48,7 +47,7 @@ export interface SequencerMessageData {
     setLoopCount: number;
     // [changeType, data]
     changeSong: {
-        changeType: SongChangeType;
+        changeType: "shuffleOn" | "shuffleOff" | "index";
         data?: number;
     };
     getMIDI: null;

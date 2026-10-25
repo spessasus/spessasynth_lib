@@ -6,7 +6,6 @@ import {
     SpessaSynthProcessor,
     SpessaSynthSequencer
 } from "spessasynth_core";
-import { songChangeType } from "../../sequencer/enums";
 import { MIDIData } from "../../sequencer/midi_data";
 import type {
     BasicSynthesizerMessage,
@@ -378,17 +377,17 @@ export abstract class BasicSynthesizerCore {
 
                     case "changeSong": {
                         switch (seqMsg.data.changeType) {
-                            case songChangeType.shuffleOff: {
+                            case "shuffleOff": {
                                 seq.shuffleMode = false;
                                 break;
                             }
 
-                            case songChangeType.shuffleOn: {
+                            case "shuffleOn": {
                                 seq.shuffleMode = true;
                                 break;
                             }
 
-                            case songChangeType.index: {
+                            case "index": {
                                 if (seqMsg.data.data !== undefined) {
                                     seq.songIndex = seqMsg.data.data;
                                 }
