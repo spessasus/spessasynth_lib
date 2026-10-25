@@ -245,10 +245,12 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         }
         this.synthesizer.process(outL, outR, undefined, undefined, visual);
         // Extract reverb capture data
-        if (this.reverbCapture) {
-            convolverL.set(this.reverbCapture.capturedData);
-            convolverR.set(this.reverbCapture.capturedData);
-        }
+        this.reverbCapture?.moveCapturedData(
+            convolverL,
+            convolverR,
+            0,
+            BLOCK_SIZE
+        );
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
         const t = this.synthesizer.currentTime;

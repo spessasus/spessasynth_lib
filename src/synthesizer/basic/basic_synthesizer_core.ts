@@ -88,13 +88,15 @@ export abstract class BasicSynthesizerCore {
         postMessage: PostMessageSynthCore
     ) {
         this.reverbCapture = synthCoreConfig.convolverMode
-            ? new ReverbCapture()
+            ? new ReverbCapture(synthCoreConfig.sampleRate)
             : undefined;
         this.synthesizer = new SpessaSynthProcessor(
             synthCoreConfig.sampleRate,
             {
-                ...synthCoreConfig,
-                gsReverbProcessor: this.reverbCapture
+                ...synthCoreConfig.processorConfig,
+                initialTime: synthCoreConfig.initialTime,
+                gsReverbProcessor: this.reverbCapture?.gsReverb,
+                xgReverbBlock: this.reverbCapture?.xgReverb
             }
         );
         this.eventsEnabled =

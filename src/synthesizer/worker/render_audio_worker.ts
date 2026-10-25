@@ -86,10 +86,13 @@ export function renderAudioWorker(
     this.stopAudioLoop();
 
     // Initialize synthesizer
-    const reverbCapture = this.convolverMode ? new ReverbCapture() : undefined;
+    const reverbCapture = this.convolverMode
+        ? new ReverbCapture(sampleRate)
+        : undefined;
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
         eventsEnabled: false,
-        gsReverbProcessor: reverbCapture
+        gsReverbProcessor: reverbCapture?.gsReverb,
+        xgReverbBlock: reverbCapture?.xgReverb
     });
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
@@ -184,12 +187,12 @@ export function renderAudioWorker(
                 returnedChunks.visual
             );
             if (convolver) {
-                const tail = reverbCapture!.capturedData.subarray(
-                    0,
+                reverbCapture!.moveCapturedData(
+                    convolver[0],
+                    convolver[1],
+                    index,
                     sampleCount
                 );
-                convolver[0].set(tail, index);
-                convolver[1].set(tail, index);
             }
             index += sampleCount;
             if (index >= sampleDuration) {

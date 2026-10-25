@@ -72,10 +72,12 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         );
 
         // Send reverb
-        if (this.reverbCapture) {
-            outputs[1][0].set(this.reverbCapture.capturedData);
-            outputs[1][1].set(this.reverbCapture.capturedData);
-        }
+        this.reverbCapture?.moveCapturedData(
+            outputs[1][0],
+            outputs[1][1],
+            0,
+            outputs[1][0].length
+        );
 
         const t = this.synthesizer.currentTime;
         if (
