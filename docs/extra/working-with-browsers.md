@@ -4,7 +4,7 @@ title: Working With Browsers
 
 # Working With Browsers
 
-Since `spessasynth_lib` is a npm package, you need to do two things to make it work with browsers:
+Since `spessasynth_lib` is an npm package, you need to do two things to make it work with browsers:
 
 1. Bundle the code
 2. Copy the processor (if you are using the {@link WorkletSynthesizer})
@@ -23,17 +23,15 @@ Make sure that the path set in `audioWorklet.addModule()` works correctly in the
 
 For example, you can make a basic script for building the project:
 
-`build.sh`
-
-```shell
+```shell title='build.sh'
 # Copy the worklet
 cp node_modules/spessasynth_lib/dist/spessasynth_processor.min.js public/spessasynth_processor.min.js
 
 # Your build script here
-esbuild --bundle --minify --sourcemap=linked --platform=browser index.js --outfile=index.min.js
+esbuild main.js --bundle --minify --sourcemap=linked --format=esm --platform=browser --outfile=main.min.js
 ```
 
-then in your `package.json`:
+Then in your `package.json`:
 
 ```json
 {
@@ -43,9 +41,9 @@ then in your `package.json`:
 }
 ```
 
-which allows you to `npm run build` to compile the project.
+This allows you to run `npm run build` to compile the project.
 
-This is just an example, of course, make sure that your path is correct.
+This is just an example, so make sure that your paths are correct.
 
 ## Bundling the code
 
@@ -61,7 +59,7 @@ npm install esbuild -D
 
 ### Preparing the code
 
-Example file (named `main.js` in this example)
+An example file (named `main.js`):
 
 ```js
 import { WorkletSynthesizer } from "spessasynth_lib";
@@ -75,7 +73,7 @@ console.log("yay, we have imported", WorkletSynthesizer);
 esbuild main.js --bundle --minify --sourcemap=linked --format=esm --platform=browser --outfile=main.min.js
 ```
 
-This will produce an output file called `main.min.js` and `main.min.js.map` for debugging. Make sure to exclude the latter from production builds!
+This will produce an output file called `main.min.js` and a `main.min.js.map` for debugging. Make sure to exclude the latter from production builds!
 
 ### Linking to HTML
 

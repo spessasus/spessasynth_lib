@@ -26,7 +26,7 @@ import type { SynthCoreConfig } from "./basic/types";
 export * from "./basic/types";
 
 /**
- * An extension of `spessasynth_core`s {@link SynthesizerSnapshot}.
+ * An extension of `spessasynth_core`'s {@link SynthesizerSnapshot}.
  *
  * @group Synthesizer.Basic
  */
@@ -38,7 +38,7 @@ export interface LibSynthesizerSnapshot extends SynthesizerSnapshot {
 }
 
 /**
- * Options for rendering the audio using {@link WorkletSynthesizer}
+ * Options for rendering the audio using {@link WorkletSynthesizer}.
  *
  * @group Synthesizer.Worklet
  */
@@ -56,7 +56,7 @@ export interface OfflineRenderWorkletData<T extends SynthesizerSnapshot> {
      */
     snapshot?: T;
     /**
-     * The amount times to loop the song.
+     * The number of times to loop the song.
      */
     loopCount: number;
 
@@ -92,6 +92,16 @@ export interface WorkletSBKManagerData {
     rearrangeSoundBanks: string[];
 }
 
+/**
+ * A message sent from the main thread {@link BasicSynthesizer} to the {@link BasicSynthesizerCore}.
+ *
+ * > **Tip**
+ * >
+ * > These messages can be intercepted in the worker before passing them to {@link WorkerSynthesizerCore.handleMessage}.
+ * > The message structure is internal and may change between versions.
+ *
+ * @group Synthesizer.Worker
+ */
 export type BasicSynthesizerMessage = {
     [K in keyof BasicSynthesizerMessageData]: {
         channelNumber: number;
@@ -157,7 +167,7 @@ export type WorkerSoundFont2WriteOptions = Omit<
         compressionAction: "keep" | "compress" | "decompress";
 
         /**
-         * The compression quality to call your provided compressionFunction with, if compressing.
+         * The compression quality to call your provided {@link WorkerSampleEncodingFunction} with, if compressing.
          */
         compressionQuality: number;
     };
@@ -226,7 +236,6 @@ interface BasicSynthesizerMessageData {
     ccReset: null;
     // Force: (0 false, 1 true) note: if channel is -1 then stop all channels
     stopAll: number;
-    // Is muted?
     addNewChannel: null;
     // Is drums?
     setDrums: boolean;
@@ -306,7 +315,7 @@ interface BasicSynthesizerReturnMessageData {
             data: SynthesizerReturn[K];
         };
     }[keyof SynthesizerReturn];
-    // An error message related to the sound bank. It contains a string description of the error.
+    // An error related to the sound bank
     soundBankError: Error;
     voiceCountChange: number[];
     renderingProgress: {
@@ -317,6 +326,16 @@ interface BasicSynthesizerReturnMessageData {
     }[keyof SynthesizerProgress];
 }
 
+/**
+ * A message sent from the {@link BasicSynthesizerCore} back to the main thread {@link BasicSynthesizer}.
+ *
+ * > **Tip**
+ * >
+ * > These messages can be intercepted on the main thread before passing them to {@link WorkerSynthesizer.handleWorkerMessage}.
+ * > The message structure is internal and may change between versions.
+ *
+ * @group Synthesizer.Worker
+ */
 export type BasicSynthesizerReturnMessage = {
     [K in keyof BasicSynthesizerReturnMessageData]: {
         type: K;

@@ -6,35 +6,38 @@ title: Direct Audio Engine Access Example
 
 > **Warning**
 >
-> This is for the advanced users only.
+> This is for advanced users only.
 
 > **Note**
 >
 > This demo only runs well in Firefox.
-> Chrome seems to have trouble with AudioBufferSourceNodes.
+> Chrome seems to have trouble with `AudioBufferSourceNode`s.
 >
 > It is recommended to use a simple playback Audio Worklet such as [this one](https://github.com/spessasus/SpessaFont/blob/1b6e034cfefa2f964efc7cba5838a42ee26fcb0f/public/audio_worklet.js).
 
 Sometimes, it is necessary for the script to have direct access to the synthesizer's audio engine for various reasons.
-While one can use `spessasynth_core` directly, this will require implementing the audio effects manually.
 
-This page is intended to show how to use both `spessasynth_core` and `spessasynth_lib` to maintain full feature set of the {@link WorkletSynthesizer} class,
-while rendering in the main thread and having the full access to the audio engine.
+This page shows how to use `spessasynth_core`'s {@link SpessaSynthProcessor} and {@link SpessaSynthSequencer} directly,
+rendering in the main thread with full access to the audio engine.
 
-### General Approach
+> **Tip**
+>
+> If you only need access to the audio engine (not necessarily on the main thread),
+> consider the {@link WorkerSynthesizer} instead.
+> Its {@link BasicSynthesizerCore.synthesizer} and {@link BasicSynthesizerCore.sequencers} properties give you direct access inside the worker.
 
-`spessasynth_lib` exposes both audio processors, allowing us to connect them to the synthesizer directly.
+## General Approach
 
 A simple audio loop that achieves this is as follows:
 
 1. Create the `Float32Array` buffers for the stereo output (and optionally the per-channel outputs for visualization).
-2. Perform any custom tasks needed and then render the audio
-3. Send the processed audio to playback nodes, like a custom audio worklet or `AudioBufferSourceNode`s
-4. The node plays back to the target node (a simple `BufferSource`)
+2. Perform any custom tasks needed, then advance the sequencer and render the audio.
+3. Send the rendered audio to a playback node, such as a custom audio worklet or an `AudioBufferSourceNode`.
+4. Connect that playback node to the destination.
 
-## Showing channel status example
+## Showing Channel Status Example
 
-### [See this demo live](https://spessasus.github.io/spessasynth_lib/examples/main_thread_rendering.html)
+**[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/main_thread_rendering.html)**
 
 Below is an example that shows the current channel status,
 which is something that cannot be achieved with just the {@link WorkletSynthesizer} class.
@@ -51,9 +54,9 @@ Nothing special here.
 
 The audio loop presented in this script is very similar to the one shown above:
 
-1. Make sure that the synthesizer is not too far ahead
-2. Create the buffers
-3. Process the MIDI playback and render audio
-4. Create buffer sources and play back the rendered chunks through them
+1. Make sure that the synthesizer is not too far ahead.
+2. Create the buffers.
+3. Process the MIDI playback and render the audio.
+4. Create buffer sources and play back the rendered chunks through them.
 
 There is another loop that displays all the voices. It is independent of the audio loop.

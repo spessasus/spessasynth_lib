@@ -1,7 +1,10 @@
 import type { SynthesizerSnapshot } from "spessasynth_core";
 import { fillWithDefaults } from "../../utils/fill_with_defaults";
 import { BasicSynthesizer } from "../basic/basic_synthesizer";
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config";
+import {
+    DEFAULT_SYNTH_CONFIG,
+    VISUAL_CHANNEL_OUTPUTS_START
+} from "../basic/synth_config";
 import type { SynthConfig } from "../basic/types";
 import type {
     LibSynthesizerSnapshot,
@@ -10,15 +13,15 @@ import type {
 import { WORKLET_PROCESSOR_NAME } from "./worklet_processor_name";
 
 /**
- * This synthesizer uses anAudioWorklet node provide real-time playback.
+ * This synthesizer uses an AudioWorklet node to provide real-time playback.
  *
  * > **Tip**
  * >
- * > A comparison of both synthesizers [can be found here.](../../../docs/extra/comparing-synthesizers.md).
+ * > A comparison of both synthesizers [can be found here](../../../docs/extra/comparing-synthesizers.md).
  *
  * > **Note**
  * >
- * > An example demonstrating capabilities of this synthesizer [can be found here](../../../docs/getting-started/advanced-example.md).
+ * > An example demonstrating the capabilities of this synthesizer [can be found here](../../../docs/getting-started/advanced-example.md).
  *
  * @group Synthesizer.Worklet
  */
@@ -29,9 +32,8 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      * > **Warning**
      * >
      * > Avoid using multiple synthesizer instances.
-     * > The {@link SoundBankManager} and one instance should be sufficient, especially with using more than 16 channels.
-     * > See [this comment for more info.](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985)
-     *
+     * > The {@link SoundBankManager} and one instance should be sufficient, especially when using more than 16 channels.
+     * > See [this comment for more info](https://github.com/spessasus/SpessaSynth/issues/74#issuecomment-2452600985).
      *
      * @param context The audio context.
      * @param config Optional configuration for the synthesizer.
@@ -119,8 +121,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         // Connect channels
         for (let i = 0; i < 16; i++) {
             const splitter = this.context.createChannelSplitter(2);
-            // +2 because outputs 0 and 1 are the main output and the convolver
-            const output = i + 2;
+            const output = i + VISUAL_CHANNEL_OUTPUTS_START;
             this.worklet.connect(splitter, output);
             splitter.connect(merger, 0, i * 2);
             splitter.connect(merger, 1, i * 2 + 1);

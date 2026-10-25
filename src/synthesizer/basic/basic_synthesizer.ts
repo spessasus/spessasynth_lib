@@ -50,7 +50,6 @@ type SynthesizerPostFunction = (
 ) => unknown;
 
 /**
- *
  * This abstract class contains shared methods between {@link WorkletSynthesizer} and {@link WorkerSynthesizer}.
  *
  * > **Warning**
@@ -93,11 +92,11 @@ export abstract class BasicSynthesizer {
     public readonly midiChannels: LibMIDIChannel[] = [];
     /**
      * The current preset list of the synthesizer,
-     * including all soundbanks with their offsets set through the {@link SoundBankManager}.
+     * including all sound banks with their offsets set through the {@link SoundBankManager}.
      *
      * > **Tip**
      * >
-     * > It is still recommended to use {@link LibSynthesizerEvent.presetListChange `presetListChange`} event as the data may not be immediately available.
+     * > It is still recommended to use the {@link LibSynthesizerEvent.presetListChange `presetListChange`} event as the data may not be immediately available.
      */
     public presetList: MIDIPatchFull[] = [];
 
@@ -130,7 +129,8 @@ export abstract class BasicSynthesizer {
     public readonly convolverNode: ConvolverNode | undefined;
     protected readonly worklet: AudioWorkletNode;
     /**
-     * Spessasynth_core system parameters
+     * The `spessasynth_core` system parameters.
+     * @internal
      */
     protected readonly _systemParameters: GlobalSystemParameter = {
         ...DEFAULT_GLOBAL_SYSTEM_PARAMETERS
@@ -156,8 +156,8 @@ export abstract class BasicSynthesizer {
      * Creates a new instance of a synthesizer.
      * @param context The audio context.
      * @param workletName The worklet processor name to use.
-     * @param postFunction The internal post function. Leave undefined to use worklet's post message.
-     * @param synthConfig Optional configuration for the synthesizer.
+     * @param synthConfig The configuration for the synthesizer.
+     * @param postFunction The internal post function. Leave undefined to use the worklet's `postMessage`.
      * @internal
      */
     protected constructor(
@@ -276,6 +276,20 @@ export abstract class BasicSynthesizer {
         });
     }
 
+    /**
+     * The current voice count.
+     * @internal
+     */
+    protected _voiceCount = 0;
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * The current amount of voices (notes) being synthesized. A real-time value.
+     */
+    public get voiceCount() {
+        return this._voiceCount;
+    }
+
     protected _midiParameters: GlobalMIDIParameter = {
         ...DEFAULT_GLOBAL_MIDI_PARAMETERS
     };
@@ -287,19 +301,6 @@ export abstract class BasicSynthesizer {
      */
     public get midiParameters(): Readonly<GlobalMIDIParameter> {
         return this._midiParameters;
-    }
-
-    /**
-     * Current voice amount
-     */
-    protected _voiceCount = 0;
-
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * The current amount of voices (notes) being synthesized. A real-time value.
-     */
-    public get voiceCount() {
-        return this._voiceCount;
     }
 
     /**
@@ -336,13 +337,13 @@ export abstract class BasicSynthesizer {
     /**
      * Disconnects the synthesizer from a given AudioNode.
      * @param destinationNode The node to disconnect from.
-     * @returns THe destination node.
+     * @returns The destination node.
      */
     public disconnect(destinationNode: AudioNode) {
         // Disconnect main output
         this.worklet.disconnect(destinationNode, MAIN_OUTPUT);
 
-        // Connect convolver (optional)
+        // Disconnect convolver (optional)
         this.convolverNode?.disconnect(destinationNode);
         return destinationNode;
     }
@@ -438,7 +439,7 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Get a current {@link SynthesizerSnapshot} of the synthesizer.
+     * Gets the current {@link SynthesizerSnapshot} of the synthesizer.
      */
     public async getSnapshot() {
         const responsePromise = this.awaitCoreResponse("synthesizerSnapshot");
@@ -460,7 +461,7 @@ export abstract class BasicSynthesizer {
 
     /**
      * Connects a given channel output to the given audio node.
-     * Note that this output is only meant for visualization and may be silent when Insertion Effect for this channel is enabled.
+     * Note that this output is only meant for visualization and may be silent when an insertion effect for this channel is enabled.
      * @example
      * ```js
      * // Create an analyzer for channel 1
@@ -482,7 +483,7 @@ export abstract class BasicSynthesizer {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Disconnects a given channel output to the given audio node.
+     * Disconnects a given channel output from the given audio node.
      * @example
      * ```js
      * // Disconnect the analyzer from earlier
@@ -490,7 +491,7 @@ export abstract class BasicSynthesizer {
      * ```
      *
      * @param targetNode The node to disconnect from.
-     * @param channelNumber The channel number to connect to, will be rolled over if value is greater than 15.
+     * @param channelNumber The channel number to disconnect, will be rolled over if value is greater than 15.
      */
     public disconnectChannel(targetNode: AudioNode, channelNumber: number) {
         this.worklet.disconnect(
@@ -503,7 +504,7 @@ export abstract class BasicSynthesizer {
      * Sends a raw MIDI message to the synthesizer.
      * @example
      * ```js
-     * // send a MIDI note on message for channel 2 and a note 61 (C#) with velocity 120
+     * // Send a MIDI note on message for channel 2 with note 61 (C#) and velocity 120
      * synth.sendMessage([0x92, 0x3d, 0x78]);
      * ```
      *
@@ -524,10 +525,10 @@ export abstract class BasicSynthesizer {
      *
      * > **Note**
      * >
-     * > That velocity of 0 is treated like a Note Off message.
+     * > A velocity of 0 is treated like a Note Off message.
      * @example
      * ```js
-     * // start the note 64 (E) on channel 0 with velocity of 120
+     * // Start the note 64 (E) on channel 0 with velocity of 120
      * synth.noteOn(0, 64, 120);
      * ```
      *
@@ -557,7 +558,7 @@ export abstract class BasicSynthesizer {
      * Stops playing a note.
      * @example
      * ```js
-     * // stop the note 78 (F) on channel 15
+     * // Stop the note 77 (F) on channel 15
      * synth.noteOff(15, 77);
      * ```
      *
@@ -602,7 +603,7 @@ export abstract class BasicSynthesizer {
      * > for the list of controllers supported by default.
      * @example
      * ```js
-     * // set controller 10 (Channel Pan) on channel 2 to 127 (Hard right)
+     * // Set controller 10 (Channel Pan) on channel 2 to 127 (hard right)
      * synth.controllerChange(2, 10, 127);
      * ```
      *
@@ -649,7 +650,7 @@ export abstract class BasicSynthesizer {
      * Apply pressure to the given channel. It usually controls the vibrato amount.
      * @example
      * ```js
-     * // set channel 1 pressure to 64 (middle)
+     * // Set channel 1 pressure to 64 (middle)
      * synth.channelPressure(1, 64);
      * ```
      *
@@ -679,7 +680,7 @@ export abstract class BasicSynthesizer {
      * extra controls, such as per-note pitch wheel.
      * @example
      * ```js
-     * // set channel 11 pressure on note 60 (C) to 127 (max)
+     * // Set channel 11 pressure on note 60 (C) to 127 (max)
      * synth.polyPressure(11, 60, 127);
      * ```
      *
@@ -710,8 +711,8 @@ export abstract class BasicSynthesizer {
      * Change the channel's pitch, including the currently playing notes.
      * @example
      * ```js
-     * // set pitch bend on channel 1 to middle (no change)
-     * synth.pitchWheel(0, 8192);
+     * // Set pitch bend on channel 1 to middle (no change)
+     * synth.pitchWheel(1, 8192);
      * ```
      *
      * @param channel The MIDI channel to use. It usually ranges from 0 to 15, but it depends on the channel count.
@@ -740,10 +741,11 @@ export abstract class BasicSynthesizer {
      * > **Tip**
      * >
      * > The pitch bend range can be decimal, for example, 0.5 means +- half a semitone.
+     * > The fractional part is sent through the Data Entry LSB with a precision of 1/128 of a semitone.
      *
      * @example
      * ```js
-     * // set the pitch bend range on channel 0 to +-12 semitones (one octave)
+     * // Set the pitch bend range on channel 0 to +-12 semitones (one octave)
      * synth.pitchWheelRange(0, 12);
      * ```
      *
@@ -769,7 +771,19 @@ export abstract class BasicSynthesizer {
             0,
             eventOptions
         );
-        this.controllerChange(channel, MIDIControllers.dataEntryMSB, range);
+        const semitones = Math.floor(range);
+        this.controllerChange(
+            channel,
+            MIDIControllers.dataEntryMSB,
+            semitones,
+            eventOptions
+        );
+        this.controllerChange(
+            channel,
+            MIDIControllers.dataEntryLSB,
+            Math.round((range - semitones) * 128),
+            eventOptions
+        );
 
         // Reset rpn
         this.controllerChange(
@@ -796,7 +810,7 @@ export abstract class BasicSynthesizer {
      * Changes the program for the given channel.
      * @example
      * ```js
-     * // change the program on channel 1 to 16 (drawbar organ)
+     * // Change the program on channel 0 to 16 (drawbar organ)
      * synth.programChange(0, 16);
      * ```
      *
@@ -830,12 +844,12 @@ export abstract class BasicSynthesizer {
      *
      * @example
      * ```js
-     * // send a GS DT1 Use Drums On Channel 10 (turn channel 10 into a drum channel)
+     * // Send a GS DT1 Use Drums On Channel 10 (turn channel 10 into a drum channel)
      * synth.systemExclusive([
      *     0x41, 0x10, 0x42, 0x12, 0x40, 0x1a, 0x15, 0x01, 0x10, 0xf7
      * ]);
      *
-     * // send a GS DT1 Use Drums On Channel 10 (turn channel 20 into a drum channel)
+     * // Send the same message with a channel offset of 10 (turn channel 20 into a drum channel)
      * synth.systemExclusive(
      *     [0x41, 0x10, 0x42, 0x12, 0x40, 0x1a, 0x15, 0x01, 0x10, 0xf7],
      *     10
@@ -871,10 +885,10 @@ export abstract class BasicSynthesizer {
      *
      * @param program The MIDI program to tune. Ranges from 0 to 127.
      * @param tunings An array of tunings, each containing two properties:
-     * - `sourceKey` - the MIDI note number to tune.
+     * - `sourceKey` - The MIDI note number to tune.
      * - `targetPitch` - The MIDI note number of the target pitch.
-     *  Note that floating values are allowed and they are specified in cents.
-     * `targetPitch` of `-1` sets the default tuning.
+     *   Fractional values are allowed, for example, 60.5 is C plus 50 cents.
+     *   A `targetPitch` of `-1` restores the default tuning.
      */
     public tuneKeys(
         program: number,
@@ -1013,7 +1027,8 @@ export abstract class BasicSynthesizer {
     }
 
     /**
-     * Handles the messages received from the worklet.
+     * Handles the messages received from the core.
+     * @internal
      */
     protected handleMessages(messages: BasicSynthesizerReturnMessage[]) {
         for (const m of messages)

@@ -6,7 +6,7 @@ title: Advanced Example
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/advanced_demo.html)**
 
-The example before is very basic, it only allows uploading a single MIDI file.
+The [previous example](simple-example.md) is very basic, as it only allows uploading a single MIDI file.
 We can add more features such as play/pause and time controls to our player without much effort.
 
 Let's add some control buttons:

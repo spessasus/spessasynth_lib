@@ -18,10 +18,10 @@ Nothing new here.
 --8<-- "offline_audio.ts"
 ```
 
-Here we use [`OfflineAudioContext`](https://developer.mozilla.org/en-US/Web/API/OfflineAudioContext)
+Here we use [`OfflineAudioContext`](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)
 to render the audio to file and the {@link audioBufferToWav} helper, conveniently bundled with SpessaSynth.
-This example uses {@link WorkletSynthesizer.startOfflineRender}
-the MIDI and sound bank are passed directly to the render call, so no sequencer is needed.
+This example uses {@link WorkletSynthesizer.startOfflineRender}.
+The MIDI and sound bank are passed directly to the render call, so no sequencer is needed.
 
 For more info about writing WAV files, see {@link audioBufferToWav}.
 

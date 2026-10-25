@@ -1,5 +1,10 @@
 import type { SynthConfig } from "./types";
 
+/**
+ * The default {@link SynthConfig} used by the synthesizers.
+ *
+ * @group Synthesizer.Basic
+ */
 export const DEFAULT_SYNTH_CONFIG: SynthConfig = {
     eventsEnabled: true,
     convolverMode: false,

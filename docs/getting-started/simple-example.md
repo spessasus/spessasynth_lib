@@ -17,7 +17,7 @@ The example uses two classes:
 
 > **Note**
 >
-> Note the type="module" in the script tag.
+> Note the `type="module"` in the script tag.
 
 ```ts title='simple_demo.ts'
 --8<-- "simple_demo.ts"
@@ -25,11 +25,11 @@ The example uses two classes:
 
 What the script does:
 
-1. Import the necessary variables
-2. `fetch`-es the sound bank file
+1. Imports the necessary classes
+2. Fetches the sound bank file
 3. Initializes an `AudioContext` and adds the worklet
-4. Initializes {@link WorkletSynthesizer} instance
-5. Adds a sound bank to the synthesizer
+4. Initializes a {@link WorkletSynthesizer} instance
+5. Adds the sound bank to the synthesizer
 6. Initializes a {@link Sequencer} instance and connects it to the {@link WorkletSynthesizer}
 7. Adds a listener for the file input:
     - Loads the selected MIDI file into the song list

@@ -24,7 +24,7 @@ import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_con
 
 // noinspection JSUnusedGlobalSymbols
 /**
- * This is the module that plays MIDI sequences using a {@link WorkletSynthesizer} or {@link WorkerSynthesizer}
+ * The sequencer plays MIDI sequences using a {@link WorkletSynthesizer} or {@link WorkerSynthesizer}.
  *
  * @group Sequencer
  */
@@ -56,13 +56,14 @@ export class Sequencer {
      *
      * > **Tip**
      * >
-     * > To get the actual MIDI data, use the {@Sequencer.getMIDI} method.
+     * > To get the actual MIDI data, use the {@link Sequencer.getMIDI} method.
      *
      * > **Danger**
      * >
      * > The sequencer doesn't instantly get the new MIDI information.
-     * > Make sure to listen for the {@SynthEventData.songChange} instead of waiting or assuming that the data is available instantly.
-     * > Also keep in mind that The sequencer _preloads_ the samples for the MIDI (this can be disabled with {@Sequencer.preload})
+     * > Make sure to listen for the {@link LibSequencerEvent.songChange `songChange`} event instead of waiting or assuming that the data is available instantly.
+     * > Also keep in mind that the sequencer _preloads_ the samples for the MIDI.
+     * > This can be disabled with `spessasynth_core`'s {@link SpessaSynthSequencer.preload}, accessible through {@link BasicSynthesizerCore.sequencers}.
      */
     public midiData?: MIDIData;
     /**
@@ -82,11 +83,11 @@ export class Sequencer {
     private getMIDICallback?: (receivedMIDI: BasicMIDI) => unknown = undefined;
     private highResTimeOffset = 0;
     /**
-     * Absolute playback startTime, bases on the synth's time.
+     * Absolute playback start time, based on the synth's time.
      */
     private absoluteStartTime: number;
     /**
-     * For sending the messages to the correct SpessaSynthSequencer in core
+     * For sending the messages to the correct `SpessaSynthSequencer` in core.
      */
     private readonly sequencerID: number;
 
@@ -131,10 +132,34 @@ export class Sequencer {
 
     /**
      * The shuffled song indexes, pointing to songs in {@link Sequencer.songListData}.
-     * This is used when shuffleMode is enabled.
+     * This is used when {@link Sequencer.shuffleSongs} is enabled.
      */
     public get shuffledSongIndexes() {
         return this._shuffledSongIndexes;
+    }
+
+    /**
+     * Internal loop count marker (`Infinity` loops forever).
+     */
+    private _loopCount = 0;
+
+    /**
+     * The number of loops remaining until the loop is disabled.
+     */
+    public get loopCount() {
+        return this._loopCount;
+    }
+
+    /**
+     * The number of loops remaining until the loop is disabled.
+     * Set to `Infinity` to loop forever.
+     * It will automatically decrease by one every loop.
+     * Set to 0 to disable loops.
+     * @param val The new loop count.
+     */
+    public set loopCount(val) {
+        this._loopCount = val;
+        this.sendMessage("setLoopCount", val);
     }
 
     private _songIndex = 0;
@@ -149,13 +174,10 @@ export class Sequencer {
 
     /**
      * Sets the current song number in the playlist.
-     * If shuffle Mode is enabled, this is the index of the shuffled song list.
+     * If shuffle mode is enabled, this is the index of the shuffled song list.
      * @param value The new song index to set.
      */
     public set songIndex(value: number) {
-        /**
-         * Sets the song index in the playlist.
-         */
         const clamped = Math.max(0, value % this._songCount);
         if (clamped === this._songIndex) {
             return;
@@ -171,7 +193,7 @@ export class Sequencer {
     private _currentTempo = 120;
 
     /**
-     * Current song's tempo in BPM.
+     * The current song's tempo in BPM.
      */
     public get currentTempo() {
         return this._currentTempo;
@@ -197,14 +219,14 @@ export class Sequencer {
     private _skipToFirstNoteOn: boolean;
 
     /**
-     * Indicates if the sequencer should skip to first note on when the time is set below it.
+     * Indicates if the sequencer should skip to the first note-on event when the time is set before it.
      */
     public get skipToFirstNoteOn(): boolean {
         return this._skipToFirstNoteOn;
     }
 
     /**
-     * Indicates if the sequencer should skip to first note on when the time is set below it.
+     * Indicates if the sequencer should skip to the first note-on event when the time is set before it.
      * @param val The new value for this parameter.
      */
     public set skipToFirstNoteOn(val: boolean) {
@@ -213,43 +235,19 @@ export class Sequencer {
     }
 
     /**
-     * Internal loop count marker (-1 is infinite).
-     */
-    private _loopCount = -1;
-
-    /**
-     * The number of loops remaining until the loop is disabled.
-     */
-    public get loopCount() {
-        return this._loopCount;
-    }
-
-    /**
-     * The number of loops remaining until the loop is disabled.
-     * Set to `Infinity` to loop forever.
-     * It will automatically decrease by one every loop.
-     * Set to 0 to disable loops.
-     * @param val The new loop count.
-     */
-    public set loopCount(val) {
-        this._loopCount = val;
-        this.sendMessage("setLoopCount", val);
-    }
-
-    /**
      * Controls the playback's rate.
      */
     private _playbackRate = 1;
 
     /**
-     * Controls how fast the song plays (1 is normal, 0.5 is half speed etc.)
+     * Controls how fast the song plays (1 is normal, 0.5 is half speed, etc.).
      */
     public get playbackRate() {
         return this._playbackRate;
     }
 
     /**
-     * Controls how fast the song plays (1 is normal, 0.5 is half speed etc.)
+     * Controls how fast the song plays (1 is normal, 0.5 is half speed, etc.).
      * @param value The new playback rate.
      */
     public set playbackRate(value: number) {
@@ -266,7 +264,7 @@ export class Sequencer {
      * Controls if the sequencer should shuffle the songs in the song list.
      * If true, the sequencer will play the songs in a random order.
      *
-     * Songs are shuffled on a {@Sequencer.loadNewSongList} call.
+     * Songs are shuffled on a {@link Sequencer.loadNewSongList} call.
      */
     public get shuffleSongs() {
         return this._shuffleSongs;
@@ -276,7 +274,7 @@ export class Sequencer {
      * Controls if the sequencer should shuffle the songs in the song list.
      * If true, the sequencer will play the songs in a random order.
      *
-     * Songs are shuffled on a {@Sequencer.loadNewSongList} call.
+     * Songs are shuffled on a {@link Sequencer.loadNewSongList} call.
      * @param value The new value for this parameter.
      */
     public set shuffleSongs(value: boolean) {
@@ -346,7 +344,7 @@ export class Sequencer {
 
     /**
      * A smoothed version of {@link Sequencer.currentTime}.
-     * Use for visualization as it's not affected by the audioContext stutter.
+     * Use for visualization as it's not affected by the `AudioContext` stutter.
      */
     public get currentHighResolutionTime() {
         if (this.pausedTime !== undefined) {
@@ -375,7 +373,7 @@ export class Sequencer {
     }
 
     /**
-     * True if paused, false if playing or stopped.
+     * True if paused or stopped (including before the first {@link Sequencer.play} call and after the song ends), false if playing.
      */
     public get paused() {
         return this.pausedTime !== undefined;
@@ -392,8 +390,8 @@ export class Sequencer {
     }
 
     /**
-     * Load a new song list.
-     * Note that this does not start playing the songs automatically
+     * Loads a new song list.
+     * Note that this does not start playing the songs automatically.
      * @param midiBuffers The MIDI files to play.
      */
     public loadNewSongList(midiBuffers: SuppliedMIDIData[]) {

@@ -135,7 +135,7 @@ export class LibMIDIOutput extends LibMIDIPort {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Disconnects sequencer from the output.
+     * Disconnects a sequencer from the output.
      * @param seq The sequencer to disconnect.
      */
     public disconnect(seq: Sequencer) {
@@ -145,8 +145,8 @@ export class LibMIDIOutput extends LibMIDIPort {
 
 // noinspection JSUnusedGlobalSymbols
 /**
- * SpessaSynth provides an easy way to connect physical MIDI Devices
- * to it and back using the Web MIDI API via `MIDIDeviceHandler`.
+ * Provides an easy way to connect physical MIDI devices
+ * to the synthesizer and sequencer using the Web MIDI API.
  *
  * @group Web MIDI
  */
@@ -170,9 +170,9 @@ export class MIDIDeviceHandler {
     }
 
     /**
-     * Initializes the connection to physical MIDI Devices.
-     * @returns The MIDI Device handler.
-     * @throws Error An error if the MIDI Devices fail to initialize or the Web MIDI API is not supported.
+     * Initializes the connection to physical MIDI devices.
+     * @returns The MIDI device handler.
+     * @throws Error If the MIDI devices fail to initialize or the Web MIDI API is not supported.
      */
     public static async createMIDIDeviceHandler(): Promise<MIDIDeviceHandler> {
         if (navigator.requestMIDIAccess) {

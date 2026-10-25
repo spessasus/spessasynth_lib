@@ -59,6 +59,9 @@ const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {
  * @group Synthesizer.Worker
  */
 export type WorkerSynthWriteOptions<K> = K & {
+    /**
+     * The function that tracks the writing progress, called with a value from 0 to 1.
+     */
     progressFunction?: (
         args: SynthesizerProgress["workerSynthWriteFile"]
     ) => unknown;
@@ -128,18 +131,17 @@ function mergeStereoAudioBuffer(into: AudioBuffer, from: AudioBuffer): void {
  *
  * > **Tip**
  * >
- * > A comparison of both synthesizers [can be found here.](../../../docs/extra/comparing-synthesizers.md).
+ * > A comparison of both synthesizers [can be found here](../../../docs/extra/comparing-synthesizers.md).
  *
  * > **Note**
  * >
- * > An example demonstrating capabilities of this synthesizer [can be found here](../../../docs/getting-started/worker-synth-example.md).
+ * > An example demonstrating the capabilities of this synthesizer [can be found here](../../../docs/getting-started/worker-synth-example.md).
  *
  * @group Synthesizer.Worker
  */
 export class WorkerSynthesizer extends BasicSynthesizer {
     /**
-     * Time offset for syncing with the synth
-     * @private
+     * Time offset for syncing with the synth.
      */
     private timeOffset = 0;
 
@@ -154,13 +156,12 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * >
      * > Also see {@link WorkerSynthesizerCore} for initializing the worker side of the synthesizer.
      *
-     *
      * @example
      * Below is a simple example of creating a new synthesizer.
      * Note that the two snippets are two files, one for the worker and one in the main thread.
      *
      * ```js
-     * // worker
+     * // Worker
      * let workerSynthCore;
      * // Wait for the first message with parameters
      * onmessage = (e) => {
@@ -169,7 +170,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      *         workerSynthCore = new WorkerSynthesizerCore(
      *             e.data,
      *             e.ports[0],
-     *             postMessage.bind(this)
+     *             postMessage.bind(globalThis)
      *         );
      *     } else {
      *         // Handle all other messages
@@ -179,29 +180,28 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * ```
      *
      * ```ts
-     * // main thread
-     * // create audio context
+     * // Main thread
+     * // Create the audio context
      * const context = new AudioContext({
      *     sampleRate: 44100
      * });
-     * // register worklet
-     * WorkerSynthesizer.registerPlaybackWorklet(context);
-     * // create the worker
+     * // Register the worklet
+     * await WorkerSynthesizer.registerPlaybackWorklet(context);
+     * // Create the worker
      * const worker = new Worker(
-     *     // make sure that your path is correct
+     *     // Make sure that your path is correct
      *     new URL("worker.js", import.meta.url)
      * );
-     * // create the synthesizer and bind it to the worker
+     * // Create the synthesizer and bind it to the worker
      * const synth = new WorkerSynthesizer(context, worker.postMessage.bind(worker));
      * worker.onmessage = (e) => synth.handleWorkerMessage(e.data);
      * ```
      *
      * @param context The audio context for the synthesizer to use.
-     * @param workerPostMessage The `postMessage` function of the Worker synthesizer will use.
+     * @param workerPostMessage The `postMessage` function of the Worker that the synthesizer will use.
      * The raw `Worker.postMessage` can be passed here.
      * This can be used for intercepting messages.
      * @param config Optional configuration for the synthesizer.
-     *
      */
     public constructor(
         // Disallow the use of OfflineAudioContext here
@@ -242,7 +242,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Returns the adjusted time, in sync with worker's internal time which may differ from the AudioContext time.
+     * Returns the adjusted time, in sync with the worker's internal time which may differ from the `AudioContext` time.
      */
     public get currentTime() {
         return this.context.currentTime + this.timeOffset;
@@ -251,8 +251,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     /**
      * Registers an audio worklet for the WorkerSynthesizer.
      * @param context The context to register the worklet for.
-     * @param maxQueueSize The maximum amount of 128-sample chunks to store in the worklet.
-     * Higher values result in less breakups but higher latency.
+     * @param maxQueueSize The maximum number of 128-sample chunks to store in the worklet.
+     * Higher values result in fewer dropouts but higher latency.
      */
     public static async registerPlaybackWorklet(
         context: BaseAudioContext,
@@ -424,7 +424,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
 
     /**
      * Renders the current song in the connected sequencer to the complete stereo output plus separate channel buffers.
-     * This pauses the playback if it is playing
+     * This pauses the playback if it is playing.
      * @param sampleRate The sample rate to use, in Hertz.
      * @param renderOptions Options for rendering the audio data.
      * @returns The complete stereo output and the separate visualization channels.
@@ -497,10 +497,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
-     * Render the convolver buffer with the current impulse response we have
-     * @param convolverData
-     * @param sampleRate
-     * @private
+     * Renders the convolver buffer with the current impulse response.
      */
     private async renderConvolverBuffer(
         convolverData: StereoAudioChunk,

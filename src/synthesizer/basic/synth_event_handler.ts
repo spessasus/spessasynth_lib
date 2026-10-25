@@ -1,5 +1,10 @@
 import type { LibSynthesizerEvent } from "../types";
 
+/**
+ * A callback for a given {@link LibSynthesizerEvent} type.
+ *
+ * @group Synthesizer.Events
+ */
 export type ProcessorEventCallback<T extends keyof LibSynthesizerEvent> = (
     callbackData: LibSynthesizerEvent[T]
 ) => unknown;
@@ -10,7 +15,7 @@ type EventsMap = {
 
 /**
  * The synthesizer supports event handling.
- * For example, the MIDI Keyboard in the demo uses handling to visualize key-presses.
+ * For example, the MIDI keyboard in the SpessaSynth web app uses it to visualize key presses.
  *
  * It is accessible via the {@link BasicSynthesizer.eventHandler} property.
  *
@@ -19,7 +24,7 @@ type EventsMap = {
  */
 export class SynthEventHandler {
     /**
-     * The time delay before an event is called.
+     * The time delay before an event is called, in seconds.
      * Set to 0 to disable it.
      */
     public timeDelay = 0;
@@ -73,7 +78,7 @@ export class SynthEventHandler {
     /**
      * Adds a new event listener.
      * @param event The event type to listen for.
-     * @param id The unique identifier for the event. It can be used to overwrite existing callback with the same ID.
+     * @param id The unique identifier for the event. It can be used to overwrite an existing callback with the same ID.
      * @param callback The callback for the event.
      */
     public addEvent<T extends keyof LibSynthesizerEvent>(
@@ -87,14 +92,14 @@ export class SynthEventHandler {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Removes an event listener.
-     * @param name The event type to remove a listener from.
+     * @param event The event type to remove a listener from.
      * @param id The unique identifier for the event to remove.
      */
     public removeEvent<T extends keyof LibSynthesizerEvent>(
-        name: T,
+        event: T,
         id: string
     ) {
-        this.events[name].delete(id);
+        this.events[event].delete(id);
     }
 
     /**

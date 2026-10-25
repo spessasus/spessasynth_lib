@@ -51,7 +51,7 @@ document
                 return;
             }
 
-            // Create empty stereo buffers for dry signal, reverb, and chorus outputs
+            // Create empty stereo buffers for the output (effects are already mixed in)
             const QUANTUM = 128;
             const BUFFER_SIZE = 2048;
             const outputL = new Float32Array(BUFFER_SIZE);

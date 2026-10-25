@@ -13,7 +13,7 @@ import type { MIDIData } from "./midi_data";
  */
 export interface SequencerOptions {
     /**
-     * If true, the sequencer will skip to the first note.
+     * If true, the sequencer will skip to the first note-on event when the time is set before it.
      * Defaults to `true`.
      */
     skipToFirstNoteOn: boolean;
@@ -68,21 +68,13 @@ export type SequencerReturnMessage =
     | { type: "sync"; data: number; id: number };
 
 /**
- * Sequencer.js
- * purpose: plays back the midi file decoded by midi_loader.js, including support for multichannel midis
- * (adding channels when more than one midi port is detected)
- * note: this is the sequencer class that runs on the main thread
- * and only communicates with the worklet sequencer which does the actual playback
- */
-
-/**
- * Array of the parsed MIDI files to play, Either {@link BasicMIDI} or objects (can be mixed up) with two properties:
- *  - `binary` - the `ArrayBuffer` representation of the file.
- *  - `fileName` - alternative name of the sequence if it doesn't have one (like file name, for example). `string`, can be undefined.
+ * A MIDI file to play, either a {@link BasicMIDI} or an object with two properties (the two can be mixed in a song list):
+ * - `binary` - The `ArrayBuffer` representation of the file.
+ * - `fileName` - An optional fallback name for the sequence if it doesn't have one (like the file name).
  *
  * > **Tip**
  * >
- * > For performance reasons, it is recommended passing the binary data rather than the parsed `MIDI` instance.
+ * > For performance reasons, it is recommended to pass the binary data rather than the parsed {@link BasicMIDI} instance.
  *
  * @group Sequencer.MIDI Data
  */
@@ -131,7 +123,7 @@ export interface LibSequencerEvent extends Omit<
          */
         event: MIDIMessage;
         /**
-         * If the text is a lyric, the index of the lyric in {@link BasicMIDI}'s "lyrics" property, otherwise -1.
+         * If the text is a lyric, the index of the lyric in {@link BasicMIDI.lyrics}, otherwise -1.
          */
         lyricsIndex: number;
     };

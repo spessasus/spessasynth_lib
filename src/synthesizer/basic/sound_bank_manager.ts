@@ -7,7 +7,7 @@ import type { BasicSynthesizer } from "./basic_synthesizer";
  *
  * It is accessible via the {@link BasicSynthesizer.soundBankManager} property.
  *
- * Every operation sends a new {@link SynthesizerEvent.presetListChange `presetListChange`} event.
+ * Every operation sends a new {@link LibSynthesizerEvent.presetListChange `presetListChange`} event.
  * @group Synthesizer.Basic
  */
 export class SoundBankManager {
@@ -30,7 +30,7 @@ export class SoundBankManager {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The IDs of the sound banks in the current order. (from the most important to last)
+     * The IDs of the sound banks in the current order (from the most important to the least).
      * This can be used to set or retrieve the current order.
      * Presets in the first bank override the second bank if they have the same MIDI patch and so on.
      */
@@ -41,7 +41,7 @@ export class SoundBankManager {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Rearranges the sound banks in a given order.
-     * @param newList The order of sound banks, a list of identifiers, first overwrites second.
+     * @param newList The order of sound banks, a list of identifiers. The first one overrides the second.
      */
     public set priorityOrder(newList: string[]) {
         this.sendToWorklet("rearrangeSoundBanks", newList);
@@ -52,16 +52,15 @@ export class SoundBankManager {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * This method adds a new sound bank with a given ID to the list,
+     * Adds a new sound bank with a given ID to the list,
      * or replaces an existing one.
-     *
      *
      * > **Warning**
      * >
      * > This method detaches the provided `ArrayBuffer` by transferring it to the synthesizer.
      * > It can't be used after passing it to the object!
      *
-     * @param soundBankBuffer The new sound bank to add, a binary data of the file.
+     * @param soundBankBuffer The new sound bank to add, the binary data of the file.
      * @param id The sound bank's unique identifier. If it already exists, it will be replaced.
      * @param bankOffset The sound bank's bank MSB offset. Default is 0.
      */
@@ -94,7 +93,11 @@ export class SoundBankManager {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * This method removes a sound bank with a given ID from the sound bank list.
+     * Removes a sound bank with a given ID from the sound bank list.
+     *
+     * > **Note**
+     * >
+     * > The last remaining sound bank cannot be removed. The call is ignored with a warning instead.
      * @param id The ID of the sound bank to remove.
      */
     public async deleteSoundBank(id: string) {

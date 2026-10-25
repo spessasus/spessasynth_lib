@@ -31,10 +31,28 @@ export interface SynthConfig {
     convolverMode: boolean;
 }
 
+/**
+ * The initialization data for the {@link BasicSynthesizerCore}.
+ * For the {@link WorkerSynthesizer}, it is the data of the first message posted to the worker.
+ *
+ * @group Synthesizer.Worker
+ */
 export interface SynthCoreConfig {
+    /**
+     * The sample rate of the audio context, in Hertz.
+     */
     sampleRate: number;
+    /**
+     * The audio context's time when the synthesizer was created, in seconds.
+     */
     initialTime: number;
+    /**
+     * If the convolver mode is enabled. See {@link SynthConfig.convolverMode}.
+     */
     convolverMode: boolean;
+    /**
+     * The options passed to the `spessasynth_core` {@link SpessaSynthProcessor}.
+     */
     processorConfig: Partial<SynthProcessorOptions>;
 }
 
@@ -51,14 +69,14 @@ export interface AudioNodeCreators {
      * @example
      * An example function that creates the standard worklet node looks like this:
      *
-     * ```js
+     * ```ts
      * (context: BaseAudioContext, name: string, options: AudioWorkletNodeOptions) => {
      *     return new AudioWorkletNode(context, name, options);
      * };
      * ```
      *
      * @param context The context of the node.
-     * @param workletName The name of the registered processor
+     * @param workletName The name of the registered processor.
      * @param options `AudioWorkletNodeOptions`.
      */
     worklet: (

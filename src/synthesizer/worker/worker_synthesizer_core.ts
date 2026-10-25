@@ -30,6 +30,7 @@ type AudioChunks = AudioChunk[];
 export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     /**
      * The message port to the playback audio worklet.
+     * @internal
      */
     protected readonly workletMessagePort: MessagePort;
 
@@ -41,7 +42,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
      *
      * > **Tip**
      * >
-     * > For an example of setting up a worker synthesizer, see [Worker Synth Example](../../../docs/getting-started/worker-synth-example.md)
+     * > For an example of setting up a worker synthesizer, see the [Worker Synthesizer Example](../../../docs/getting-started/worker-synth-example.md).
      *
      * @param synthCoreConfig The data from the first message sent from {@link WorkerSynthesizer}.
      * Listen for the first event and use its data to initialize this class.
@@ -71,7 +72,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
      *
      * > **Tip**
      * >
-     * > For an example of setting up a worker synthesizer, see [Worker Synth Example](../../../docs/getting-started/worker-synth-example.md)
+     * > For an example of setting up a worker synthesizer, see the [Worker Synthesizer Example](../../../docs/getting-started/worker-synth-example.md).
      *
      * @param m The message received.
      */

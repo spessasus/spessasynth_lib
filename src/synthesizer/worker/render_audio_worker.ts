@@ -3,29 +3,31 @@ import { ReverbCapture } from "../basic/reverb_passthrough";
 import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
 
 /**
- * Options for rendering audio in a {@link WorkerSynthesizer}
+ * Options for rendering audio in a {@link WorkerSynthesizer}.
+ * The public methods accept {@link RenderAudioOptions}, which omits `separateChannels`.
  *
  * @group Synthesizer.Worker
  */
 export interface WorkerRenderAudioOptions {
     /**
-     * Extra fadeout time after the song finishes, in seconds.
+     * Extra fade-out time after the song finishes, in seconds.
      */
     extraTime: number;
     /**
      * If channels should be rendered separately.
+     * This is set automatically by {@link WorkerSynthesizer.renderAudio} and {@link WorkerSynthesizer.renderAudioSplit}.
      */
     separateChannels: boolean;
 
     /**
-     * The amount of times to loop the song.
+     * The number of times to loop the song.
      */
     loopCount: number;
 
     /**
      * The function that tracks the rendering progress.
-     * @param progress mapped 0 to 1.
-     * @param stage always 0, the output and visuals are rendered in a single pass.
+     * @param progress The progress, from 0 to 1.
+     * @param stage Always 0, as the output and visuals are rendered in a single pass.
      */
     progressCallback?: (progress: number, stage: number) => unknown;
 

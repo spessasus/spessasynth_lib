@@ -9,7 +9,7 @@ export interface LibWaveWriteOptions extends WaveWriteOptions {
     /**
      * The channel offset in the AudioBuffer. Defaults to 0.
      * If the buffer has more than two channels, you can specify the channel offset to use.
-     * This is especially useful in when extracting a stereo pair from multichannel audio buffer.
+     * This is especially useful when extracting a stereo pair from a multichannel audio buffer.
      */
     channelOffset: number;
 
@@ -21,12 +21,11 @@ export interface LibWaveWriteOptions extends WaveWriteOptions {
 }
 
 /**
- * SpessaSynth has a helper function for writing wave files.
- * Converts an audio buffer into a fully valid WAVE (.wav) file.
+ * Converts an `AudioBuffer` into a fully valid WAVE (.wav) file.
  *
  * > **Important**
  * >
- * > The metadata uses the `INFO` chunk to write the information. It is encoded with `utf-8`
+ * > The metadata uses the `INFO` chunk to write the information. It is encoded with `utf-8`.
  *
  * @param audioBuffer The buffer to write. Multiple channels are allowed.
  * @param options Additional options for writing the file.

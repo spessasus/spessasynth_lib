@@ -48,38 +48,38 @@ export abstract class BasicSynthesizerCore {
 
     /**
      * For syncing voice counts, implemented separately in the `process()` method.
-     * @protected
+     * @internal
      */
     protected readonly voiceCounts = new Array<number>(16).fill(0);
 
     protected readonly eventsEnabled;
 
     /**
-     * In this mode, the reverb is captured and sent to the main thread for a ConvolverNode to process.
-     * @protected
+     * In this mode, the reverb is captured and sent to the main thread for a `ConvolverNode` to process.
+     * @internal
      */
     protected readonly convolverMode;
 
     protected readonly reverbCapture: ReverbCapture | undefined;
     /**
      * Indicates if the processor is alive.
-     * @protected
+     * @internal
      */
     protected alive = false;
     protected lastSequencerSync = 0;
     /**
-     * A message queue for sending bulk many messages as one.
-     * @protected
+     * A message queue for sending many messages in bulk as one.
+     * @internal
      */
     protected messageQueue = new Array<BasicSynthesizerReturnMessage>();
     /**
      * The transferable part of the queue.
-     * @protected
+     * @internal
      */
     protected messageQueueTransferable = new Array<Transferable>();
     /**
      * If the queue is active, all messages will be queued. If not, they will be sent immediately.
-     * @protected
+     * @internal
      */
     protected messageQueueActive = false;
 

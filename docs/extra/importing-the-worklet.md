@@ -1,8 +1,8 @@
 ---
-title: Importing the worklet module
+title: Importing the Worklet Module
 ---
 
-# Importing the worklet module
+# Importing the Worklet Module
 
 > **Warning**
 >
@@ -13,9 +13,9 @@ title: Importing the worklet module
 >
 > This only applies to the {@link WorkletSynthesizer}. If you're using the {@link WorkerSynthesizer}, bundlers will take care of everything.
 
-## The problem
+## The Problem
 
-the `addModule` method uses a URL _relative to the page URL_, so I (the creator) can't simply just do:
+The `addModule` method uses a URL _relative to the page URL_, so I (the creator) can't simply make the library do:
 
 ```ts
 async function addWorkletHelper(context) {
@@ -42,4 +42,4 @@ await context.audioWorklet.addModule(
 
 > **Tip**
 >
-> This method seems to work with WebPack.
+> This method seems to work with webpack.

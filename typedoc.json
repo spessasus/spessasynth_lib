@@ -5,7 +5,7 @@
     "entryPointStrategy": "resolve",
     "name": "spessasynth_lib documentation",
     "readme": "docs/index.md",
-    "projectDocuments": ["docs/getting-started/**/*.md", "docs/extra/**/*.md"],
+    "projectDocuments": ["docs/getting-started/index.md", "docs/extra/**/*.md"],
     "out": "site",
     "favicon": "./docs/assets/favicon.png",
     "sortEntryPoints": false,
@@ -16,6 +16,10 @@
     "searchInComments": true,
     "githubPages": true,
     "excludeNotDocumented": true,
+    "intentionallyNotExported": [
+        "BasicSynthesizerMessageData",
+        "BasicSynthesizerReturnMessageData"
+    ],
     "customCss": "docs/typedoc/typedoc.css",
     "customJs": "docs/typedoc/typedoc.js",
     "router": "document-paths",

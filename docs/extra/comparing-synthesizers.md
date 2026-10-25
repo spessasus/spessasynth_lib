@@ -14,7 +14,7 @@ This synthesizer uses a single AudioWorklet to provide real-time playback.
 
 - Stable audio system: The processor lives in the worklet. As long as the system can keep up, there should be no dropouts.
 - Separate thread: The audio thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
-- Fast main thread communication: suitable for real-time playback from Web MIDI Inputs.
+- Fast main thread communication: Suitable for real-time playback from Web MIDI inputs.
 - Simple to set up.
 
 ### Disadvantages
@@ -30,15 +30,15 @@ This newer synthesizer uses a Worker communicating with an AudioWorklet through 
 ### Advantages
 
 - Separate thread: The worker thread is separated from the main thread, ensuring smooth playback even if the main thread is busy.
-- Integrated worklet: there's no need to copy any js files as the worklet is embedded into the code.
-- Direct audio engine access: while still in a separate thread.
+- Integrated worklet: There's no need to copy any JS files as the worklet is embedded into the code.
+- Direct audio engine access: While still in a separate thread.
 - Ability to intercept messages passed from and to the core synthesis engine.
 - Not affected by the [Chromium SF3 audio bug](https://github.com/spessasus/spessasynth_lib/issues/8).
 - Direct SF/MIDI/audio export right in the worker, without transferring any large ArrayBuffers or freezing the main thread.
 
 ### Disadvantages
 
-- Less stable audio engine: The audio processing is separated into two threads, increasing the potential stutters.
-- Less accurate real-time inputs: calling note-on, note-off, etc. in real-time is less precise than with the Worklet.
-- A lot of clicks and stutters on non-chromium browsers on weaker devices such as smartphones.
+- Less stable audio engine: The audio processing is separated into two threads, increasing the potential for stutters.
+- Less accurate real-time inputs: Calling note-on, note-off, etc. in real-time is less precise than with the Worklet.
+- A lot of clicks and stutters on non-Chromium browsers on weaker devices such as smartphones.
 - More code needed to set it up.

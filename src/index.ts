@@ -1,7 +1,3 @@
-// Import modules
-
-// Export modules
-
 export {
     MIDIDeviceHandler,
     LibMIDIPort,
@@ -11,6 +7,7 @@ export {
 export { WebMIDILinkHandler } from "./external_midi/web_midi_link";
 export * from "./sequencer/midi_data";
 export { Sequencer } from "./sequencer/sequencer";
+export { DEFAULT_SEQUENCER_OPTIONS } from "./sequencer/default_sequencer_options";
 export {
     SeqEventHandler,
     type SequencerEventCallback
