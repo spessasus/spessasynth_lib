@@ -9,11 +9,11 @@ import { DEFAULT_SEQUENCER_OPTIONS } from "../../sequencer/default_sequencer_opt
 import type { SequencerOptions } from "../../sequencer/types";
 import { fillWithDefaults } from "../../utils/fill_with_defaults";
 import { ConsoleColors } from "../../utils/other";
+import { BasicSynthesizerCore } from "../basic/basic_synthesizer_core";
 import {
-    BasicSynthesizerCore,
-    SEQUENCER_SYNC_INTERVAL
-} from "../basic/basic_synthesizer_core";
-import { VISUAL_CHANNEL_OUTPUTS_START } from "../basic/synth_config";
+    TOTAL_OUTPUT_COUNT,
+    VISUAL_CHANNEL_OUTPUTS_START
+} from "../basic/synth_config";
 import type { SynthCoreConfig } from "../basic/types";
 import type {
     BasicSynthesizerMessage,
@@ -21,8 +21,13 @@ import type {
 } from "../types";
 
 export class WorkletSynthesizerCore extends BasicSynthesizerCore {
-    protected alive = true;
     private readonly port: MessagePort;
+    /**
+     * The visual channel outputs, reused to avoid allocating an array in every `process()` call.
+     */
+    private readonly channelOutputs = new Array<Float32Array[]>(
+        TOTAL_OUTPUT_COUNT - VISUAL_CHANNEL_OUTPUTS_START
+    );
 
     public constructor(synthCoreConfig: SynthCoreConfig, port: MessagePort) {
         super(synthCoreConfig, (data, transfer) => {
@@ -43,32 +48,30 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
      * The audio worklet processing logic
      * @param _inputs required by WebAudioAPI
      * @param outputs the outputs to write to, only the first two channels of each are populated
-     * @returns true unless it's not alive
+     * @returns True unless the core has been destroyed.
      */
     public process(
         _inputs: Float32Array[][],
         outputs: Float32Array[][]
     ): boolean {
-        if (!this.alive) {
+        if (this.destroyed) {
             return false;
         }
-        // Start the queue
-        this.messageQueueActive = true;
-        // Process sequencer
-        for (const sq of this.sequencers) {
-            sq.processTick();
-        }
+        this.startBlock();
 
         // 18 outputs, each a stereo one
         // 0: Main output (the complete audio, with effects)
         // 1: Convolver dry (for main thread convolution, unused without convolverMode)
         // 2-17: MIDI Channel outputs (visualization only, not to be connected to audio output!)
+        const channelOutputs = this.channelOutputs;
+        for (let i = 0; i < channelOutputs.length; i++)
+            channelOutputs[i] = outputs[i + VISUAL_CHANNEL_OUTPUTS_START];
         this.synthesizer.process(
             outputs[0][0],
             outputs[0][1],
             undefined,
             undefined,
-            outputs.slice(VISUAL_CHANNEL_OUTPUTS_START)
+            this.channelOutputs
         );
 
         // Send reverb
@@ -79,41 +82,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             outputs[1][0].length
         );
 
-        const t = this.synthesizer.currentTime;
-        if (
-            this.eventsEnabled &&
-            t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
-        ) {
-            for (let id = 0; id < this.sequencers.length; id++) {
-                this.post({
-                    type: "sequencerReturn",
-                    data: {
-                        type: "sync",
-                        data: this.sequencers[id].currentTime,
-                        id
-                    },
-                    currentTime: t
-                });
-            }
-            this.lastSequencerSync = t;
-        }
-
-        // Update voice count
-        const c = this.synthesizer.midiChannels;
-        const cv = this.voiceCounts;
-        let updateChannels = false;
-        for (let i = 0; i < c.length; i++) {
-            updateChannels ||= c[i].voiceCount !== cv[i];
-            cv[i] = c[i].voiceCount;
-        }
-        if (updateChannels)
-            this.post({
-                type: "voiceCountChange",
-                currentTime: t,
-                data: cv
-            });
-
-        this.flushQueue();
+        this.finishBlock();
         return true;
     }
 
@@ -164,6 +133,8 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
         sq.loopCount = config.loopCount;
         // Set voice cap to unlimited
         this.synthesizer.setSystemParameter("autoAllocateVoices", true);
+        // The snapshot may have disabled the events, but the main thread needs them for the state sync
+        this.synthesizer.setSystemParameter("eventsEnabled", true);
 
         /**
          * Set options
@@ -180,7 +151,7 @@ export class WorkletSynthesizerCore extends BasicSynthesizerCore {
             sq.loadNewSongList([BasicMIDI.copyFrom(config.midiSequence)]);
             sq.play();
         } catch (error) {
-            console.error(error);
+            SpessaLog.warn(error);
             this.post({
                 type: "sequencerReturn",
                 data: {

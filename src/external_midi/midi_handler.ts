@@ -160,6 +160,16 @@ export class MIDIDeviceHandler {
      */
     public readonly outputs = new Map<string, LibMIDIOutput>();
 
+    /**
+     * Called after a device was connected or disconnected, once {@link MIDIDeviceHandler.inputs} and {@link MIDIDeviceHandler.outputs} are updated.
+     *
+     * > **Note**
+     * >
+     * > A device that gets reconnected gets a new {@link LibMIDIInput} or {@link LibMIDIOutput} wrapper,
+     * > so it needs to be connected again. The previous wrapper stops working.
+     */
+    public onDeviceChange?: () => unknown;
+
     private constructor(access: MIDIAccess) {
         for (const [key, value] of access.inputs.entries()) {
             this.inputs.set(key, new LibMIDIInput(value));
@@ -167,6 +177,24 @@ export class MIDIDeviceHandler {
         for (const [key, value] of access.outputs.entries()) {
             this.outputs.set(key, new LibMIDIOutput(value));
         }
+        access.onstatechange = (e) => {
+            const port = e.port;
+            if (!port) return;
+            const map = port.type === "input" ? this.inputs : this.outputs;
+            if (port.state === "disconnected") {
+                if (!map.delete(port.id)) return;
+            } else if (map.has(port.id)) {
+                return;
+            } else if (port.type === "input") {
+                this.inputs.set(port.id, new LibMIDIInput(port as MIDIInput));
+            } else {
+                this.outputs.set(
+                    port.id,
+                    new LibMIDIOutput(port as MIDIOutput)
+                );
+            }
+            this.onDeviceChange?.();
+        };
     }
 
     /**
@@ -192,10 +220,7 @@ export class MIDIDeviceHandler {
                 throw error;
             }
         } else {
-            SpessaLog.warn(
-                "Web MIDI API is not supported.",
-                ConsoleColors.unrecognized
-            );
+            SpessaLog.warn("Web MIDI API is not supported.");
             throw new Error("Web MIDI API is not supported.");
         }
     }

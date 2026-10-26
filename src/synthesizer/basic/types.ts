@@ -14,9 +14,11 @@ export interface SynthConfig {
 
     /**
      * If the event system should be enabled.
-     * This can only be set once.
+     * It can be changed later with the `eventsEnabled` {@link GlobalSystemParameter}.
      *
-     * If false, no event will be emitted.
+     * If false, no event will be emitted by the {@link SynthEventHandler}.
+     * The synthesizer state, such as {@link BasicSynthesizer.presetList} and {@link BasicSynthesizer.midiChannels},
+     * and the {@link Sequencer} keep working, as the core still sends the data it needs to sync them.
      */
     eventsEnabled: boolean;
 

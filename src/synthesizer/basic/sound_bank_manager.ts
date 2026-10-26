@@ -1,3 +1,4 @@
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config";
 import { type SoundBankManagerListEntry, SpessaLog } from "spessasynth_core";
 import type { BasicSynthesizerMessage, WorkletSBKManagerData } from "../types";
 import type { BasicSynthesizer } from "./basic_synthesizer";
@@ -44,6 +45,8 @@ export class SoundBankManager {
      * @param newList The order of sound banks, a list of identifiers. The first one overrides the second.
      */
     public set priorityOrder(newList: string[]) {
+        // Consume the response to keep the waiters in order. Errors are reported with the soundBankError event
+        void this.awaitResponse().catch(() => undefined);
         this.sendToWorklet("rearrangeSoundBanks", newList);
         this.soundBankList.sort(
             (a, b) => newList.indexOf(a.id) - newList.indexOf(b.id)
@@ -63,6 +66,7 @@ export class SoundBankManager {
      * @param soundBankBuffer The new sound bank to add, the binary data of the file.
      * @param id The sound bank's unique identifier. If it already exists, it will be replaced.
      * @param bankOffset The sound bank's bank MSB offset. Default is 0.
+     * @throws Error If the sound bank could not be loaded. The {@link LibSynthesizerEvent.soundBankError `soundBankError`} event is also emitted.
      */
     public async addSoundBank(
         soundBankBuffer: ArrayBuffer,
@@ -113,8 +117,8 @@ export class SoundBankManager {
         }
         const responsePromise = this.awaitResponse();
         this.sendToWorklet("deleteSoundBank", id);
-        this.soundBankList = this.soundBankList.filter((s) => s.id !== id);
         await responsePromise;
+        this.soundBankList = this.soundBankList.filter((s) => s.id !== id);
     }
 
     private awaitResponse() {
@@ -128,7 +132,7 @@ export class SoundBankManager {
     ) {
         const msg: BasicSynthesizerMessage = {
             type: "soundBankManager",
-            channelNumber: -1,
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             data: {
                 type,
                 data

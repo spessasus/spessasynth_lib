@@ -1,6 +1,9 @@
 import { fillWithDefaults } from "../../utils/fill_with_defaults";
 import { BasicSynthesizer } from "../basic/basic_synthesizer";
-import { DEFAULT_SYNTH_CONFIG } from "../basic/synth_config";
+import {
+    ALL_CHANNELS_OR_DIFFERENT_ACTION,
+    DEFAULT_SYNTH_CONFIG
+} from "../basic/synth_config";
 import type { SynthConfig } from "../basic/types";
 import type {
     BasicSynthesizerMessage,
@@ -39,7 +42,6 @@ const DEFAULT_SF2_WRITE_OPTIONS: WorkerSoundFont2WriteOptions = {
 };
 
 const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
-    ...DEFAULT_BANK_WRITE_OPTIONS,
     applySnapshot: false,
     bankOffset: 0,
     correctBankOffset: true,
@@ -82,11 +84,6 @@ export interface RenderAudioResult {
      * These are the dry channel outputs and are intended for visualization only.
      */
     visual: AudioBuffer[];
-}
-
-interface RenderAudioInternalResult {
-    visual: AudioBuffer[];
-    output: AudioBuffer;
 }
 
 /**
@@ -294,30 +291,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             WorkerSynthWriteOptions<WorkerDLSWriteOptions>
         > = DEFAULT_DLS_WRITE_OPTIONS
     ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
-        const writeOptions = fillWithDefaults(
-            options,
-            DEFAULT_DLS_WRITE_OPTIONS
-        );
-        const postOptions = {
-            ...writeOptions,
-            progressFunction: null
-        };
-        return this.withProgress(
-            "workerSynthWriteFile",
-            (p) => {
-                void options.progressFunction?.(p);
-            },
-            async () => {
-                const responsePromise = this.awaitCoreResponse(
-                    "workerSynthWriteFile"
-                );
-                this.post({
-                    type: "writeDLS",
-                    data: postOptions,
-                    channelNumber: -1
-                });
-                return await responsePromise;
-            }
+        return this.writeFile(
+            "writeDLS",
+            fillWithDefaults(options, DEFAULT_DLS_WRITE_OPTIONS)
         );
     }
 
@@ -333,30 +309,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             WorkerSynthWriteOptions<WorkerSoundFont2WriteOptions>
         > = DEFAULT_SF2_WRITE_OPTIONS
     ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
-        const writeOptions = fillWithDefaults(
-            options,
-            DEFAULT_SF2_WRITE_OPTIONS
-        );
-        const postOptions = {
-            ...writeOptions,
-            progressFunction: null
-        };
-        return this.withProgress(
-            "workerSynthWriteFile",
-            (p) => {
-                void options.progressFunction?.(p);
-            },
-            async () => {
-                const responsePromise = this.awaitCoreResponse(
-                    "workerSynthWriteFile"
-                );
-                this.post({
-                    type: "writeSF2",
-                    data: postOptions,
-                    channelNumber: -1
-                });
-                return await responsePromise;
-            }
+        return this.writeFile(
+            "writeSF2",
+            fillWithDefaults(options, DEFAULT_SF2_WRITE_OPTIONS)
         );
     }
 
@@ -372,32 +327,11 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             WorkerSynthWriteOptions<WorkerRMIDIWriteOptions>
         > = DEFAULT_RMIDI_WRITE_OPTIONS
     ): Promise<ArrayBuffer> {
-        const writeOptions = fillWithDefaults(
-            options,
-            DEFAULT_RMIDI_WRITE_OPTIONS
+        const file = await this.writeFile(
+            "writeRMIDI",
+            fillWithDefaults(options, DEFAULT_RMIDI_WRITE_OPTIONS)
         );
-        const postOptions = {
-            ...writeOptions,
-            progressFunction: null
-        };
-        return this.withProgress(
-            "workerSynthWriteFile",
-            (p) => {
-                void options.progressFunction?.(p);
-            },
-            async () => {
-                const responsePromise = this.awaitCoreResponse(
-                    "workerSynthWriteFile"
-                );
-                this.post({
-                    type: "writeRMIDI",
-                    data: postOptions,
-                    channelNumber: -1
-                });
-                const data = await responsePromise;
-                return data.binary;
-            }
-        );
+        return file.binary;
     }
 
     /**
@@ -440,17 +374,45 @@ export class WorkerSynthesizer extends BasicSynthesizer {
             ),
             separateChannels: true
         };
-        const rendered = await this.renderAudioInternal(sampleRate, options);
-        return {
-            output: rendered.output,
-            visual: rendered.visual
-        };
+        return this.renderAudioInternal(sampleRate, options);
+    }
+
+    /**
+     * Writes a file in the worker, reporting the progress.
+     * @param type The message type of the file to write.
+     * @param options The complete write options, including the progress function.
+     */
+    private async writeFile<T extends "writeDLS" | "writeSF2" | "writeRMIDI">(
+        type: T,
+        options: WorkerSynthWriteOptions<
+            Extract<BasicSynthesizerMessage, { type: T }>["data"]
+        >
+    ) {
+        // Functions cannot be cloned
+        const { progressFunction, ...data } = options;
+        return this.withProgress(
+            "workerSynthWriteFile",
+            (p) => {
+                void progressFunction?.(p);
+            },
+            async () => {
+                const responsePromise = this.awaitCoreResponse(
+                    "workerSynthWriteFile"
+                );
+                this.post({
+                    type,
+                    data,
+                    channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
+                } as BasicSynthesizerMessage);
+                return await responsePromise;
+            }
+        );
     }
 
     private async renderAudioInternal(
         sampleRate: number,
         options: WorkerRenderAudioOptions
-    ): Promise<RenderAudioInternalResult> {
+    ): Promise<RenderAudioResult> {
         // Worker renders the complete output and the visualization channels
         return this.withProgress(
             "renderAudio",
@@ -471,7 +433,7 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                         sampleRate,
                         options: strippedOptions
                     },
-                    channelNumber: -1
+                    channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
                 });
 
                 const data = await responsePromise;

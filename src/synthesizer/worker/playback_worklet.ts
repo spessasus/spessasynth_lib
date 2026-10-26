@@ -17,6 +17,12 @@ class PlaybackProcessor extends AudioWorkletProcessor
      */
     data = [];
     
+    /**
+     * Played buffers, returned to the worker with the next request to be reused.
+     * @type {Float32Array[]}
+     */
+    free = [];
+    
     updateRequested = false;
     
     alive = true;
@@ -41,22 +47,39 @@ class PlaybackProcessor extends AudioWorkletProcessor
                 this.sentPort = sentPort;
                 sentPort.onmessage = (e) =>
                 {
-                    if(e.data === null)
+                    if (e.data === null)
                     {
-                        // the worklet is dead
+                        // the worker synthesizer is dead
                         this.alive = false;
+                        return;
                     }
                     this.data.push(e.data);
                     this.updateRequested = false;
                     // if we need more, request immediately
                     if (this.data.length < MAX_QUEUED)
                     {
-                        this.sentPort.postMessage(null);
+                        this.requestData();
                     }
                 };
                 
             }
         };
+    }
+    
+    /**
+     * Requests a new chunk from the worker, returning a played buffer if there is one.
+     */
+    requestData()
+    {
+        const buffer = this.free.pop();
+        if (buffer)
+        {
+            this.sentPort.postMessage(buffer, [buffer.buffer]);
+        }
+        else
+        {
+            this.sentPort.postMessage(null);
+        }
     }
     
     // noinspection JSUnusedGlobalSymbols
@@ -76,20 +99,25 @@ class PlaybackProcessor extends AudioWorkletProcessor
         const stereoPairs = Math.floor(data.length / (BLOCK_SIZE * 2));
         const channels = Math.min(outputs.length, stereoPairs);
 
+        // copy without subarray() to avoid allocating on the audio thread
         let offset = 0;
         for (let i = 0; i < channels; i++)
         {
-            const output = outputs[i];
-            output[0].set(data.subarray(offset, offset + BLOCK_SIZE));
-            offset += BLOCK_SIZE;
-            output[1].set(data.subarray(offset, offset + BLOCK_SIZE));
-            offset += BLOCK_SIZE;
+            const left = outputs[i][0];
+            const right = outputs[i][1];
+            for (let j = 0; j < BLOCK_SIZE; j++)
+            {
+                left[j] = data[offset + j];
+                right[j] = data[offset + BLOCK_SIZE + j];
+            }
+            offset += BLOCK_SIZE * 2;
         }
+        this.free.push(data);
         
         // if it has already been requested, we need to wait
         if (!this.updateRequested)
         {
-            this.sentPort.postMessage(null);
+            this.requestData();
             this.updateRequested = true;
         }
         

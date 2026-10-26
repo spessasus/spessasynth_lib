@@ -8,4 +8,5 @@ try {
     console.log("Pages built successfully.");
 } catch (error) {
     console.error(error, "\n\nFailed to build GitHub pages.");
+    process.exitCode = 1;
 }

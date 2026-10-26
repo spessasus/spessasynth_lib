@@ -1,5 +1,4 @@
 import {
-    type ChannelMIDIParameter,
     DEFAULT_GLOBAL_MIDI_PARAMETERS,
     DEFAULT_GLOBAL_SYSTEM_PARAMETERS,
     type GlobalMIDIParameter,
@@ -18,7 +17,7 @@ import { generateReverbImpulse } from "../reverb/reverb_generator";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
-    LibSynthesizerEvent,
+    LibSynthesizerEventCallback,
     SynthesizerProgress,
     SynthesizerReturn
 } from "../types";
@@ -31,18 +30,12 @@ import {
     TOTAL_OUTPUT_COUNT,
     VISUAL_CHANNEL_OUTPUTS_START
 } from "./synth_config";
-import {
-    type ProcessorEventCallback,
-    SynthEventHandler
-} from "./synth_event_handler";
+import { SynthEventHandler } from "./synth_event_handler";
 import type { AudioNodeCreators, SynthConfig } from "./types";
 
 const DEFAULT_SYNTH_METHOD_OPTIONS: SynthMethodOptions = {
     time: 0
 };
-
-const SPESSASYNTH_LIB_HANDLER = (event: string) =>
-    `SPESSASYNTH_LIB_HANDLE_${event}_${Math.random()}`;
 
 type SynthesizerPostFunction = (
     data: BasicSynthesizerMessage,
@@ -138,10 +131,19 @@ export abstract class BasicSynthesizer {
     protected readonly lockedMIDIParameters = Object.fromEntries(
         Object.keys(DEFAULT_GLOBAL_MIDI_PARAMETERS).map((k) => [k, false])
     ) as Record<keyof GlobalMIDIParameter, boolean>;
-    // Resolve map, waiting for the worklet to confirm the operation
-    protected resolveMap = new Map<
+    /**
+     * Pending core responses for each type, in the order they were requested.
+     * The core answers requests of the same type in order, so the first waiter always gets the next response.
+     * @internal
+     */
+    protected readonly coreResponseWaiters = new Map<
         keyof SynthesizerReturn,
-        (data: SynthesizerReturn[keyof SynthesizerReturn]) => unknown
+        {
+            resolve: (
+                data: SynthesizerReturn[keyof SynthesizerReturn]
+            ) => unknown;
+            reject: (error: Error) => unknown;
+        }[]
     >();
     protected renderingProgressTracker = new Map<
         keyof SynthesizerProgress,
@@ -171,7 +173,6 @@ export abstract class BasicSynthesizer {
             ConsoleColors.info
         );
         this.context = context;
-        // Create worklet
         // Create the audio worklet node
         try {
             const workletConstructor: AudioNodeCreators["worklet"] =
@@ -184,7 +185,6 @@ export abstract class BasicSynthesizer {
                 outputChannelCount: new Array<number>(TOTAL_OUTPUT_COUNT).fill(
                     2
                 ),
-                // 1 output
                 numberOfOutputs: TOTAL_OUTPUT_COUNT,
                 processorOptions: {
                     convolverMode: synthConfig.convolverMode,
@@ -196,7 +196,6 @@ export abstract class BasicSynthesizer {
                 }
             });
         } catch (error) {
-            console.error(error);
             throw new Error(
                 "Could not create the AudioWorkletNode. Did you forget to addModule()?",
                 { cause: error }
@@ -224,56 +223,10 @@ export abstract class BasicSynthesizer {
         ) => this.handleMessages(e.data);
 
         // Create initial channels
-        for (let i = 0; i < 16; i++) this.addNewChannelInternal(false);
+        for (let i = 0; i < 16; i++) this.addNewChannelInternal();
 
-        // Attach event handlers
-        this.registerInternalEvent("channelAdded", () => {
-            this.addNewChannelInternal(false);
-        });
-        this.registerInternalEvent(
-            "presetListChange",
-            (e) => (this.presetList = [...e])
-        );
-        this.registerInternalEvent(
-            "globalParamChange",
-            <P extends keyof GlobalMIDIParameter>(e: {
-                parameter: P;
-                value: GlobalMIDIParameter[P];
-            }) => (this._midiParameters[e.parameter] = e.value)
-        );
-        this.registerInternalEvent(
-            "channelParamChange",
-            <P extends keyof ChannelMIDIParameter>(e: {
-                channel: number;
-                parameter: P;
-                value: ChannelMIDIParameter[P];
-            }) =>
-                this.midiChannels[e.channel].setMIDIParameter(
-                    e.parameter,
-                    e.value
-                )
-        );
-        this.registerInternalEvent(
-            "programChange",
-            (e) =>
-                (this.midiChannels[e.channel].patch = {
-                    ...e
-                })
-        );
-        this.registerInternalEvent("reset", () => {
-            for (const c of this.midiChannels) c.reset();
-
-            // Only reset unlocked parameters
-            for (const [key, value] of Object.entries(
-                DEFAULT_GLOBAL_MIDI_PARAMETERS
-            ) as {
-                [K in keyof GlobalMIDIParameter]: [K, GlobalMIDIParameter[K]];
-            }[keyof GlobalMIDIParameter][]) {
-                if (!this.lockedMIDIParameters[key])
-                    // Strange cast but works
-                    this._midiParameters[key] = value as never;
-            }
-        });
+        // Mirrored here, as the core filters the events itself
+        this._systemParameters.eventsEnabled = synthConfig.eventsEnabled;
     }
 
     /**
@@ -446,7 +399,7 @@ export abstract class BasicSynthesizer {
         this.post({
             type: "requestSynthesizerSnapshot",
             data: null,
-            channelNumber: -1
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
         });
         return await responsePromise;
     }
@@ -454,9 +407,15 @@ export abstract class BasicSynthesizer {
     // noinspection JSUnusedGlobalSymbols
     /**
      * Adds a new channel to the synthesizer.
+     * The channel appears in {@link BasicSynthesizer.midiChannels} once the core confirms it with a
+     * {@link LibSynthesizerEvent.channelAdded `channelAdded`} event.
      */
     public addNewChannel() {
-        this.addNewChannelInternal(true);
+        this.post({
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
+            type: "addNewChannel",
+            data: null
+        });
     }
 
     /**
@@ -517,7 +476,18 @@ export abstract class BasicSynthesizer {
         channelOffset = 0,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        this._sendInternal(message, channelOffset, eventOptions);
+        this.post({
+            type: "midiMessage",
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
+            data: {
+                messageData: new Uint8Array(message),
+                channelOffset,
+                options: fillWithDefaults(
+                    eventOptions,
+                    DEFAULT_SYNTH_METHOD_OPTIONS
+                )
+            }
+        });
     }
 
     /**
@@ -543,13 +513,10 @@ export abstract class BasicSynthesizer {
         velocity: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        const ch = channel % 16;
-        const offset = channel - ch;
-        midiNote %= 128;
-        velocity %= 128;
-        this.sendMessage(
-            [MIDIMessageTypes.noteOn | ch, midiNote, velocity],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.noteOn,
+            channel,
+            [midiNote % 128, velocity % 128],
             eventOptions
         );
     }
@@ -571,13 +538,10 @@ export abstract class BasicSynthesizer {
         midiNote: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        midiNote %= 128;
-
-        const ch = channel % 16;
-        const offset = channel - ch;
-        this._sendInternal(
-            [MIDIMessageTypes.noteOff | ch, midiNote],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.noteOff,
+            channel,
+            [midiNote % 128],
             eventOptions
         );
     }
@@ -621,14 +585,10 @@ export abstract class BasicSynthesizer {
         if (controller > 127 || controller < 0) {
             throw new Error(`Invalid controller number: ${controller}`);
         }
-        value = Math.floor(value) % 128;
-        controller = Math.floor(controller) % 128;
-        // Controller change has its own message for the force property
-        const ch = channel % 16;
-        const offset = channel - ch;
-        this._sendInternal(
-            [MIDIMessageTypes.controllerChange | ch, controller, value],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.controllerChange,
+            channel,
+            [Math.floor(controller), Math.floor(value) % 128],
             eventOptions
         );
     }
@@ -663,12 +623,10 @@ export abstract class BasicSynthesizer {
         pressure: number,
         eventOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        const ch = channel % 16;
-        const offset = channel - ch;
-        pressure %= 128;
-        this.sendMessage(
-            [MIDIMessageTypes.channelPressure | ch, pressure],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.channelPressure,
+            channel,
+            [pressure % 128],
             eventOptions
         );
     }
@@ -695,13 +653,10 @@ export abstract class BasicSynthesizer {
         pressure: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        const ch = channel % 16;
-        const offset = channel - ch;
-        midiNote %= 128;
-        pressure %= 128;
-        this.sendMessage(
-            [MIDIMessageTypes.polyPressure | ch, midiNote, pressure],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.polyPressure,
+            channel,
+            [midiNote % 128, pressure % 128],
             eventOptions
         );
     }
@@ -724,11 +679,10 @@ export abstract class BasicSynthesizer {
         value: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        const ch = channel % 16;
-        const offset = channel - ch;
-        this.sendMessage(
-            [MIDIMessageTypes.pitchWheel | ch, value & 0x7f, value >> 7],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.pitchWheel,
+            channel,
+            [value & 0x7f, (value >> 7) & 0x7f],
             eventOptions
         );
     }
@@ -823,12 +777,10 @@ export abstract class BasicSynthesizer {
         programNumber: number,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        const ch = channel % 16;
-        const offset = channel - ch;
-        programNumber %= 128;
-        this.sendMessage(
-            [MIDIMessageTypes.programChange | ch, programNumber],
-            offset,
+        this.sendChannelMessage(
+            MIDIMessageTypes.programChange,
+            channel,
+            [programNumber % 128],
             eventOptions
         );
     }
@@ -867,8 +819,8 @@ export abstract class BasicSynthesizer {
         channelOffset = 0,
         eventOptions: SynthMethodOptions = DEFAULT_SYNTH_METHOD_OPTIONS
     ) {
-        this._sendInternal(
-            [MIDIMessageTypes.systemExclusive, ...Array.from(messageData)],
+        this.sendMessage(
+            [MIDIMessageTypes.systemExclusive, ...messageData],
             channelOffset,
             eventOptions
         );
@@ -915,8 +867,10 @@ export abstract class BasicSynthesizer {
                 systemExclusive.push(0x7f, 0x7f, 0x7f);
             } else {
                 const midiNote = Math.floor(tuning.targetPitch);
-                const fraction = Math.floor(
-                    (tuning.targetPitch - midiNote) / 0.000_061
+                // 14-bit fraction of a semitone, 16383 is the highest value below the next note
+                const fraction = Math.min(
+                    16_383,
+                    Math.round((tuning.targetPitch - midiNote) * 16_384)
                 );
                 systemExclusive.push(
                     midiNote, // Frequency data byte 1
@@ -949,18 +903,28 @@ export abstract class BasicSynthesizer {
     /**
      * INTERNAL USE ONLY!
      * Registers a promise that resolves with the next core
-     * response of the given type.
+     * response of the given type, or rejects if the core reports that the operation failed.
      *
      * !! Call this before posting the request to avoid missing the response. !!
+     * Every request of this type must get exactly one response, otherwise the waiters get out of order!
      * @param type INTERNAL USE ONLY!
      * @internal
      */
     public awaitCoreResponse<K extends keyof SynthesizerReturn>(
         type: K
     ): Promise<SynthesizerReturn[K]> {
-        return new Promise<SynthesizerReturn[K]>((resolve) => {
-            // @ts-expect-error I can't use generics with map
-            this.resolveMap.set(type, resolve);
+        return new Promise<SynthesizerReturn[K]>((resolve, reject) => {
+            let waiters = this.coreResponseWaiters.get(type);
+            if (!waiters) {
+                waiters = [];
+                this.coreResponseWaiters.set(type, waiters);
+            }
+            waiters.push({
+                resolve: resolve as (
+                    data: SynthesizerReturn[keyof SynthesizerReturn]
+                ) => unknown,
+                reject
+            });
         });
     }
 
@@ -973,7 +937,7 @@ export abstract class BasicSynthesizer {
         callback: (m: SequencerReturnMessage) => unknown
     ) {
         this.post({
-            channelNumber: -1,
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             type: "requestNewSequencer",
             data: null
         });
@@ -1006,26 +970,6 @@ export abstract class BasicSynthesizer {
         }
     }
 
-    protected _sendInternal(
-        message: Iterable<number>,
-        channelOffset: number,
-        eventOptions: Partial<SynthMethodOptions>
-    ) {
-        const options = fillWithDefaults(
-            eventOptions,
-            DEFAULT_SYNTH_METHOD_OPTIONS
-        );
-        this.post({
-            type: "midiMessage",
-            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            data: {
-                messageData: new Uint8Array(message),
-                channelOffset,
-                options
-            }
-        });
-    }
-
     /**
      * Handles the messages received from the core.
      * @internal
@@ -1034,10 +978,14 @@ export abstract class BasicSynthesizer {
         for (const m of messages)
             switch (m.type) {
                 case "eventCall": {
-                    this.eventHandler.callEventInternal(
-                        m.data.type,
-                        m.data.data
-                    );
+                    // The state is always synced,
+                    // Even if the event system is disabled
+                    this.receiveEventCallback(m.data);
+                    if (this._systemParameters.eventsEnabled)
+                        this.eventHandler.callEventInternal(
+                            m.data.type,
+                            m.data.data
+                        );
                     break;
                 }
 
@@ -1047,15 +995,28 @@ export abstract class BasicSynthesizer {
                 }
 
                 case "voiceCountChange": {
+                    let total = 0;
                     for (let i = 0; i < m.data.length; i++) {
                         this.midiChannels[i].voiceCount = m.data[i];
-                        this._voiceCount = m.data.reduce((s, v) => s + v, 0);
+                        total += m.data[i];
                     }
+                    this._voiceCount = total;
                     break;
                 }
 
                 case "isFullyInitialized": {
-                    this.workletResponds(m.data.type, m.data.data);
+                    this.coreResponseWaiters
+                        .get(m.data.type)
+                        ?.shift()
+                        ?.resolve(m.data.data);
+                    break;
+                }
+
+                case "coreResponseError": {
+                    this.coreResponseWaiters
+                        .get(m.data.type)
+                        ?.shift()
+                        ?.reject(m.data.error);
                     break;
                 }
 
@@ -1076,35 +1037,87 @@ export abstract class BasicSynthesizer {
             }
     }
 
-    protected addNewChannelInternal(post: boolean) {
+    protected addNewChannelInternal() {
         this.midiChannels.push(
             new LibMIDIChannel(this.midiChannels.length, this)
         );
-        if (!post) return;
-
-        this.post({
-            channelNumber: 0,
-            type: "addNewChannel",
-            data: null
-        });
     }
 
-    protected workletResponds<K extends keyof SynthesizerReturn>(
-        type: K,
-        data: SynthesizerReturn[K]
+    /**
+     * Sends a channel voice message.
+     * @param statusByte The status byte without the channel.
+     * @param channel The channel number, which may be above 15.
+     * @param data The data bytes.
+     * @param eventOptions Additional options for this command.
+     */
+    private sendChannelMessage(
+        statusByte: number,
+        channel: number,
+        data: number[],
+        eventOptions: SynthMethodOptions
     ) {
-        this.resolveMap.get(type)?.(data);
-        this.resolveMap.delete(type);
-    }
-
-    private registerInternalEvent<T extends keyof LibSynthesizerEvent>(
-        event: T,
-        callback: ProcessorEventCallback<T>
-    ) {
-        this.eventHandler.addEvent(
-            event,
-            SPESSASYNTH_LIB_HANDLER(event),
-            callback
+        const ch = channel % 16;
+        this.sendMessage(
+            [statusByte | ch, ...data],
+            channel - ch,
+            eventOptions
         );
+    }
+
+    /**
+     * Handles the received event from core.
+     * @param event The event received from the core.
+     */
+    private receiveEventCallback(event: LibSynthesizerEventCallback) {
+        switch (event.type) {
+            case "channelAdded": {
+                this.addNewChannelInternal();
+                break;
+            }
+
+            case "presetListChange": {
+                this.presetList = [...event.data];
+                break;
+            }
+
+            case "globalParamChange": {
+                const { parameter, value } = event.data;
+                // The event is a union of parameter-value pairs
+                this._midiParameters[parameter] = value as never;
+                break;
+            }
+
+            case "channelParamChange": {
+                const { channel, parameter, value } = event.data;
+                this.midiChannels[channel].setMIDIParameter(parameter, value);
+                break;
+            }
+
+            case "programChange": {
+                this.midiChannels[event.data.channel].patch = {
+                    ...event.data
+                };
+                break;
+            }
+
+            case "reset": {
+                for (const c of this.midiChannels) c.reset();
+
+                // Only reset unlocked parameters
+                for (const [key, value] of Object.entries(
+                    DEFAULT_GLOBAL_MIDI_PARAMETERS
+                ) as {
+                    [K in keyof GlobalMIDIParameter]: [
+                        K,
+                        GlobalMIDIParameter[K]
+                    ];
+                }[keyof GlobalMIDIParameter][]) {
+                    if (!this.lockedMIDIParameters[key])
+                        // Strange cast but works
+                        this._midiParameters[key] = value as never;
+                }
+                break;
+            }
+        }
     }
 }

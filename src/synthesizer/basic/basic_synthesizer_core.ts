@@ -4,7 +4,8 @@ import {
     SoundBankLoader,
     SpessaLog,
     SpessaSynthProcessor,
-    SpessaSynthSequencer
+    SpessaSynthSequencer,
+    type SynthesizerEvent
 } from "spessasynth_core";
 import { MIDIData } from "../../sequencer/midi_data";
 import type {
@@ -23,7 +24,20 @@ export type PostMessageSynthCore = (
 ) => unknown;
 
 // Seconds
-export const SEQUENCER_SYNC_INTERVAL = 1;
+const SEQUENCER_SYNC_INTERVAL = 1;
+
+/**
+ * The events that the main thread needs to mirror the synthesizer state.
+ * They are sent even if the event system is disabled.
+ */
+const STATE_SYNC_EVENTS = new Set<keyof SynthesizerEvent>([
+    "channelAdded",
+    "presetListChange",
+    "programChange",
+    "globalParamChange",
+    "channelParamChange",
+    "reset"
+]);
 
 /**
  * The interface for the audio processing code that uses `spessasynth_core` and runs on a separate thread.
@@ -52,7 +66,12 @@ export abstract class BasicSynthesizerCore {
      */
     protected readonly voiceCounts = new Array<number>(16).fill(0);
 
-    protected readonly eventsEnabled;
+    /**
+     * If the events not needed for the state sync should be sent to the main thread.
+     * The processor's own event system always stays enabled.
+     * @internal
+     */
+    protected eventsEnabled;
 
     /**
      * In this mode, the reverb is captured and sent to the main thread for a `ConvolverNode` to process.
@@ -62,10 +81,10 @@ export abstract class BasicSynthesizerCore {
 
     protected readonly reverbCapture: ReverbCapture | undefined;
     /**
-     * Indicates if the processor is alive.
+     * Set once the core is destroyed. Messages are ignored from then on.
      * @internal
      */
-    protected alive = false;
+    protected destroyed = false;
     protected lastSequencerSync = 0;
     /**
      * A message queue for sending many messages in bulk as one.
@@ -94,13 +113,15 @@ export abstract class BasicSynthesizerCore {
             synthCoreConfig.sampleRate,
             {
                 ...synthCoreConfig.processorConfig,
+                // The main thread mirrors the synthesizer state from the events, so they are filtered here instead
+                eventsEnabled: true,
                 initialTime: synthCoreConfig.initialTime,
                 gsReverbProcessor: this.reverbCapture?.gsReverb,
                 xgReverbBlock: this.reverbCapture?.xgReverb
             }
         );
         this.eventsEnabled =
-            synthCoreConfig.processorConfig.eventsEnabled ?? false;
+            synthCoreConfig.processorConfig.eventsEnabled ?? true;
         this.convolverMode = synthCoreConfig.convolverMode;
         this.postInternal = postMessage;
 
@@ -111,6 +132,8 @@ export abstract class BasicSynthesizerCore {
                 for (let i = this.voiceCounts.length; i < l; i++)
                     this.voiceCounts.push(0);
             }
+            if (!this.eventsEnabled && !STATE_SYNC_EVENTS.has(event.type))
+                return;
             this.post({
                 type: "eventCall",
                 data: event,
@@ -119,7 +142,52 @@ export abstract class BasicSynthesizerCore {
         };
     }
 
-    protected flushQueue() {
+    /**
+     * Starts processing an audio block: queues the messages and advances the sequencers.
+     * Call before rendering the block.
+     */
+    protected startBlock() {
+        this.messageQueueActive = true;
+        for (const seq of this.sequencers) seq.processTick();
+    }
+
+    /**
+     * Finishes processing an audio block: syncs the sequencers and voice counts, then sends the queued messages.
+     * Call after rendering the block.
+     */
+    protected finishBlock() {
+        const t = this.synthesizer.currentTime;
+        if (t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL) {
+            for (let id = 0; id < this.sequencers.length; id++) {
+                this.post({
+                    type: "sequencerReturn",
+                    data: {
+                        type: "sync",
+                        data: this.sequencers[id].currentTime,
+                        id
+                    },
+                    currentTime: t
+                });
+            }
+            this.lastSequencerSync = t;
+        }
+
+        // Update voice count
+        const c = this.synthesizer.midiChannels;
+        const cv = this.voiceCounts;
+        let updateChannels = false;
+        for (let i = 0; i < c.length; i++) {
+            updateChannels ||= c[i].voiceCount !== cv[i];
+            cv[i] = c[i].voiceCount;
+        }
+        if (updateChannels)
+            this.post({
+                type: "voiceCountChange",
+                currentTime: t,
+                data: cv
+            });
+
+        // Flush the queue
         this.messageQueueActive = false;
         if (this.messageQueue.length > 0)
             this.postInternal(this.messageQueue, this.messageQueueTransferable);
@@ -145,8 +213,8 @@ export abstract class BasicSynthesizerCore {
         this.sequencers.push(sequencer);
 
         // Prepare sequencer connections
+        // Always sent, the main thread sequencer relies on these to track its state
         sequencer.onEventCall = (e) => {
-            if (!this.eventsEnabled) return; // Processor already respects enabling/disabling event system
             if (e.type === "songListChange") {
                 const songs = e.data.newSongList;
                 const midiDatas = songs.map((s) => {
@@ -197,6 +265,22 @@ export abstract class BasicSynthesizerCore {
         );
     }
 
+    /**
+     * Rejects the main thread promise waiting for the given response type.
+     * @param type The response type that will not arrive.
+     * @param error The reason of the failure.
+     */
+    protected postError(type: keyof SynthesizerReturn, error: Error) {
+        this.post({
+            type: "coreResponseError",
+            data: {
+                type,
+                error
+            },
+            currentTime: this.synthesizer.currentTime
+        });
+    }
+
     protected postProgress<K extends keyof SynthesizerProgress>(
         type: K,
         data: SynthesizerProgress[K]
@@ -212,16 +296,13 @@ export abstract class BasicSynthesizerCore {
     }
 
     protected destroy() {
+        this.destroyed = true;
         this.synthesizer.destroy();
-        // @ts-expect-error JS Deletion
-        // noinspection JSConstantReassignment
-        delete this.synthesizer;
-        // @ts-expect-error JS Deletion
-        // noinspection JSConstantReassignment
-        delete this.sequencers;
+        this.sequencers.length = 0;
     }
 
     protected handleMessage(m: BasicSynthesizerMessage) {
+        if (this.destroyed) return;
         const channel = m.channelNumber;
 
         let channelObject: MIDIChannel | undefined;
@@ -271,6 +352,11 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "setGlobalSystemParameter": {
+                if (m.data.parameter === "eventsEnabled") {
+                    // Filtered here, the processor must keep emitting the state sync events
+                    this.eventsEnabled = m.data.value;
+                    break;
+                }
                 this.synthesizer.setSystemParameter(
                     m.data.parameter,
                     m.data.value
@@ -333,7 +419,7 @@ export abstract class BasicSynthesizerCore {
                             });
                             seq.loadNewSongList(songMap);
                         } catch (error) {
-                            console.error(error);
+                            SpessaLog.warn(error);
                             this.post({
                                 type: "sequencerReturn",
                                 data: {
@@ -401,7 +487,16 @@ export abstract class BasicSynthesizerCore {
 
                     case "getMIDI": {
                         if (!seq.midiData) {
-                            throw new Error("No MIDI is loaded!");
+                            this.post({
+                                type: "sequencerReturn",
+                                data: {
+                                    type: "getMIDIError",
+                                    data: new Error("No MIDI is loaded!"),
+                                    id: m.data.id
+                                },
+                                currentTime: this.synthesizer.currentTime
+                            });
+                            break;
                         }
                         this.post({
                             type: "sequencerReturn",
@@ -459,6 +554,7 @@ export abstract class BasicSynthesizerCore {
                         data: error as Error,
                         currentTime: this.synthesizer.currentTime
                     });
+                    this.postError("soundBankManager", error as Error);
                 }
                 break;
             }
@@ -484,7 +580,6 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "destroyWorklet": {
-                this.alive = false;
                 this.destroy();
                 break;
             }

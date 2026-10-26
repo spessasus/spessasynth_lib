@@ -20,7 +20,8 @@ import type {
 } from "./types";
 import { SeqEventHandler } from "./seq_event_handler";
 import { type BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer";
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_config"; // noinspection JSUnusedGlobalSymbols
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "../synthesizer/basic/synth_config";
+import { fillWithDefaults } from "../utils/fill_with_defaults"; // noinspection JSUnusedGlobalSymbols
 
 // noinspection JSUnusedGlobalSymbols
 /**
@@ -80,7 +81,13 @@ export class Sequencer {
      * Paused if a number, undefined if playing.
      */
     private pausedTime?: number = 0;
-    private getMIDICallback?: (receivedMIDI: BasicMIDI) => unknown = undefined;
+    /**
+     * Pending {@link Sequencer.getMIDI} calls, in the order they were requested.
+     */
+    private readonly getMIDIWaiters = new Array<{
+        resolve: (receivedMIDI: BasicMIDI) => unknown;
+        reject: (error: Error) => unknown;
+    }>();
     private highResTimeOffset = 0;
     /**
      * Absolute playback start time, based on the synth's time.
@@ -111,21 +118,16 @@ export class Sequencer {
         this.sequencerID = this.synth.assignNewSequencer(
             this.handleMessage.bind(this)
         );
-        this._skipToFirstNoteOn = options?.skipToFirstNoteOn ?? true;
+        const opts = fillWithDefaults(options, DEFAULT_SEQUENCER_OPTIONS);
+        this._skipToFirstNoteOn = opts.skipToFirstNoteOn;
 
-        if (options?.initialPlaybackRate !== 1) {
-            this.playbackRate = options?.initialPlaybackRate ?? 1;
+        // Only send what differs from the core sequencer defaults
+        if (opts.initialPlaybackRate !== 1) {
+            this.playbackRate = opts.initialPlaybackRate;
         }
-
-        if (!this._skipToFirstNoteOn) {
-            // Setter sends message
+        if (!opts.skipToFirstNoteOn) {
             this.sendMessage("setSkipToFirstNote", false);
         }
-
-        window.addEventListener(
-            "beforeunload",
-            this.resetMIDIOutput.bind(this)
-        );
     }
 
     private _shuffledSongIndexes: number[] = [];
@@ -178,15 +180,20 @@ export class Sequencer {
      * @param value The new song index to set.
      */
     public set songIndex(value: number) {
-        const clamped = Math.max(0, value % this._songCount);
-        if (clamped === this._songIndex) {
+        const count = this._songCount;
+        if (count === 0) {
+            return;
+        }
+        // Wrap around in both directions
+        const index = ((value % count) + count) % count;
+        if (index === this._songIndex) {
             return;
         }
         this.isLoading = true;
         this.midiData = undefined;
         this.sendMessage("changeSong", {
             changeType: "index",
-            data: clamped
+            data: index
         });
     }
 
@@ -253,7 +260,6 @@ export class Sequencer {
     public set playbackRate(value: number) {
         const t = this.currentTime;
         this.sendMessage("setPlaybackRate", value);
-        this.highResTimeOffset *= value / this._playbackRate;
         this._playbackRate = value;
         this.recalculateStartTime(t);
     }
@@ -381,10 +387,11 @@ export class Sequencer {
 
     /**
      * Gets the actual {@link BasicMIDI} sequence, complete with track data.
+     * @throws Error If no MIDI is loaded.
      */
     public async getMIDI(): Promise<BasicMIDI> {
-        return new Promise((resolve) => {
-            this.getMIDICallback = resolve;
+        return new Promise((resolve, reject) => {
+            this.getMIDIWaiters.push({ resolve, reject });
             this.sendMessage("getMIDI", null);
         });
     }
@@ -420,12 +427,16 @@ export class Sequencer {
         output: { send: (data: number[]) => unknown },
         channelOffset = 0
     ) {
-        this.resetMIDIOutput();
-        if (output) {
-            this.midiOutputs.set(channelOffset, output);
-        } else {
-            this.midiOutputs.clear();
+        if (!output) {
+            throw new Error(
+                "No MIDI output provided. Use disconnectMIDIOutput to disconnect an output."
+            );
         }
+        this.resetMIDIOutput();
+        // Only listen while outputs are connected, so the sequencer can be garbage collected
+        if (this.midiOutputs.size === 0)
+            window.addEventListener("beforeunload", this.resetOnUnload);
+        this.midiOutputs.set(channelOffset, output);
     }
 
     /**
@@ -442,6 +453,11 @@ export class Sequencer {
         for (const [key, value] of this.midiOutputs) {
             if (value === output) {
                 this.midiOutputs.delete(key);
+                if (this.midiOutputs.size === 0)
+                    window.removeEventListener(
+                        "beforeunload",
+                        this.resetOnUnload
+                    );
                 return;
             }
         }
@@ -462,11 +478,19 @@ export class Sequencer {
      * Starts playing or resumes the sequence.
      */
     public play() {
-        this.recalculateStartTime(this.pausedTime ?? 0);
-        this.pausedTime = undefined;
+        // Calling play while already playing must not reset the time
+        if (this.pausedTime !== undefined) {
+            this.recalculateStartTime(this.pausedTime);
+            this.pausedTime = undefined;
+        }
         this.isFinished = false;
         this.sendMessage("play", null);
     }
+
+    /**
+     * Resets the connected MIDI outputs when the page is closed.
+     */
+    private readonly resetOnUnload = () => this.resetMIDIOutput();
 
     private handleMessage(m: SequencerReturnMessage) {
         switch (m.type) {
@@ -526,9 +550,14 @@ export class Sequencer {
             }
 
             case "getMIDI": {
-                if (this.getMIDICallback) {
-                    this.getMIDICallback(BasicMIDI.copyFrom(m.data));
-                }
+                this.getMIDIWaiters
+                    .shift()
+                    ?.resolve(BasicMIDI.copyFrom(m.data));
+                break;
+            }
+
+            case "getMIDIError": {
+                this.getMIDIWaiters.shift()?.reject(m.data);
                 break;
             }
 
@@ -553,15 +582,7 @@ export class Sequencer {
                         if (!this.midiData) {
                             break;
                         }
-                        let lyricsIndex = -1;
-                        if (event.statusByte === MIDIMessageTypes.lyric) {
-                            lyricsIndex = Math.min(
-                                this.midiData.lyrics.findIndex(
-                                    (l) => l.ticks === event.ticks
-                                ),
-                                this.midiData.lyrics.length - 1
-                            );
-                        }
+                        // Note to self and others: Preserve this comment at all costs.
                         // If MIDI is a karaoke file, it uses the "text" event type or "lyrics" for lyrics (duh)
                         // Why?
                         // Because the MIDI standard is a messy pile of garbage,
@@ -572,18 +593,15 @@ export class Sequencer {
                         // Anyway,
                         // Check for a karaoke file and change the status byte to "lyric"
                         // If it's a karaoke file
-                        if (
-                            this.midiData.isKaraokeFile &&
-                            (event.statusByte === MIDIMessageTypes.text ||
-                                event.statusByte === MIDIMessageTypes.lyric)
-                        ) {
-                            lyricsIndex = Math.min(
-                                this.midiData.lyrics.findIndex(
-                                    (l) => l.ticks === event.ticks
-                                ),
-                                this.midiData.lyrics.length
-                            );
-                        }
+                        const isLyric =
+                            event.statusByte === MIDIMessageTypes.lyric ||
+                            (this.midiData.isKaraokeFile &&
+                                event.statusByte === MIDIMessageTypes.text);
+                        const lyricsIndex = isLyric
+                            ? this.midiData.lyrics.findIndex(
+                                  (l) => l.ticks === event.ticks
+                              )
+                            : -1;
                         this.callEventInternal("textEvent", {
                             event,
                             lyricsIndex

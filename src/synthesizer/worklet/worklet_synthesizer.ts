@@ -2,6 +2,7 @@ import type { SynthesizerSnapshot } from "spessasynth_core";
 import { fillWithDefaults } from "../../utils/fill_with_defaults";
 import { BasicSynthesizer } from "../basic/basic_synthesizer";
 import {
+    ALL_CHANNELS_OR_DIFFERENT_ACTION,
     DEFAULT_SYNTH_CONFIG,
     VISUAL_CHANNEL_OUTPUTS_START
 } from "../basic/synth_config";
@@ -84,7 +85,7 @@ export class WorkletSynthesizer extends BasicSynthesizer {
             {
                 type: "startOfflineRender",
                 data: configToSend,
-                channelNumber: -1
+                channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION
             },
             config.soundBankList.map((b) => b.soundBankBuffer)
         );
@@ -141,14 +142,12 @@ export class WorkletSynthesizer extends BasicSynthesizer {
      */
     public destroy() {
         this.post({
-            channelNumber: 0,
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
             type: "destroyWorklet",
             data: null
         });
         this.worklet.disconnect();
-        // @ts-expect-error destruction!
-        // noinspection JSConstantReassignment
-        delete this.worklet;
+        this.convolverNode?.disconnect();
     }
 
     private stripConvolverFromSnapshot(

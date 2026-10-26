@@ -1,9 +1,36 @@
 import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
 import type {
+    WorkerBankWriteOptions,
     WorkerDLSWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types";
 import { BasicSoundBank, type SampleEncodingFunction } from "spessasynth_core";
+
+/**
+ * Gets the bank to write, trimmed if requested.
+ * @param opts The bank write options.
+ * @param modifiesSamples If the samples will be modified, the bank is copied so the synthesizer's bank stays intact.
+ */
+function getBankToWrite(
+    this: WorkerSynthesizerCore,
+    opts: WorkerBankWriteOptions,
+    modifiesSamples: boolean
+) {
+    const sf = this.getBank(opts);
+    if (!opts.trim && !modifiesSamples) return sf;
+
+    const sfCopy = BasicSoundBank.copyFrom(sf);
+    if (opts.trim) {
+        const midi = this.sequencers[opts.sequencerID]?.midiData;
+        if (!midi) {
+            throw new Error(
+                "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
+            );
+        }
+        sfCopy.trim(midi.getUsedProgramsAndKeys(sfCopy));
+    }
+    return sfCopy;
+}
 
 export async function writeSF2Worker(
     this: WorkerSynthesizerCore,
@@ -12,22 +39,11 @@ export async function writeSF2Worker(
     binary: ArrayBuffer;
     bank: BasicSoundBank;
 }> {
-    let sf = this.getBank(opts);
-
-    const sq = this.sequencers[opts.sequencerID];
-
-    // Trim
-    if (opts.trim) {
-        if (!sq.midiData) {
-            throw new Error(
-                "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
-            );
-        }
-        // Copy
-        const sfCopy = BasicSoundBank.copyFrom(sf);
-        sfCopy.trim(sq.midiData.getUsedProgramsAndKeys(sfCopy));
-        sf = sfCopy;
-    }
+    const sf = getBankToWrite.call(
+        this,
+        opts,
+        opts.compressionAction !== "keep"
+    );
 
     let compressionFunction: SampleEncodingFunction | undefined;
 
@@ -64,7 +80,7 @@ export async function writeSF2Worker(
                 format: "compressed",
                 progressFunction: (progress) => {
                     this.postProgress("workerSynthWriteFile", progress);
-                    return new Promise<void>((r) => r());
+                    return Promise.resolve();
                 }
             });
             break;
@@ -75,7 +91,7 @@ export async function writeSF2Worker(
                 format: "pcm",
                 progressFunction: (progress) => {
                     this.postProgress("workerSynthWriteFile", progress);
-                    return new Promise<void>((r) => r());
+                    return Promise.resolve();
                 }
             });
         }
@@ -85,7 +101,7 @@ export async function writeSF2Worker(
         ...opts,
         progressFunction: (progress) => {
             this.postProgress("workerSynthWriteFile", progress);
-            return new Promise<void>((r) => r());
+            return Promise.resolve();
         }
     });
     return {
@@ -98,26 +114,13 @@ export function writeDLSWorker(
     this: WorkerSynthesizerCore,
     opts: WorkerDLSWriteOptions
 ) {
-    let sf = this.getBank(opts);
-    const sq = this.sequencers[opts.sequencerID];
-
-    // Trim
-    if (opts.trim) {
-        if (!sq.midiData) {
-            throw new Error(
-                "Sound bank MIDI trimming is enabled but no MIDI is loaded!"
-            );
-        }
-        const sfCopy = BasicSoundBank.copyFrom(sf);
-        sfCopy.trim(sq.midiData.getUsedProgramsAndKeys(sfCopy));
-        sf = sfCopy;
-    }
+    const sf = getBankToWrite.call(this, opts, false);
 
     const b = sf.writeDLS({
         ...opts,
         progressFunction: (progress) => {
             this.postProgress("workerSynthWriteFile", progress);
-            return new Promise<void>((r) => r());
+            return Promise.resolve();
         }
     });
     return {

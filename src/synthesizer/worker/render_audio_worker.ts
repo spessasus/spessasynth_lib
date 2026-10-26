@@ -82,9 +82,6 @@ export function renderAudioWorker(
     sampleRate: number,
     options: WorkerRenderAudioOptions
 ): RenderedAudioWorkerChunks {
-    // Stop the audio loop while rendering
-    this.stopAudioLoop();
-
     // Initialize synthesizer
     const reverbCapture = this.convolverMode
         ? new ReverbCapture(sampleRate)
@@ -105,11 +102,12 @@ export function renderAudioWorker(
         this.synthesizer.soundBankManager.priorityOrder;
 
     const seq = this.sequencers[options.sequencerID];
-    const parsedMid = seq.midiData;
+    const parsedMid = seq?.midiData;
     if (!parsedMid) {
         throw new Error("No MIDI is loaded!");
     }
-    const playbackRate = seq.playbackRate;
+    // The renderer only inherits the playback rate when preserving the parameters
+    const playbackRate = options.preserveSynthParams ? seq.playbackRate : 1;
     // Calculate times
     const loopStartAbsolute =
         parsedMid.midiTicksToSeconds(parsedMid.loop.start) / playbackRate;
@@ -121,14 +119,14 @@ export function renderAudioWorker(
         options.extraTime +
         loopDuration * options.loopCount;
     // Total duration in samples
-    const sampleDuration = sampleRate * duration;
+    const sampleDuration = Math.ceil(sampleRate * duration);
 
     // Initialize sequencer
     const rendererSeq = new SpessaSynthSequencer(rendererSynth);
     rendererSeq.loopCount = options.loopCount;
+    rendererSeq.playbackRate = playbackRate;
     if (options.preserveSynthParams) {
         // Apply snapshot if needed
-        rendererSeq.playbackRate = seq.playbackRate;
         const snapshot = this.synthesizer.getSnapshot();
         rendererSynth.applySnapshot(snapshot);
     }
@@ -196,8 +194,6 @@ export function renderAudioWorker(
             }
             index += sampleCount;
             if (index >= sampleDuration) {
-                // Restart the audio loop and return
-                this.startAudioLoop();
                 return returnedChunks;
             }
         }

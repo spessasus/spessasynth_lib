@@ -64,6 +64,7 @@ export type SequencerReturnMessage =
           id: number;
       })
     | { type: "getMIDI"; data: BasicMIDI; id: number }
+    | { type: "getMIDIError"; data: Error; id: number }
     | { type: "midiError"; data: Error; id: number }
     | { type: "sync"; data: number; id: number };
 

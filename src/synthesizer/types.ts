@@ -315,6 +315,11 @@ interface BasicSynthesizerReturnMessageData {
             data: SynthesizerReturn[K];
         };
     }[keyof SynthesizerReturn];
+    // The operation awaited with this response type has failed
+    coreResponseError: {
+        type: keyof SynthesizerReturn;
+        error: Error;
+    };
     // An error related to the sound bank
     soundBankError: Error;
     voiceCountChange: number[];
