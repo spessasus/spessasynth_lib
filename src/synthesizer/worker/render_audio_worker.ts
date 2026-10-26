@@ -1,25 +1,33 @@
-import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
 import { SpessaSynthProcessor, SpessaSynthSequencer } from "spessasynth_core";
+import { ReverbCapture } from "../basic/reverb_passthrough";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
 
+/**
+ * Options for rendering audio in a {@link WorkerSynthesizer}.
+ * The public methods accept {@link RenderAudioOptions}, which omits `separateChannels`.
+ *
+ * @group Synthesizer.Worker
+ */
 export interface WorkerRenderAudioOptions {
     /**
-     * Extra fadeout time after the song finishes, in seconds.
+     * Extra fade-out time after the song finishes, in seconds.
      */
     extraTime: number;
     /**
      * If channels should be rendered separately.
+     * This is set automatically by {@link WorkerSynthesizer.renderAudio} and {@link WorkerSynthesizer.renderAudioSplit}.
      */
     separateChannels: boolean;
 
     /**
-     * The amount of times to loop the song.
+     * The number of times to loop the song.
      */
     loopCount: number;
 
     /**
      * The function that tracks the rendering progress.
-     * @param progress mapped 0 to 1.
-     * @param stage 0 is a dry pass, 1 is adding effects.
+     * @param progress The progress, from 0 to 1.
+     * @param stage Always 0, as the output and visuals are rendered in a single pass.
      */
     progressCallback?: (progress: number, stage: number) => unknown;
 
@@ -54,19 +62,34 @@ const BLOCK_SIZE = 128;
 
 type StereoAudioChunk = [Float32Array, Float32Array];
 
-interface ReturnedChunks {
-    effects: StereoAudioChunk;
-    dry: StereoAudioChunk[];
+export interface RenderedAudioWorkerChunks {
+    /**
+     * The complete output from spessasynth_core, with effects mixed in.
+     */
+    output: StereoAudioChunk;
+    /**
+     * The dry channel outputs for visualization only.
+     */
+    visual: StereoAudioChunk[];
+    /**
+     * The convolver dry output for rendering in the main thread (optional).
+     */
+    convolver?: StereoAudioChunk;
 }
 
 export function renderAudioWorker(
     this: WorkerSynthesizerCore,
     sampleRate: number,
     options: WorkerRenderAudioOptions
-): ReturnedChunks {
+): RenderedAudioWorkerChunks {
     // Initialize synthesizer
+    const reverbCapture = this.convolverMode
+        ? new ReverbCapture(sampleRate)
+        : undefined;
     const rendererSynth = new SpessaSynthProcessor(sampleRate, {
-        eventsEnabled: false
+        eventsEnabled: false,
+        gsReverbProcessor: reverbCapture?.gsReverb,
+        xgReverbBlock: reverbCapture?.xgReverb
     });
     // Copy sound banks
     for (const entry of this.synthesizer.soundBankManager.soundBankList)
@@ -77,14 +100,14 @@ export function renderAudioWorker(
         );
     rendererSynth.soundBankManager.priorityOrder =
         this.synthesizer.soundBankManager.priorityOrder;
-    this.stopAudioLoop();
 
     const seq = this.sequencers[options.sequencerID];
-    const parsedMid = seq.midiData;
+    const parsedMid = seq?.midiData;
     if (!parsedMid) {
         throw new Error("No MIDI is loaded!");
     }
-    const playbackRate = seq.playbackRate;
+    // The renderer only inherits the playback rate when preserving the parameters
+    const playbackRate = options.preserveSynthParams ? seq.playbackRate : 1;
     // Calculate times
     const loopStartAbsolute =
         parsedMid.midiTicksToSeconds(parsedMid.loop.start) / playbackRate;
@@ -96,92 +119,84 @@ export function renderAudioWorker(
         options.extraTime +
         loopDuration * options.loopCount;
     // Total duration in samples
-    const sampleDuration = sampleRate * duration;
+    const sampleDuration = Math.ceil(sampleRate * duration);
 
     // Initialize sequencer
     const rendererSeq = new SpessaSynthSequencer(rendererSynth);
     rendererSeq.loopCount = options.loopCount;
+    rendererSeq.playbackRate = playbackRate;
     if (options.preserveSynthParams) {
         // Apply snapshot if needed
-        rendererSeq.playbackRate = seq.playbackRate;
         const snapshot = this.synthesizer.getSnapshot();
         rendererSynth.applySnapshot(snapshot);
     }
 
     // Apply no voice cap (applying snapshot resets system parameters)
     rendererSynth.setSystemParameter("autoAllocateVoices", true);
+    // The main output always has the effects mixed in, so disable them if requested
+    rendererSynth.setSystemParameter("effectsEnabled", options.enableEffects);
 
     // Begin playing
     rendererSeq.loadNewSongList([parsedMid]);
     rendererSeq.play();
 
     // Allocate memory
-    // Effects
-    const wetL = new Float32Array(sampleDuration);
-    const wetR = new Float32Array(sampleDuration);
-    const effects: StereoAudioChunk = [wetL, wetR];
+    // Output
+    const outL = new Float32Array(sampleDuration);
+    const outR = new Float32Array(sampleDuration);
+    const output: StereoAudioChunk = [outL, outR];
     // Final output
-    const returnedChunks: ReturnedChunks = {
-        effects,
-        dry: []
+    const returnedChunks: RenderedAudioWorkerChunks = {
+        output,
+        visual: []
     };
-    const sampleDurationNoLastQuantum = sampleDuration - BLOCK_SIZE;
-    if (options.separateChannels) {
-        const dry: StereoAudioChunk[] = [];
-        for (let i = 0; i < 16; i++) {
-            const d: StereoAudioChunk = [
-                new Float32Array(sampleDuration),
-                new Float32Array(sampleDuration)
-            ];
-            dry.push(d);
-            returnedChunks.dry.push(d);
-        }
-        let index = 0;
-        while (true) {
-            for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
-                if (index >= sampleDurationNoLastQuantum) {
-                    rendererSeq.processTick();
-                    rendererSynth.processSplit(
-                        dry,
-                        wetL,
-                        wetR,
-                        index,
-                        sampleDuration - index
-                    );
-                    this.startAudioLoop();
-                    return returnedChunks;
-                }
-                rendererSeq.processTick();
-                rendererSynth.processSplit(dry, wetL, wetR, index, BLOCK_SIZE);
-                index += BLOCK_SIZE;
-            }
-            this.postProgress("renderAudio", index / sampleDuration);
-        }
-    } else {
-        const dryL = new Float32Array(sampleDuration);
-        const dryR = new Float32Array(sampleDuration);
-        const dry: StereoAudioChunk = [dryL, dryR];
-        returnedChunks.dry.push(dry);
-        let index = 0;
-        while (true) {
-            for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
-                if (index >= sampleDurationNoLastQuantum) {
-                    rendererSeq.processTick();
-                    rendererSynth.process(
-                        dryL,
-                        dryR,
-                        index,
-                        sampleDuration - index
-                    );
-                    this.startAudioLoop();
-                    return returnedChunks;
-                }
-                rendererSeq.processTick();
+    let convolver: StereoAudioChunk | undefined = undefined;
+    if (reverbCapture) {
+        convolver = [
+            new Float32Array(sampleDuration),
+            new Float32Array(sampleDuration)
+        ];
+        returnedChunks.convolver = convolver;
+    }
+    // Dry output pairs: one per MIDI channel if separated, otherwise a single mix
+    const outputCount = options.separateChannels ? 16 : 1;
+    for (let i = 0; i < outputCount; i++) {
+        const d: StereoAudioChunk = [
+            new Float32Array(sampleDuration),
+            new Float32Array(sampleDuration)
+        ];
+        returnedChunks.visual.push(d);
+    }
 
-                rendererSynth.process(dryL, dryR, index, BLOCK_SIZE);
-                index += BLOCK_SIZE;
+    // Render the audio here
+    let index = 0;
+    while (true) {
+        for (let i = 0; i < RENDER_BLOCKS_PER_PROGRESS; i++) {
+            rendererSeq.processTick();
+            // 128 samples for the middle blocks, the remainder for the last one
+            const sampleCount =
+                Math.min(index + BLOCK_SIZE, sampleDuration) - index;
+            rendererSynth.process(
+                outL,
+                outR,
+                index,
+                sampleCount,
+                // Automatically wraps the channels for us!
+                returnedChunks.visual
+            );
+            if (convolver) {
+                reverbCapture!.moveCapturedData(
+                    convolver[0],
+                    convolver[1],
+                    index,
+                    sampleCount
+                );
             }
-            this.postProgress("renderAudio", index / sampleDuration);
+            index += sampleCount;
+            if (index >= sampleDuration) {
+                return returnedChunks;
+            }
         }
+        this.postProgress("renderAudio", index / sampleDuration);
     }
 }

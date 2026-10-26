@@ -1,64 +1,123 @@
-import { type BasicSoundBank, SoundBankLoader } from "spessasynth_core";
+import {
+    type BasicSoundBank,
+    SoundBankLoader,
+    SpessaLog
+} from "spessasynth_core";
 import type {
     BasicSynthesizerMessage,
+    SynthesizerReturn,
     WorkerBankWriteOptions,
     WorkerSampleEncodingFunction
-} from "../types.ts";
-import { renderAudioWorker } from "./render_audio_worker.ts";
+} from "../types";
+import { renderAudioWorker } from "./render_audio_worker";
 import {
     BasicSynthesizerCore,
-    type PostMessageSynthCore,
-    SEQUENCER_SYNC_INTERVAL
-} from "../basic/basic_synthesizer_core.ts";
-import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
-import { writeRMIDIWorker } from "./write_rmi_worker.ts";
+    type PostMessageSynthCore
+} from "../basic/basic_synthesizer_core";
+import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker";
+import { writeRMIDIWorker } from "./write_rmi_worker";
+import type { SynthCoreConfig } from "../basic/types";
+import {
+    TOTAL_OUTPUT_COUNT,
+    VISUAL_CHANNEL_OUTPUTS_START
+} from "../basic/synth_config";
 
 const BLOCK_SIZE = 128;
 
-type AudioChunk = [Float32Array, Float32Array];
-type AudioChunks = AudioChunk[];
+/**
+ * Creates the views into the render data, in the order described in {@link WorkerSynthesizerCore.renderData}.
+ * @param renderData The render data.
+ */
+function createRenderViews(renderData: Float32Array) {
+    let offset = 0;
+    const next = () => {
+        const view = renderData.subarray(offset, offset + BLOCK_SIZE);
+        offset += BLOCK_SIZE;
+        return view;
+    };
+    const outL = next();
+    const outR = next();
+    const convolverL = next();
+    const convolverR = next();
+    const visual = new Array<Float32Array[]>();
+    for (let i = 0; i < TOTAL_OUTPUT_COUNT - VISUAL_CHANNEL_OUTPUTS_START; i++)
+        visual.push([next(), next()]);
+    return { outL, outR, convolverL, convolverR, visual };
+}
 
-// The core audio engine for the worker synthesizer.
+/**
+ * The core audio engine for the worker synthesizer.
+ *
+ * This part of the synthesizer runs in the Web Worker and contains the actual audio engine.
+ *
+ * @group Synthesizer.Worker
+ */
 export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     /**
      * The message port to the playback audio worklet.
+     * @internal
      */
-    public readonly workletMessagePort: MessagePort;
+    protected readonly workletMessagePort: MessagePort;
 
     protected readonly compressionFunction?: WorkerSampleEncodingFunction;
 
     /**
+     * If the audio loop is running. It is stopped while rendering or writing files.
+     */
+    private audioLoopRunning = false;
+
+    /**
+     * The rendered block, encoded into a single array as follows, each part being `BLOCK_SIZE` long:
+     * - OutLeft, OutRight
+     * - ConvolverL, ConvolverR
+     * - Dry1L, Dry1R ... Dry16L, Dry16R
+     *
+     * It is copied into a transferable buffer after rendering.
+     */
+    private readonly renderData = new Float32Array(
+        BLOCK_SIZE * 2 * TOTAL_OUTPUT_COUNT
+    );
+
+    /**
+     * The views into {@link renderData} that the synthesizer renders to.
+     */
+    private readonly renderViews = createRenderViews(this.renderData);
+
+    /**
+     * Buffers returned by the playback worklet, ready to be reused.
+     */
+    private readonly freeBuffers = new Array<Float32Array>();
+
+    /**
      * Creates a new worker synthesizer core: the synthesizer that runs in the worker.
-     * Most parameters here are provided with the first message that is posted to the worker by the WorkerSynthesizer.
-     * @param synthesizerConfiguration The data from the first message sent from WorkerSynthesizer.
+     * Most parameters here are provided with the first message that is posted to the worker by the {@link WorkerSynthesizer}.
+     *
+     * > **Tip**
+     * >
+     * > For an example of setting up a worker synthesizer, see the [Worker Synthesizer Example](../../../docs/getting-started/worker-synth-example.md).
+     *
+     * @param synthCoreConfig The data from the first message sent from {@link WorkerSynthesizer}.
      * Listen for the first event and use its data to initialize this class.
-     * @param workletMessagePort The first port from the first message sent from WorkerSynthesizer.
-     * @param mainThreadCallback postMessage function or similar.
+     * @param workletMessagePort The first port from the first message sent from {@link WorkerSynthesizer}.
+     * @param mainThreadCallback The function to post a message back to the main thread. Usually `postMessage`.
      * @param compressionFunction Optional function for compressing SF3 banks.
      */
     public constructor(
-        synthesizerConfiguration: {
-            sampleRate: number;
-            initialTime: number;
-        },
+        synthCoreConfig: SynthCoreConfig,
         workletMessagePort: MessagePort,
         mainThreadCallback: typeof Worker.prototype.postMessage,
         compressionFunction?: WorkerSampleEncodingFunction
     ) {
-        super(
-            synthesizerConfiguration.sampleRate,
-            {
-                effectsEnabled: true,
-                eventsEnabled: true,
-                initialTime: synthesizerConfiguration.initialTime
-            },
-            mainThreadCallback as PostMessageSynthCore
-        );
+        super(synthCoreConfig, mainThreadCallback as PostMessageSynthCore);
 
         this.workletMessagePort = workletMessagePort;
-        this.workletMessagePort.onmessage = this.process.bind(this);
+        this.workletMessagePort.onmessage = (e: MessageEvent<unknown>) => {
+            // The worklet returns the buffers it played with its requests
+            if (e.data instanceof Float32Array) this.freeBuffers.push(e.data);
+            this.process();
+        };
         this.compressionFunction = compressionFunction;
-        void this.synthesizer.processorInitialized.then(() => {
+        void this.synthesizer.ready.then(() => {
             this.postReady("sf3Decoder", null);
             this.startAudioLoop();
         });
@@ -66,27 +125,41 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
     /**
      * Handles a message received from the main thread.
+     *
+     * > **Tip**
+     * >
+     * > For an example of setting up a worker synthesizer, see the [Worker Synthesizer Example](../../../docs/getting-started/worker-synth-example.md).
+     *
      * @param m The message received.
      */
     public handleMessage(m: BasicSynthesizerMessage) {
+        if (this.destroyed) return;
         switch (m.type) {
             case "renderAudio": {
-                const rendered = renderAudioWorker.call(
-                    this,
-                    m.data.sampleRate,
-                    m.data.options
-                );
-                const transferable: Transferable[] = [];
-                for (const r of rendered.effects) transferable.push(r.buffer);
-                for (const d of rendered.dry)
-                    transferable.push(...d.map((c) => c.buffer));
-                this.postReady("renderAudio", rendered, transferable);
+                const { sampleRate, options } = m.data;
+                void this.runOffline("renderAudio", () => {
+                    const rendered = renderAudioWorker.call(
+                        this,
+                        sampleRate,
+                        options
+                    );
+                    const transferable: Transferable[] = [];
+                    for (const r of rendered.output)
+                        transferable.push(r.buffer);
+                    for (const d of rendered.visual)
+                        transferable.push(...d.map((c) => c.buffer));
+                    if (rendered.convolver)
+                        for (const c of rendered.convolver)
+                            transferable.push(c.buffer);
+                    this.postReady("renderAudio", rendered, transferable);
+                });
                 break;
             }
 
             case "writeRMIDI": {
-                this.stopAudioLoop();
-                void writeRMIDIWorker.call(this, m.data).then((data) => {
+                const opts = m.data;
+                void this.runOffline("workerSynthWriteFile", async () => {
+                    const data = await writeRMIDIWorker.call(this, opts);
                     this.postReady(
                         "workerSynthWriteFile",
                         {
@@ -95,14 +168,14 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                         },
                         [data]
                     );
-                    this.startAudioLoop();
                 });
                 break;
             }
 
             case "writeSF2": {
-                this.stopAudioLoop();
-                void writeSF2Worker.call(this, m.data).then((data) => {
+                const opts = m.data;
+                void this.runOffline("workerSynthWriteFile", async () => {
+                    const data = await writeSF2Worker.call(this, opts);
                     this.postReady(
                         "workerSynthWriteFile",
                         {
@@ -115,23 +188,23 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                         },
                         [data.binary]
                     );
-                    this.startAudioLoop();
                 });
                 break;
             }
 
             case "writeDLS": {
-                this.stopAudioLoop();
-                const data = writeDLSWorker.call(this, m.data);
-                this.postReady(
-                    "workerSynthWriteFile",
-                    {
-                        binary: data.binary,
-                        fileName: data.bank.soundBankInfo.name + ".dls"
-                    },
-                    [data.binary]
-                );
-                this.startAudioLoop();
+                const opts = m.data;
+                void this.runOffline("workerSynthWriteFile", () => {
+                    const data = writeDLSWorker.call(this, opts);
+                    this.postReady(
+                        "workerSynthWriteFile",
+                        {
+                            binary: data.binary,
+                            fileName: data.bank.soundBankInfo.name + ".dls"
+                        },
+                        [data.binary]
+                    );
+                });
                 break;
             }
 
@@ -142,10 +215,11 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     }
 
     protected getBank(opts: WorkerBankWriteOptions): BasicSoundBank {
-        const sq = this.sequencers[opts.sequencerID];
+        const embedded =
+            this.sequencers[opts.sequencerID]?.midiData?.embeddedSoundBank;
         const sf =
-            opts.writeEmbeddedSoundBank && sq.midiData?.embeddedSoundBank
-                ? SoundBankLoader.fromArrayBuffer(sq.midiData.embeddedSoundBank)
+            opts.writeEmbeddedSoundBank && embedded
+                ? SoundBankLoader.fromArrayBuffer(embedded)
                 : this.synthesizer.soundBankManager.soundBankList.find(
                       (b) => b.id === opts.bankID
                   )?.soundBank;
@@ -163,16 +237,38 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         return sf;
     }
 
+    /**
+     * Runs an offline operation with the audio loop stopped.
+     * The loop is always restarted, and a failure rejects the main thread promise waiting for the response.
+     * @param responseType The response type the main thread is waiting for.
+     * @param operation The operation, which posts the response itself on success.
+     */
+    protected async runOffline(
+        responseType: keyof SynthesizerReturn,
+        operation: () => unknown
+    ) {
+        this.stopAudioLoop();
+        try {
+            await operation();
+        } catch (error) {
+            SpessaLog.warn(error);
+            this.postError(responseType, error as Error);
+        } finally {
+            this.startAudioLoop();
+        }
+    }
+
     protected stopAudioLoop() {
-        this.synthesizer.stopAllChannels(true);
+        this.synthesizer.stopAll(true);
         for (const seq of this.sequencers) {
             seq.pause();
         }
-        this.alive = false;
+        this.audioLoopRunning = false;
     }
 
     protected startAudioLoop() {
-        this.alive = true;
+        if (this.destroyed) return;
+        this.audioLoopRunning = true;
         this.process();
     }
 
@@ -184,71 +280,28 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
     }
 
     protected process() {
-        if (!this.alive) {
+        if (!this.audioLoopRunning) {
             return;
         }
-        // Data is encoded into a single f32 array as follows
-        // WetL, WetR,
-        // Dry1L, dry1R
-        // DryNL, dryNR
-        // Dry16L, dry16R
-        // To improve performance
-        const byteStep = BLOCK_SIZE * Float32Array.BYTES_PER_ELEMENT;
-        const data = new Float32Array(BLOCK_SIZE * 34);
-        let byteOffset = 0;
-        const wetR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-        byteOffset += byteStep;
-        const wetL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-        byteOffset += byteStep;
-        const dry: AudioChunks = [];
-        for (let i = 0; i < 16; i++) {
-            const dryL = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-            byteOffset += byteStep;
+        this.startBlock();
 
-            const dryR = new Float32Array(data.buffer, byteOffset, BLOCK_SIZE);
-            byteOffset += byteStep;
-
-            dry.push([dryL, dryR]);
-        }
-        for (const seq of this.sequencers) {
-            seq.processTick();
-        }
-        this.synthesizer.processSplit(dry, wetL, wetR);
+        // The core mixes into the outputs, so they must be cleared first
+        this.renderData.fill(0);
+        const { outL, outR, convolverL, convolverR, visual } = this.renderViews;
+        this.synthesizer.process(outL, outR, undefined, undefined, visual);
+        // Extract reverb capture data
+        this.reverbCapture?.moveCapturedData(
+            convolverL,
+            convolverR,
+            0,
+            BLOCK_SIZE
+        );
+        // Reuse a buffer returned by the worklet if possible
+        const data =
+            this.freeBuffers.pop() ?? new Float32Array(this.renderData.length);
+        data.set(this.renderData);
         this.workletMessagePort.postMessage(data, [data.buffer]);
 
-        const t = this.synthesizer.currentTime;
-        if (
-            this.eventsEnabled &&
-            t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL
-        ) {
-            for (let id = 0; id < this.sequencers.length; id++) {
-                this.post({
-                    type: "sequencerReturn",
-                    data: {
-                        type: "sync",
-                        data: this.sequencers[id].currentTime,
-                        id
-                    },
-                    currentTime: t
-                });
-            }
-            this.lastSequencerSync = t;
-        }
-
-        // Update voice count
-        const c = this.synthesizer.midiChannels;
-        const cv = this.voiceCounts;
-        let updateChannels = false;
-        for (let i = 0; i < c.length; i++) {
-            updateChannels ||= c[i].voiceCount !== cv[i];
-            cv[i] = c[i].voiceCount;
-        }
-        if (updateChannels) {
-            this.post({
-                type: "voiceCountChange",
-                currentTime: t,
-                data: cv
-            });
-        }
+        this.finishBlock();
     }
 }

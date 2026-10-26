@@ -9,13 +9,13 @@ const dirname = path.join(
 );
 
 export function runCommandSync(command: string) {
-    const [cmd, ...args] = command.split(" ");
-    const proc = child_process.spawnSync(cmd, args, {
-        stdio: "inherit",
-        cwd: dirname
-    });
-
-    if (proc.error) {
-        throw new Error(`Failed to execute ${command}`, proc.error);
+    try {
+        child_process.execSync(command, {
+            stdio: "inherit",
+            cwd: dirname,
+            shell: process.platform === "win32" ? "cmd.exe" : undefined
+        });
+    } catch (error) {
+        throw new Error(`Failed to execute ${command}`, { cause: error });
     }
 }

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import esbuild from "esbuild";
 import url from "node:url";
-import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util.ts";
+import { GH_PAGES_DIR, NPM_DIST_DIR } from "../build_scripts/util";
 
 export const buildExamples = () => {
     // File paths and directories
@@ -67,19 +67,19 @@ export const buildExamples = () => {
         console.log(`compiled HTML: ${outputFile}`);
     }
 
-    // Process each js file and bundle with esbuild
-    const jsFiles = fs
+    // Process each ts file and bundle with esbuild
+    const tsFiles = fs
         .readdirSync(PARTIALS_DIR)
-        .filter((file) => file.endsWith(".js"));
-    for (const jsFile of jsFiles) {
-        const jsFilePath = path.join(PARTIALS_DIR, jsFile);
-        const basename = path.basename(jsFile, ".js");
+        .filter((file) => file.endsWith(".ts"));
+    for (const tsFile of tsFiles) {
+        const tsFilePath = path.join(PARTIALS_DIR, tsFile);
+        const basename = path.basename(tsFile, ".ts");
         const outputJsFile = path.join(OUTPUT_DIR, `${basename}.js`);
 
         try {
-            // Use esbuild to bundle and minify the JS file
+            // Use esbuild to bundle and minify the TS file
             esbuild.buildSync({
-                entryPoints: [jsFilePath],
+                entryPoints: [tsFilePath],
                 bundle: true,
                 treeShaking: true,
                 minify: true,

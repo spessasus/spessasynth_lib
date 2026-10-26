@@ -6,12 +6,16 @@ import {
     type MIDIController,
     type MIDIPatchFull
 } from "spessasynth_core";
-import { type BasicSynthesizer } from "./basic_synthesizer.ts";
+import { type BasicSynthesizer } from "./basic_synthesizer";
 
+/**
+ * Represents a single MIDI channel within a {@link BasicSynthesizer}.
+ *
+ * @group Synthesizer.Basic
+ */
 export class LibMIDIChannel {
     /**
-     * This channel number.
-     * @private
+     * This channel's number.
      */
     private readonly channel;
     private readonly synth: BasicSynthesizer;
@@ -63,7 +67,7 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The channel MIDI parameters of this channel.
+     * The {@link ChannelMIDIParameter}s of this channel.
      * These are only editable via MIDI messages.
      */
     public get midiParameters(): Readonly<ChannelMIDIParameter> {
@@ -72,7 +76,7 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * The channel system parameters of this channel.
+     * The {@link ChannelSystemParameter}s of this channel.
      * These are only editable via the API.
      */
     public get systemParameters(): Readonly<ChannelSystemParameter> {
@@ -98,9 +102,9 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Locks or unlocks a given Channel MIDI Parameter.
+     * Locks or unlocks a given {@link ChannelMIDIParameter}.
      * This prevents any changes to it until it's unlocked.
-     * @param parameter The Channel MIDI Parameter to lock.
+     * @param parameter The channel MIDI parameter to lock.
      * @param isLocked If the parameter should be locked.
      */
     public lockMIDIParameter<P extends keyof ChannelMIDIParameter>(
@@ -120,7 +124,7 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Sets a system parameter of the channel.
+     * Sets a {@link ChannelSystemParameter} of the channel.
      * @param parameter The type of the parameter to set.
      * @param value The value to set for the parameter.
      */
@@ -146,7 +150,7 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Causes the given midi channel to ignore controller messages for the given controller number.
+     * Causes this MIDI channel to ignore controller messages for the given controller number.
      * @param controller 0-127 MIDI CC number.
      * @param isLocked True if locked, false if unlocked.
      */
@@ -163,7 +167,7 @@ export class LibMIDIChannel {
 
     // noinspection JSUnusedGlobalSymbols
     /**
-     * Toggles drums on a given channel.
+     * Toggles drums on this channel.
      * @param isDrum If the channel should be drums.
      */
     public setDrums(isDrum: boolean) {

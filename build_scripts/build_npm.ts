@@ -1,5 +1,5 @@
 import path from "node:path";
-import { NPM_DIST_DIR } from "./util.ts";
+import { NPM_DIST_DIR } from "./util";
 import esbuild from "esbuild";
 import * as tsdown from "tsdown";
 
@@ -42,9 +42,11 @@ try {
         sourcemap: "linked",
         outfile: OUTPUT_PATH,
         logLevel: "info",
-        target: "esnext"
+        // The worklet processor must run in Chrome 109 (es2022)
+        target: "chrome109"
     });
     console.log("NPM package built successfully.");
 } catch (error) {
     console.error(error, "\nFailed to build the NPM package.");
+    process.exitCode = 1;
 }

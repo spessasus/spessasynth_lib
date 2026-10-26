@@ -1,8 +1,12 @@
+---
+title: Advanced Example
+---
+
 # Advanced Example
 
 **[See this demo live](https://spessasus.github.io/spessasynth_lib/examples/advanced_demo.html)**
 
-The example before is very basic, it only allows uploading a single MIDI file.
+The [previous example](simple-example.md) is very basic, as it only allows uploading a single MIDI file.
 We can add more features such as play/pause and time controls to our player without much effort.
 
 Let's add some control buttons:
@@ -19,6 +23,6 @@ Now we need to add functionality to those buttons:
 - Next song button
 - Song progress slider
 
-```js title='advanced_demo.js'
---8<-- "advanced_demo.js"
+```ts title='advanced_demo.ts'
+--8<-- "advanced_demo.ts"
 ```

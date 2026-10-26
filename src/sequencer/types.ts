@@ -1,14 +1,20 @@
-import { type SongChangeType } from "./enums";
 import {
     type BasicMIDI,
     type MIDIMessage,
-    type SequencerEvent
+    type SequencerEvent as CoreSequencerEvent,
+    type SequencerEventCallback
 } from "spessasynth_core";
 import type { MIDIData } from "./midi_data";
 
+/**
+ * Optional configuration for the {@link Sequencer}.
+ *
+ * @group Sequencer
+ */
 export interface SequencerOptions {
     /**
-     * If true, the sequencer will skip to the first note.
+     * If true, the sequencer will skip to the first note-on event when the time is set before it.
+     * Defaults to `true`.
      */
     skipToFirstNoteOn: boolean;
     /**
@@ -41,7 +47,7 @@ export interface SequencerMessageData {
     setLoopCount: number;
     // [changeType, data]
     changeSong: {
-        changeType: SongChangeType;
+        changeType: "shuffleOn" | "shuffleOff" | "index";
         data?: number;
     };
     getMIDI: null;
@@ -50,23 +56,29 @@ export interface SequencerMessageData {
 }
 
 export type SequencerReturnMessage =
-    | (Exclude<SequencerEvent, { type: "songListChange" }> & { id: number })
-    | (Extract<SequencerEvent, { type: "songListChange" }> & {
+    | (Exclude<SequencerEventCallback, { type: "songListChange" }> & {
+          id: number;
+      })
+    | (Extract<SequencerEventCallback, { type: "songListChange" }> & {
           data: { shuffledSongIndexes: number[] };
           id: number;
       })
     | { type: "getMIDI"; data: BasicMIDI; id: number }
+    | { type: "getMIDIError"; data: Error; id: number }
     | { type: "midiError"; data: Error; id: number }
     | { type: "sync"; data: number; id: number };
 
 /**
- * Sequencer.js
- * purpose: plays back the midi file decoded by midi_loader.js, including support for multichannel midis
- * (adding channels when more than one midi port is detected)
- * note: this is the sequencer class that runs on the main thread
- * and only communicates with the worklet sequencer which does the actual playback
+ * A MIDI file to play, either a {@link BasicMIDI} or an object with two properties (the two can be mixed in a song list):
+ * - `binary` - The `ArrayBuffer` representation of the file.
+ * - `fileName` - An optional fallback name for the sequence if it doesn't have one (like the file name).
+ *
+ * > **Tip**
+ * >
+ * > For performance reasons, it is recommended to pass the binary data rather than the parsed {@link BasicMIDI} instance.
+ *
+ * @group Sequencer.MIDI Data
  */
-
 export type SuppliedMIDIData =
     | BasicMIDI
     | {
@@ -80,33 +92,45 @@ export type SuppliedMIDIData =
           fileName?: string;
       };
 
-export interface WorkletSequencerEventType {
+/**
+ * All event types which get emitted by {@link Sequencer}.
+ *
+ * @group Sequencer.Events
+ */
+export interface LibSequencerEvent extends Omit<
+    CoreSequencerEvent,
+    "midiMessage" | "songListChange"
+> {
     /**
-     * New song.
+     * This event is triggered when the current song changes.
      */
-    songChange: MIDIData;
-    /**
-     * New time.
-     */
-    timeChange: number;
-    /**
-     * No data.
-     */
-    songEnded: null;
-    metaEvent: {
-        event: MIDIMessage;
-        trackNumber: number;
+    songChange: {
+        /**
+         * The index of the new song in the playlist.
+         * If shuffle mode is enabled, this is the index of the shuffled song list.
+         */
+        songIndex: number;
+        /**
+         * The data of the new song.
+         */
+        midiData: MIDIData;
     };
+    /**
+     * This event is triggered when a Text Event is encountered.
+     */
     textEvent: {
         /**
          * The raw event.
          */
         event: MIDIMessage;
         /**
-         * If the text is a lyric, the index of the lyric in BasicMIDI's "lyrics" property, otherwise -1.
+         * If the text is a lyric, the index of the lyric in {@link BasicMIDI.lyrics}, otherwise -1.
          */
         lyricsIndex: number;
     };
 
+    /**
+     * This event is triggered when a MIDI parsing error is encountered.
+     */
     midiError: Error;
 }

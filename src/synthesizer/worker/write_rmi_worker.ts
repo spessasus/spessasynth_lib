@@ -1,14 +1,14 @@
-import type { WorkerSynthesizerCore } from "./worker_synthesizer_core.ts";
-import type { WorkerRMIDIWriteOptions } from "../types.ts";
+import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
+import type { WorkerRMIDIWriteOptions } from "../types";
 import { BasicMIDI, BasicSoundBank } from "spessasynth_core";
-import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker.ts";
+import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker";
 
 export async function writeRMIDIWorker(
     this: WorkerSynthesizerCore,
     opts: WorkerRMIDIWriteOptions
 ) {
-    const sq = this.sequencers[opts.sequencerID];
-    if (!sq.midiData) {
+    const midi = this.sequencers[opts.sequencerID]?.midiData;
+    if (!midi) {
         throw new Error("No MIDI is loaded!");
     }
     let sf: BasicSoundBank;
@@ -23,7 +23,7 @@ export async function writeRMIDIWorker(
         sf = bin.bank;
     }
 
-    const mid = BasicMIDI.copyFrom(sq.midiData);
+    const mid = BasicMIDI.copyFrom(midi);
     if (opts.applySnapshot) mid.applySnapshot(this.synthesizer.getSnapshot());
     return mid.writeRMIDI(sfBin, {
         soundBank: sf,

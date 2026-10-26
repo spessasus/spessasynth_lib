@@ -5,54 +5,125 @@ import {
     SpessaLog,
     SpessaSynthProcessor,
     SpessaSynthSequencer,
-    type SynthProcessorOptions
+    type SynthesizerEvent
 } from "spessasynth_core";
+import { MIDIData } from "../../sequencer/midi_data";
 import type {
     BasicSynthesizerMessage,
     BasicSynthesizerReturnMessage,
     SynthesizerProgress,
     SynthesizerReturn
-} from "../types.ts";
-import { MIDIData } from "../../sequencer/midi_data.ts";
-import { songChangeType } from "../../sequencer/enums.ts";
-import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config.ts";
+} from "../types";
+import { ReverbCapture } from "./reverb_passthrough";
+import { ALL_CHANNELS_OR_DIFFERENT_ACTION } from "./synth_config";
+import type { SynthCoreConfig } from "./types";
 
 export type PostMessageSynthCore = (
-    data: BasicSynthesizerReturnMessage,
+    data: BasicSynthesizerReturnMessage[],
     transfer?: Transferable[]
 ) => unknown;
 
 // Seconds
-export const SEQUENCER_SYNC_INTERVAL = 1;
+const SEQUENCER_SYNC_INTERVAL = 1;
 
 /**
- * The interface for the audio processing code that uses spessasynth_core and runs on a separate thread.
+ * The events that the main thread needs to mirror the synthesizer state.
+ * They are sent even if the event system is disabled.
+ */
+const STATE_SYNC_EVENTS = new Set<keyof SynthesizerEvent>([
+    "channelAdded",
+    "presetListChange",
+    "programChange",
+    "globalParamChange",
+    "channelParamChange",
+    "reset"
+]);
+
+/**
+ * The interface for the audio processing code that uses `spessasynth_core` and runs on a separate thread.
+ * It runs in a Web Worker for {@link WorkerSynthesizer} and in an AudioWorklet for {@link WorkletSynthesizer}.
+ *
+ * It provides raw access to `spessasynth_core` {@link SpessaSynthProcessor} and {@link SpessaSynthSequencer} instances.
+ * @group Synthesizer.Basic
  */
 export abstract class BasicSynthesizerCore {
+    /**
+     * The synthesizer instance.
+     * This property allows for direct access to the audio engine.
+     */
     public readonly synthesizer: SpessaSynthProcessor;
+    /**
+     * The array of sequencers to use with the synthesizer.
+     * This property allows for direct access to the sequencers and their MIDI data.
+     */
     public readonly sequencers = new Array<SpessaSynthSequencer>();
-    protected readonly post: PostMessageSynthCore;
-    protected lastSequencerSync = 0;
+
+    protected readonly postInternal: PostMessageSynthCore;
+
     /**
      * For syncing voice counts, implemented separately in the `process()` method.
-     * @protected
+     * @internal
      */
     protected readonly voiceCounts = new Array<number>(16).fill(0);
+
     /**
-     * Indicates if the processor is alive.
-     * @protected
+     * If the events not needed for the state sync should be sent to the main thread.
+     * The processor's own event system always stays enabled.
+     * @internal
      */
-    protected alive = false;
-    protected readonly eventsEnabled;
+    protected eventsEnabled;
+
+    /**
+     * In this mode, the reverb is captured and sent to the main thread for a `ConvolverNode` to process.
+     * @internal
+     */
+    protected readonly convolverMode;
+
+    protected readonly reverbCapture: ReverbCapture | undefined;
+    /**
+     * Set once the core is destroyed. Messages are ignored from then on.
+     * @internal
+     */
+    protected destroyed = false;
+    protected lastSequencerSync = 0;
+    /**
+     * A message queue for sending many messages in bulk as one.
+     * @internal
+     */
+    protected messageQueue = new Array<BasicSynthesizerReturnMessage>();
+    /**
+     * The transferable part of the queue.
+     * @internal
+     */
+    protected messageQueueTransferable = new Array<Transferable>();
+    /**
+     * If the queue is active, all messages will be queued. If not, they will be sent immediately.
+     * @internal
+     */
+    protected messageQueueActive = false;
 
     protected constructor(
-        sampleRate: number,
-        options: Partial<SynthProcessorOptions>,
+        synthCoreConfig: SynthCoreConfig,
         postMessage: PostMessageSynthCore
     ) {
-        this.synthesizer = new SpessaSynthProcessor(sampleRate, options);
-        this.eventsEnabled = options.eventsEnabled ?? false;
-        this.post = postMessage;
+        this.reverbCapture = synthCoreConfig.convolverMode
+            ? new ReverbCapture(synthCoreConfig.sampleRate)
+            : undefined;
+        this.synthesizer = new SpessaSynthProcessor(
+            synthCoreConfig.sampleRate,
+            {
+                ...synthCoreConfig.processorConfig,
+                // The main thread mirrors the synthesizer state from the events, so they are filtered here instead
+                eventsEnabled: true,
+                initialTime: synthCoreConfig.initialTime,
+                gsReverbProcessor: this.reverbCapture?.gsReverb,
+                xgReverbBlock: this.reverbCapture?.xgReverb
+            }
+        );
+        this.eventsEnabled =
+            synthCoreConfig.processorConfig.eventsEnabled ?? true;
+        this.convolverMode = synthCoreConfig.convolverMode;
+        this.postInternal = postMessage;
 
         // Prepare synthesizer connections
         this.synthesizer.onEventCall = (event) => {
@@ -61,6 +132,8 @@ export abstract class BasicSynthesizerCore {
                 for (let i = this.voiceCounts.length; i < l; i++)
                     this.voiceCounts.push(0);
             }
+            if (!this.eventsEnabled && !STATE_SYNC_EVENTS.has(event.type))
+                return;
             this.post({
                 type: "eventCall",
                 data: event,
@@ -69,14 +142,79 @@ export abstract class BasicSynthesizerCore {
         };
     }
 
+    /**
+     * Starts processing an audio block: queues the messages and advances the sequencers.
+     * Call before rendering the block.
+     */
+    protected startBlock() {
+        this.messageQueueActive = true;
+        for (const seq of this.sequencers) seq.processTick();
+    }
+
+    /**
+     * Finishes processing an audio block: syncs the sequencers and voice counts, then sends the queued messages.
+     * Call after rendering the block.
+     */
+    protected finishBlock() {
+        const t = this.synthesizer.currentTime;
+        if (t - this.lastSequencerSync > SEQUENCER_SYNC_INTERVAL) {
+            for (let id = 0; id < this.sequencers.length; id++) {
+                this.post({
+                    type: "sequencerReturn",
+                    data: {
+                        type: "sync",
+                        data: this.sequencers[id].currentTime,
+                        id
+                    },
+                    currentTime: t
+                });
+            }
+            this.lastSequencerSync = t;
+        }
+
+        // Update voice count
+        const c = this.synthesizer.midiChannels;
+        const cv = this.voiceCounts;
+        let updateChannels = false;
+        for (let i = 0; i < c.length; i++) {
+            updateChannels ||= c[i].voiceCount !== cv[i];
+            cv[i] = c[i].voiceCount;
+        }
+        if (updateChannels)
+            this.post({
+                type: "voiceCountChange",
+                currentTime: t,
+                data: cv
+            });
+
+        // Flush the queue
+        this.messageQueueActive = false;
+        if (this.messageQueue.length > 0)
+            this.postInternal(this.messageQueue, this.messageQueueTransferable);
+        this.messageQueue.length = 0;
+        this.messageQueueTransferable.length = 0;
+    }
+
+    protected post(
+        data: BasicSynthesizerReturnMessage,
+        transfer?: Transferable[]
+    ) {
+        if (this.messageQueueActive) {
+            this.messageQueue.push(data);
+            if (transfer) this.messageQueueTransferable.push(...transfer);
+        } else {
+            this.postInternal([data], transfer);
+        }
+    }
+
     protected createNewSequencer() {
         const sequencer = new SpessaSynthSequencer(this.synthesizer);
         const sequencerID = this.sequencers.length;
         this.sequencers.push(sequencer);
 
         // Prepare sequencer connections
+        // Always sent, the main thread sequencer relies on these to track its state
         sequencer.onEventCall = (e) => {
-            if (!this.eventsEnabled) return; // Processor already respects enabling/disabling event system
             if (e.type === "songListChange") {
                 const songs = e.data.newSongList;
                 const midiDatas = songs.map((s) => {
@@ -127,6 +265,22 @@ export abstract class BasicSynthesizerCore {
         );
     }
 
+    /**
+     * Rejects the main thread promise waiting for the given response type.
+     * @param type The response type that will not arrive.
+     * @param error The reason of the failure.
+     */
+    protected postError(type: keyof SynthesizerReturn, error: Error) {
+        this.post({
+            type: "coreResponseError",
+            data: {
+                type,
+                error
+            },
+            currentTime: this.synthesizer.currentTime
+        });
+    }
+
     protected postProgress<K extends keyof SynthesizerProgress>(
         type: K,
         data: SynthesizerProgress[K]
@@ -142,16 +296,13 @@ export abstract class BasicSynthesizerCore {
     }
 
     protected destroy() {
-        this.synthesizer.destroySynthProcessor();
-        // @ts-expect-error JS Deletion
-        // noinspection JSConstantReassignment
-        delete this.synthesizer;
-        // @ts-expect-error JS Deletion
-        // noinspection JSConstantReassignment
-        delete this.sequencers;
+        this.destroyed = true;
+        this.synthesizer.destroy();
+        this.sequencers.length = 0;
     }
 
     protected handleMessage(m: BasicSynthesizerMessage) {
+        if (this.destroyed) return;
         const channel = m.channelNumber;
 
         let channelObject: MIDIChannel | undefined;
@@ -181,7 +332,7 @@ export abstract class BasicSynthesizerCore {
 
             case "stopAll": {
                 if (channel === ALL_CHANNELS_OR_DIFFERENT_ACTION)
-                    this.synthesizer.stopAllChannels(m.data === 1);
+                    this.synthesizer.stopAll(m.data === 1);
                 else channelObject?.stopAllNotes(m.data === 1);
 
                 break;
@@ -201,6 +352,11 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "setGlobalSystemParameter": {
+                if (m.data.parameter === "eventsEnabled") {
+                    // Filtered here, the processor must keep emitting the state sync events
+                    this.eventsEnabled = m.data.value;
+                    break;
+                }
                 this.synthesizer.setSystemParameter(
                     m.data.parameter,
                     m.data.value
@@ -263,7 +419,7 @@ export abstract class BasicSynthesizerCore {
                             });
                             seq.loadNewSongList(songMap);
                         } catch (error) {
-                            console.error(error);
+                            SpessaLog.warn(error);
                             this.post({
                                 type: "sequencerReturn",
                                 data: {
@@ -309,17 +465,17 @@ export abstract class BasicSynthesizerCore {
 
                     case "changeSong": {
                         switch (seqMsg.data.changeType) {
-                            case songChangeType.shuffleOff: {
+                            case "shuffleOff": {
                                 seq.shuffleMode = false;
                                 break;
                             }
 
-                            case songChangeType.shuffleOn: {
+                            case "shuffleOn": {
                                 seq.shuffleMode = true;
                                 break;
                             }
 
-                            case songChangeType.index: {
+                            case "index": {
                                 if (seqMsg.data.data !== undefined) {
                                     seq.songIndex = seqMsg.data.data;
                                 }
@@ -331,7 +487,16 @@ export abstract class BasicSynthesizerCore {
 
                     case "getMIDI": {
                         if (!seq.midiData) {
-                            throw new Error("No MIDI is loaded!");
+                            this.post({
+                                type: "sequencerReturn",
+                                data: {
+                                    type: "getMIDIError",
+                                    data: new Error("No MIDI is loaded!"),
+                                    id: m.data.id
+                                },
+                                currentTime: this.synthesizer.currentTime
+                            });
+                            break;
                         }
                         this.post({
                             type: "sequencerReturn",
@@ -389,38 +554,7 @@ export abstract class BasicSynthesizerCore {
                         data: error as Error,
                         currentTime: this.synthesizer.currentTime
                     });
-                }
-                break;
-            }
-
-            case "keyModifierManager": {
-                const kmMsg = m.data;
-                const man = this.synthesizer.keyModifierManager;
-                switch (kmMsg.type) {
-                    default: {
-                        return;
-                    }
-
-                    case "addMapping": {
-                        man.addMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote,
-                            kmMsg.data.mapping
-                        );
-                        break;
-                    }
-
-                    case "clearMappings": {
-                        man.clearMappings();
-                        break;
-                    }
-
-                    case "deleteMapping": {
-                        man.deleteMapping(
-                            kmMsg.data.channel,
-                            kmMsg.data.midiNote
-                        );
-                    }
+                    this.postError("soundBankManager", error as Error);
                 }
                 break;
             }
@@ -446,8 +580,6 @@ export abstract class BasicSynthesizerCore {
             }
 
             case "destroyWorklet": {
-                this.alive = false;
-                this.synthesizer.destroySynthProcessor();
                 this.destroy();
                 break;
             }
