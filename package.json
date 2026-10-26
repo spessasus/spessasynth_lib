@@ -65,7 +65,7 @@
         "@eslint/js": "^10.0.1",
         "@types/audioworklet": "^0.0.100",
         "@types/markdown-it": "^14.2.0",
-        "@types/node": "^25.9.1",
+        "@types/node": "^26.6.5",
         "esbuild": "^0.28.0",
         "eslint": "^10.4.0",
         "eslint-config-prettier": "^10.1.8",
