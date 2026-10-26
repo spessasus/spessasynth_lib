@@ -91,6 +91,6 @@
         "esbuild@0.28.0": true
     },
     "dependencies": {
-        "spessasynth_core": "file:../spessasynth_core"
+        "spessasynth_core": "latest"
     }
 }
