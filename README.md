@@ -11,6 +11,7 @@ It allows you to:
 - Play MIDI files using SF2/SF3/DLS files!
 - Read and write MIDI files!
 - Write SF2/SF3 files!
+- Play tracker modules (MOD, XM, S3M) as MIDI files!
 - Convert DLS to SF2! (and back!)
 - [and more!](#current-features)
 
@@ -18,10 +19,10 @@ It allows you to:
 >
 > Looking for a bare JS version that works without WebAudioAPI? Try [spessasynth_core](https://github.com/spessasus/spessasynth_core)!
 
-### v4.3.0 The General Update is here!
+### v4.4.0 The XG Update is here!
 
-Featuring robust MIDI analysis and editing, broadened MIDI exclusive support,
-and reworked, more powerful API!
+Featuring full Yamaha XG effects, tracker module playback via spessasynth_core,
+split audio rendering, and a cleaner, better documented API!
 
 ### [Project site (consider giving it a star!)](https://github.com/spessasus/spessasynth_lib)
 
@@ -51,6 +52,9 @@ and reworked, more powerful API!
 - **Easy to Use:** _Basic setup is just [two lines of code!](https://spessasus.github.io/spessasynth_lib/getting-started/#minimal-setup)_
 - **No external dependencies:** _Just spessasynth_core!_
 - **Export audio files** using [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext)!
+- **Split audio rendering:** _Render each MIDI channel and the effects separately!_
+- **Convolver mode:** _Use a native `ConvolverNode` for reverb with impulse responses, like pre 4.2.0!_
+- **Multi-port MIDI output:** _Web MIDI output ports now support multi-port MIDI files!_
 - **AudioWorklet synthesizer:**
     - Runs in a **separate thread** for maximum performance!
     - Does not stop playing even when the main thread is frozen!
