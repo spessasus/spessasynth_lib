@@ -84,7 +84,7 @@ export class Sequencer {
     /**
      * Pending {@link Sequencer.getMIDI} calls, in the order they were requested.
      */
-    private readonly getMIDIWaiters = new Array<{
+    private readonly pendingMIDIRequests = new Array<{
         resolve: (receivedMIDI: BasicMIDI) => unknown;
         reject: (error: Error) => unknown;
     }>();
@@ -391,7 +391,7 @@ export class Sequencer {
      */
     public async getMIDI(): Promise<BasicMIDI> {
         return new Promise((resolve, reject) => {
-            this.getMIDIWaiters.push({ resolve, reject });
+            this.pendingMIDIRequests.push({ resolve, reject });
             this.sendMessage("getMIDI", null);
         });
     }
@@ -550,14 +550,14 @@ export class Sequencer {
             }
 
             case "getMIDI": {
-                this.getMIDIWaiters
+                this.pendingMIDIRequests
                     .shift()
                     ?.resolve(BasicMIDI.copyFrom(m.data));
                 break;
             }
 
             case "getMIDIError": {
-                this.getMIDIWaiters.shift()?.reject(m.data);
+                this.pendingMIDIRequests.shift()?.reject(m.data);
                 break;
             }
 

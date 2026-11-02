@@ -15,7 +15,7 @@
         "docs:watch": "tsx node_modules/typedoc/bin/typedoc src/index.ts --options typedoc.json --watch",
         "docs:serve": "npx concurrently \"npm run docs:watch\" \"npx serve site/\"",
         "format": "prettier . --write --list-different",
-        "test:types": "eslint && tsc -b",
+        "test:types": "eslint && node node_modules/typescript7/bin/tsc -b",
         "debug": "tsx build_scripts/debug_enable.ts",
         "release": "tsx build_scripts/debug_disable.ts",
         "prepack": "npm run build:npm",
@@ -66,11 +66,11 @@
         "@types/audioworklet": "^0.0.100",
         "@types/markdown-it": "^14.2.0",
         "@types/node": "^26.6.5",
-        "esbuild": "^0.28.0",
+        "esbuild": "^0.28.2",
         "eslint": "^10.4.0",
         "eslint-config-prettier": "^10.1.8",
-        "eslint-plugin-unicorn": "^64.0.0",
-        "globals": "^17.6.0",
+        "eslint-plugin-unicorn": "^79.0.0",
+        "globals": "^17.14.0",
         "husky": "^9.1.7",
         "lint-staged": "^17.0.5",
         "prettier": "^3.8.3",
@@ -78,7 +78,8 @@
         "tsx": "^4.22.3",
         "typedoc": "^0.28.20",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.59.4"
+        "typescript-eslint": "^8.59.4",
+        "typescript7": "npm:typescript@^7.0.2"
     },
     "lint-staged": {
         "*.{ts,js}": [

@@ -111,7 +111,7 @@ export class SoundBankManager {
             SpessaLog.warn("1 sound bank left. Aborting!");
             return;
         }
-        if (!this.soundBankList.some((s) => s.id === id)) {
+        if (this.soundBankList.every((s) => s.id !== id)) {
             SpessaLog.warn(
                 `No sound banks with id of "${id}" found. Aborting!`
             );

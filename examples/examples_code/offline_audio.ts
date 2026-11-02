@@ -97,7 +97,7 @@ document.querySelector("#render")!.addEventListener("click", async () => {
     const audio = document.createElement("audio");
     audio.controls = true;
     audio.src = fileURL;
-    document.querySelectorAll(".example_content")[0].append(audio);
+    document.querySelector(".example_content")!.append(audio);
 
     // Make the browser download the file
     const a = document.createElement("a");

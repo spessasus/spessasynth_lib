@@ -143,9 +143,10 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                         sampleRate,
                         options
                     );
-                    const transferable: Transferable[] = [];
-                    for (const r of rendered.output)
-                        transferable.push(r.buffer);
+                    const transferable: Transferable[] = Array.from(
+                        rendered.output,
+                        (r) => r.buffer
+                    );
                     for (const d of rendered.visual)
                         transferable.push(...d.map((c) => c.buffer));
                     if (rendered.convolver)
@@ -218,7 +219,7 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
         const embedded =
             this.sequencers[opts.sequencerID]?.midiData?.embeddedSoundBank;
         const sf =
-            opts.writeEmbeddedSoundBank && embedded
+            embedded && opts.writeEmbeddedSoundBank
                 ? SoundBankLoader.fromArrayBuffer(embedded)
                 : this.synthesizer.soundBankManager.soundBankList.find(
                       (b) => b.id === opts.bankID

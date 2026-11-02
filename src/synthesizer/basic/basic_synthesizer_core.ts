@@ -410,16 +410,15 @@ export abstract class BasicSynthesizerCore {
                     case "loadNewSongList": {
                         try {
                             const sList = seqMsg.data;
-                            const songMap = sList.map((s) => {
-                                if ("duration" in s) {
-                                    // Cloned objects don't have methods
-                                    return BasicMIDI.copyFrom(s);
-                                }
-                                return BasicMIDI.fromArrayBuffer(
-                                    s.binary,
-                                    s.fileName
-                                );
-                            });
+                            const songMap = sList.map((s) =>
+                                // Cloned objects don't have methods
+                                "duration" in s
+                                    ? BasicMIDI.copyFrom(s)
+                                    : BasicMIDI.fromArrayBuffer(
+                                          s.binary,
+                                          s.fileName
+                                      )
+                            );
                             seq.loadNewSongList(songMap);
                         } catch (error) {
                             SpessaLog.warn(error);
@@ -529,10 +528,9 @@ export abstract class BasicSynthesizerCore {
                 try {
                     const sfManager = this.synthesizer.soundBankManager;
                     const sfManMsg = m.data;
-                    let font;
                     switch (sfManMsg.type) {
                         case "addSoundBank": {
-                            font = SoundBankLoader.fromArrayBuffer(
+                            const font = SoundBankLoader.fromArrayBuffer(
                                 sfManMsg.data.soundBankBuffer
                             );
                             sfManager.addSoundBank(

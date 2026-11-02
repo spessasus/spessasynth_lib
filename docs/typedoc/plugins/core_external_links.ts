@@ -64,7 +64,8 @@ function buildCoreLinks() {
 
         const text = lines.join("\n");
         for (const block of text.matchAll(/^export\s*\{([\s\S]*?)};/gm)) {
-            for (const item of block[1].split(",")) {
+            const items = block[1].split(",");
+            for (const item of items) {
                 const match = EXPORT_ITEM_PATTERN.exec(item.trim());
                 if (!match) {
                     continue;

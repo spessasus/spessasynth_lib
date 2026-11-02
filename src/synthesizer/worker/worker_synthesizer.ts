@@ -443,8 +443,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 );
                 const output = makeAudioBuffer(data.output, sampleRate);
                 if (
-                    options.enableEffects &&
                     convolverData &&
+                    options.enableEffects &&
                     this.convolverNode?.buffer
                 ) {
                     const convolver = await this.renderConvolverBuffer(

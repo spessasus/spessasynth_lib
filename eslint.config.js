@@ -49,7 +49,9 @@ export default tseslint.config(
                 {
                     cases: {
                         snakeCase: true
-                    }
+                    },
+                    // Named after the markdown-it package it extends, so stays as is
+                    directoryRoots: ["docs/typedoc/plugins/markdown-it"]
                 }
             ],
             // Often used for new Array<type>, more cluttered with Array.from
@@ -58,7 +60,7 @@ export default tseslint.config(
             "unicorn/no-null": "off",
             // Technical stuff like "modulators" or "envelopes" not commonly used
             // TODO add proper rules for this later
-            "unicorn/prevent-abbreviations": "off",
+            "unicorn/name-replacements": "off",
 
             // Need to pass undefined as value sometimes (for example getGenerator)
             "unicorn/no-useless-undefined": "off",
@@ -81,7 +83,29 @@ export default tseslint.config(
             "unicorn/prefer-spread": "off",
 
             // No need to hold function references
-            "unicorn/prefer-add-event-listener": "off"
+            "unicorn/prefer-add-event-listener": "off",
+
+            // What the hell unicorn
+            "unicorn/no-asterisk-prefix-in-documentation-comments": "off",
+
+            // I don't like it either
+            "unicorn/consistent-class-member-order": "off",
+
+            // Flags the break that ends a case of a switch inside a loop
+            "unicorn/no-break-in-nested-loop": "off",
+
+            // Names like "enableInfo" or "destroyed" are clear enough
+            "unicorn/consistent-boolean-name": "off",
+
+            // Not available in es2022
+            "unicorn/prefer-iterator-to-array": "off"
+        }
+    },
+    {
+        // Examples keep their state in top-level variables for simplicity
+        files: ["examples/**/*.ts"],
+        rules: {
+            "unicorn/no-top-level-assignment-in-function": "off"
         }
     }
 );

@@ -1002,7 +1002,7 @@ export abstract class BasicSynthesizer {
         progressFunction: (args: SynthesizerProgress[K]) => unknown,
         task: () => Promise<T>
     ): Promise<T> {
-        if (this.renderingProgressTracker.get(type)) {
+        if (this.renderingProgressTracker.has(type)) {
             throw new Error(`Something is already being tracked for: ${type}!`);
         }
         this.renderingProgressTracker.set(type, progressFunction);

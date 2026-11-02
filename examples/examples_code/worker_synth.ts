@@ -36,7 +36,7 @@ function addAudioElement(buffer: AudioBuffer, title: string) {
     audio.src = fileURL;
     const text = document.createElement("span");
     text.textContent = title;
-    const parent = document.querySelectorAll(".example_content")[0];
+    const parent = document.querySelector(".example_content")!;
     parent.append(text);
     parent.append(audio);
 }
@@ -88,7 +88,7 @@ document.querySelector("#save_sf2")!.addEventListener("click", async () => {
     a.href = fileURL;
     a.download = `${outputBuffer.fileName}.sf2`;
     a.textContent = "Download SF2";
-    document.querySelectorAll(".example_content")[0].append(a);
+    document.querySelector(".example_content")!.append(a);
     a.click();
 });
 
@@ -111,7 +111,7 @@ document.querySelector("#save_dls")!.addEventListener("click", async () => {
     a.href = fileURL;
     a.download = `${outputBuffer.fileName}.dls`;
     a.textContent = "Download DLS";
-    document.querySelectorAll(".example_content")[0].append(a);
+    document.querySelector(".example_content")!.append(a);
     a.click();
 });
 
@@ -134,7 +134,7 @@ document.querySelector("#save_rmi")!.addEventListener("click", async () => {
     a.href = fileURL;
     a.download = `${seq.midiData!.getName()}.rmi`;
     a.textContent = "Download RMIDI";
-    document.querySelectorAll(".example_content")[0].append(a);
+    document.querySelector(".example_content")!.append(a);
     a.click();
 });
 

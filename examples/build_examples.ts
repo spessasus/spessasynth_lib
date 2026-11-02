@@ -48,16 +48,17 @@ export const buildExamples = () => {
         // Modify the template content with the specific title
         const modifiedTemplate = TEMPLATE_CONTENT.replace(
             /<title>.*<\/title>/,
-            `<title>spessasynth_lib example: ${basename.replaceAll("_", " ")}</title>`
+            () =>
+                `<title>spessasynth_lib example: ${basename.replaceAll("_", " ")}</title>`
         );
 
         // Split header and footer based on placeholder div
         const header = modifiedTemplate
-            .split('<div class="example_content">')[0]
+            .split('<div class="example_content">', 1)[0]
             .trimEnd();
         const footer = modifiedTemplate
-            .split('<div class="example_content">')[1]
-            .split("</div>")[1];
+            .split('<div class="example_content">', 2)[1]
+            .split("</div>", 2)[1];
 
         // Create the output HTML file
         const partialContent = fs.readFileSync(partialPath, "utf8");

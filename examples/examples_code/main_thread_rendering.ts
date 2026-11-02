@@ -86,7 +86,7 @@ document
 
             // Schedule the buffer to play at the synth's current time
             source.start(synTime);
-        });
+        }, 0);
 
         // List all the voices currently playing
         const list = document.querySelector("#voice_list")!;

@@ -26,7 +26,7 @@ export function load(application: Application) {
                 }
                 html = html.replace(
                     /<title>[\s\S]*?<\/title>/,
-                    `<title>${escapeHTML(TITLE)}</title>`
+                    () => `<title>${escapeHTML(TITLE)}</title>`
                 );
                 html = html.replace(
                     "<head>",

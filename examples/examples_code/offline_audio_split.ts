@@ -62,7 +62,7 @@ function addAudioElement(buffer: AudioBuffer, label: string) {
     const wrapper = document.createElement("p");
     wrapper.append(document.createTextNode(label));
     wrapper.append(audio);
-    document.querySelectorAll(".example_content")[0].append(wrapper);
+    document.querySelector(".example_content")!.append(wrapper);
 }
 
 document.querySelector("#render")!.addEventListener("click", async () => {

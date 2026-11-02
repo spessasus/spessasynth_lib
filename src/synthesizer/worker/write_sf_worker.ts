@@ -17,7 +17,7 @@ function getBankToWrite(
     modifiesSamples: boolean
 ) {
     const sf = this.getBank(opts);
-    if (!opts.trim && !modifiesSamples) return sf;
+    if (!modifiesSamples && !opts.trim) return sf;
 
     const sfCopy = BasicSoundBank.copyFrom(sf);
     if (opts.trim) {
