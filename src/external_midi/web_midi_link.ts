@@ -10,6 +10,8 @@ import type { BasicSynthesizer } from "../synthesizer/basic/basic_synthesizer";
  * @group Web MIDI
  */
 export class WebMIDILinkHandler {
+    private readonly listener: (msg: MessageEvent) => void;
+
     /**
      * Initializes support for [Web MIDI Link](https://www.g200kg.com/en/docs/webmidilink/).
      *
@@ -18,25 +20,42 @@ export class WebMIDILinkHandler {
      * @param synth The synthesizer instance to connect the link to.
      */
     public constructor(synth: BasicSynthesizer) {
-        window.addEventListener("message", (msg) => {
+        this.listener = (msg: MessageEvent) => {
             if (typeof msg.data !== "string") {
                 return;
             }
-            const data: string[] = msg.data.split(",");
-            if (data[0] !== "midi") {
+            const data = msg.data.split(",");
+            if (data[0] !== "midi" || data.length < 2) {
                 return;
             }
 
-            data.shift(); // Remove MIDI
-
-            const midiData = data.map((byte) => Number.parseInt(byte, 16));
+            const midiData = new Array<number>(data.length - 1);
+            for (let i = 1; i < data.length; i++) {
+                const byte = Number.parseInt(data[i], 16);
+                if (!(byte >= 0 && byte <= 0xff)) {
+                    SpessaLog.warn(
+                        `Invalid Web MIDI Link message: ${msg.data}`
+                    );
+                    return;
+                }
+                midiData[i - 1] = byte;
+            }
 
             synth.sendMessage(midiData);
-        });
+        };
+        window.addEventListener("message", this.listener);
 
         SpessaLog.info(
             "%cWeb MIDI Link handler created!",
             ConsoleColors.recognized
         );
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Stops listening for Web MIDI Link messages.
+     */
+    public close() {
+        window.removeEventListener("message", this.listener);
     }
 }

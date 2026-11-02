@@ -199,29 +199,32 @@ export class MIDIDeviceHandler {
 
     /**
      * Initializes the connection to physical MIDI devices.
+     * @param requestSysEx If the System Exclusive access should be requested.
+     * If it is denied, the access without System Exclusive messages is requested instead.
      * @returns The MIDI device handler.
      * @throws Error If the MIDI devices fail to initialize or the Web MIDI API is not supported.
      */
-    public static async createMIDIDeviceHandler(): Promise<MIDIDeviceHandler> {
-        if (navigator.requestMIDIAccess) {
-            // Prepare the midi access
-            try {
-                const response = await navigator.requestMIDIAccess({
-                    sysex: true,
-                    software: true
-                });
-                SpessaLog.info(
-                    "%cMIDI handler created!",
-                    ConsoleColors.recognized
-                );
-                return new MIDIDeviceHandler(response);
-            } catch (error) {
-                SpessaLog.warn(`Could not get MIDI Devices:`, error);
-                throw error;
-            }
-        } else {
-            SpessaLog.warn("Web MIDI API is not supported.");
+    public static async createMIDIDeviceHandler(
+        requestSysEx = true
+    ): Promise<MIDIDeviceHandler> {
+        if (!navigator.requestMIDIAccess) {
             throw new Error("Web MIDI API is not supported.");
         }
+        let access: MIDIAccess;
+        try {
+            access = await navigator.requestMIDIAccess({
+                sysex: requestSysEx,
+                software: true
+            });
+        } catch (error) {
+            if (!requestSysEx) throw error;
+            SpessaLog.warn(
+                "System Exclusive MIDI access denied, retrying without it:",
+                error
+            );
+            access = await navigator.requestMIDIAccess({ software: true });
+        }
+        SpessaLog.info("%cMIDI handler created!", ConsoleColors.recognized);
+        return new MIDIDeviceHandler(access);
     }
 }

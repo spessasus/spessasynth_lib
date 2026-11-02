@@ -2,7 +2,6 @@ import { runCommandSync } from "./run_command";
 
 runCommandSync("npm uninstall spessasynth_core");
 runCommandSync("npm install spessasynth_core");
-runCommandSync("npm pkg set dependencies.spessasynth_core=latest");
 runCommandSync("npm prune");
 runCommandSync("npm update");
 runCommandSync("npm run build");

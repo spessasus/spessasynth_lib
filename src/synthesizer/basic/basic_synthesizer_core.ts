@@ -25,6 +25,8 @@ export type PostMessageSynthCore = (
 
 // Seconds
 const SEQUENCER_SYNC_INTERVAL = 1;
+// Seconds, about 30 updates per second is enough for visualization
+const VOICE_COUNT_SYNC_INTERVAL = 1 / 30;
 
 /**
  * The events that the main thread needs to mirror the synthesizer state.
@@ -86,6 +88,7 @@ export abstract class BasicSynthesizerCore {
      */
     protected destroyed = false;
     protected lastSequencerSync = 0;
+    protected lastVoiceCountSync = 0;
     /**
      * A message queue for sending many messages in bulk as one.
      * @internal
@@ -173,19 +176,23 @@ export abstract class BasicSynthesizerCore {
         }
 
         // Update voice count
-        const c = this.synthesizer.midiChannels;
-        const cv = this.voiceCounts;
-        let updateChannels = false;
-        for (let i = 0; i < c.length; i++) {
-            updateChannels ||= c[i].voiceCount !== cv[i];
-            cv[i] = c[i].voiceCount;
+        // Throttle to avoid posting a message every block
+        if (t - this.lastVoiceCountSync >= VOICE_COUNT_SYNC_INTERVAL) {
+            this.lastVoiceCountSync = t;
+            const c = this.synthesizer.midiChannels;
+            const cv = this.voiceCounts;
+            let updateChannels = false;
+            for (let i = 0; i < c.length; i++) {
+                updateChannels ||= c[i].voiceCount !== cv[i];
+                cv[i] = c[i].voiceCount;
+            }
+            if (updateChannels)
+                this.post({
+                    type: "voiceCountChange",
+                    currentTime: t,
+                    data: cv
+                });
         }
-        if (updateChannels)
-            this.post({
-                type: "voiceCountChange",
-                currentTime: t,
-                data: cv
-            });
 
         // Flush the queue
         this.messageQueueActive = false;
@@ -400,10 +407,6 @@ export abstract class BasicSynthesizerCore {
                 }
                 const seqMsg = m.data;
                 switch (seqMsg.type) {
-                    default: {
-                        break;
-                    }
-
                     case "loadNewSongList": {
                         try {
                             const sList = seqMsg.data;
@@ -512,6 +515,10 @@ export abstract class BasicSynthesizerCore {
 
                     case "setSkipToFirstNote": {
                         seq.skipToFirstNoteOn = seqMsg.data;
+                        break;
+                    }
+
+                    default: {
                         break;
                     }
                 }

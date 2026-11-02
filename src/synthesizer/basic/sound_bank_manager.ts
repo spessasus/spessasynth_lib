@@ -48,9 +48,11 @@ export class SoundBankManager {
         // Consume the response to keep the waiters in order. Errors are reported with the soundBankError event
         void this.awaitResponse().catch(() => undefined);
         this.sendToWorklet("rearrangeSoundBanks", newList);
-        this.soundBankList.sort(
-            (a, b) => newList.indexOf(a.id) - newList.indexOf(b.id)
-        );
+        const rank = (id: string) => {
+            const index = newList.indexOf(id);
+            return index === -1 ? newList.length : index;
+        };
+        this.soundBankList.sort((a, b) => rank(a.id) - rank(b.id));
     }
 
     // noinspection JSUnusedGlobalSymbols

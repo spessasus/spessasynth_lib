@@ -145,6 +145,11 @@ export abstract class BasicSynthesizer {
             reject: (error: Error) => unknown;
         }[]
     >();
+    /**
+     * Set once the synthesizer is destroyed.
+     * @internal
+     */
+    protected destroyed = false;
     protected renderingProgressTracker = new Map<
         keyof SynthesizerProgress,
         {
@@ -299,6 +304,40 @@ export abstract class BasicSynthesizer {
         // Disconnect convolver (optional)
         this.convolverNode?.disconnect(destinationNode);
         return destinationNode;
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /**
+     * Properly disposes of the synthesizer along with its audio nodes and the core.
+     * All pending operations (such as loading a sound bank) are rejected.
+     *
+     * > **Warning**
+     * >
+     * > Remember, you **MUST** call this method after you're done with the synthesizer!
+     * > Otherwise it will keep processing and the performance will greatly suffer.
+     *
+     * > **Note**
+     * >
+     * > For {@link WorkerSynthesizer}, the `Worker` itself is owned by you.
+     * > Terminate it after calling this method if it is no longer needed.
+     */
+    public destroy() {
+        if (this.destroyed) return;
+        this.post({
+            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
+            type: "destroyWorklet",
+            data: null
+        });
+        this.destroyed = true;
+        this.worklet.disconnect();
+        this.convolverNode?.disconnect();
+
+        // The core will not respond anymore
+        const error = new Error("The synthesizer has been destroyed.");
+        for (const waiters of this.coreResponseWaiters.values())
+            for (const waiter of waiters) waiter.reject(error);
+        this.coreResponseWaiters.clear();
+        this.renderingProgressTracker.clear();
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -914,6 +953,10 @@ export abstract class BasicSynthesizer {
         type: K
     ): Promise<SynthesizerReturn[K]> {
         return new Promise<SynthesizerReturn[K]>((resolve, reject) => {
+            if (this.destroyed) {
+                reject(new Error("The synthesizer has been destroyed."));
+                return;
+            }
             let waiters = this.coreResponseWaiters.get(type);
             if (!waiters) {
                 waiters = [];

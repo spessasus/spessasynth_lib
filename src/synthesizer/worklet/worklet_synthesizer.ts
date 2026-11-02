@@ -131,25 +131,6 @@ export class WorkletSynthesizer extends BasicSynthesizer {
         return merger;
     }
 
-    // noinspection JSUnusedGlobalSymbols
-    /**
-     * Properly disposes of the synthesizer along with its worklet.
-     *
-     * > **Warning**
-     * >
-     * > Remember, you **MUST** call this method after you're done with the synthesizer!
-     * > Otherwise it will keep processing and the performance will greatly suffer.
-     */
-    public destroy() {
-        this.post({
-            channelNumber: ALL_CHANNELS_OR_DIFFERENT_ACTION,
-            type: "destroyWorklet",
-            data: null
-        });
-        this.worklet.disconnect();
-        this.convolverNode?.disconnect();
-    }
-
     private stripConvolverFromSnapshot(
         snapshot?: LibSynthesizerSnapshot
     ): SynthesizerSnapshot | undefined {
