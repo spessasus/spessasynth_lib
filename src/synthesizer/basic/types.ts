@@ -31,6 +31,18 @@ export interface SynthConfig {
      * - The impulse response is loaded internally from the library and can be replaced by assigning a new buffer to the {@link BasicSynthesizer.convolverNode}.
      */
     convolverMode: boolean;
+
+    /**
+     * The most decoded sample data the synthesizer keeps, in bytes.
+     * When over it, the least recently played samples drop their decoded data and decode again when played.
+     * Defaults to Infinity, which keeps everything.
+     * See {@link SynthProcessorOptions.decodedSampleBudget}.
+     *
+     * > **Tip**
+     * >
+     * > Set it for very large sound banks, especially on devices with little memory.
+     */
+    decodedSampleBudget: number;
 }
 
 /**

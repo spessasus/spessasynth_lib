@@ -8,6 +8,7 @@ import type { SynthConfig } from "./types";
 export const DEFAULT_SYNTH_CONFIG: SynthConfig = {
     eventsEnabled: true,
     convolverMode: false,
+    decodedSampleBudget: Infinity,
     audioNodeCreators: undefined
 };
 

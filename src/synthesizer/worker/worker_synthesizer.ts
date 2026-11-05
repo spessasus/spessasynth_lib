@@ -231,7 +231,8 @@ export class WorkerSynthesizer extends BasicSynthesizer {
                 sampleRate: this.context.sampleRate,
                 convolverMode: synthConfig.convolverMode,
                 processorConfig: {
-                    eventsEnabled: synthConfig.eventsEnabled
+                    eventsEnabled: synthConfig.eventsEnabled,
+                    decodedSampleBudget: synthConfig.decodedSampleBudget
                 }
             },
             [workerPort]

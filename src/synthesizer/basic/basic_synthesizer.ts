@@ -196,7 +196,8 @@ export abstract class BasicSynthesizer {
                     sampleRate: context.sampleRate,
                     initialTime: context.currentTime,
                     processorConfig: {
-                        eventsEnabled: synthConfig.eventsEnabled
+                        eventsEnabled: synthConfig.eventsEnabled,
+                        decodedSampleBudget: synthConfig.decodedSampleBudget
                     }
                 }
             });
