@@ -194,12 +194,7 @@ export abstract class BasicSynthesizerCore {
                 });
         }
 
-        // Flush the queue
-        this.messageQueueActive = false;
-        if (this.messageQueue.length > 0)
-            this.postInternal(this.messageQueue, this.messageQueueTransferable);
-        this.messageQueue.length = 0;
-        this.messageQueueTransferable.length = 0;
+        this.flushMessageQueue();
     }
 
     protected post(
@@ -310,6 +305,25 @@ export abstract class BasicSynthesizerCore {
 
     protected handleMessage(m: BasicSynthesizerMessage) {
         if (this.destroyed) return;
+        // A sequencer seek alone can emit thousands of events!
+        // So queue it
+        const wasActive = this.messageQueueActive;
+        this.messageQueueActive = true;
+        try {
+            this.processMessage(m);
+        } finally {
+            if (!wasActive) this.flushMessageQueue();
+        }
+    }
+    private flushMessageQueue() {
+        this.messageQueueActive = false;
+        if (this.messageQueue.length > 0)
+            this.postInternal(this.messageQueue, this.messageQueueTransferable);
+        this.messageQueue.length = 0;
+        this.messageQueueTransferable.length = 0;
+    }
+
+    private processMessage(m: BasicSynthesizerMessage) {
         const channel = m.channelNumber;
 
         let channelObject: MIDIChannel | undefined;

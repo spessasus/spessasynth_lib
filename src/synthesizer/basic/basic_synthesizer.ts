@@ -1019,66 +1019,72 @@ export abstract class BasicSynthesizer {
      * @internal
      */
     protected handleMessages(messages: BasicSynthesizerReturnMessage[]) {
-        for (const m of messages)
-            switch (m.type) {
-                case "eventCall": {
-                    // The state is always synced,
-                    // Even if the event system is disabled
-                    this.receiveEventCallback(m.data);
-                    if (this._systemParameters.eventsEnabled)
+        for (const m of messages) {
+            // Batched messages
+            try {
+                switch (m.type) {
+                    case "eventCall": {
+                        // The state is always synced,
+                        // Even if the event system is disabled
+                        this.receiveEventCallback(m.data);
+                        if (this._systemParameters.eventsEnabled)
+                            this.eventHandler.callEventInternal(
+                                m.data.type,
+                                m.data.data
+                            );
+                        break;
+                    }
+
+                    case "sequencerReturn": {
+                        this.sequencers[m.data.id]?.(m.data);
+                        break;
+                    }
+
+                    case "voiceCountChange": {
+                        let total = 0;
+                        for (let i = 0; i < m.data.length; i++) {
+                            this.midiChannels[i].voiceCount = m.data[i];
+                            total += m.data[i];
+                        }
+                        this._voiceCount = total;
+                        break;
+                    }
+
+                    case "isFullyInitialized": {
+                        this.coreResponseWaiters
+                            .get(m.data.type)
+                            ?.shift()
+                            ?.resolve(m.data.data);
+                        break;
+                    }
+
+                    case "coreResponseError": {
+                        this.coreResponseWaiters
+                            .get(m.data.type)
+                            ?.shift()
+                            ?.reject(m.data.error);
+                        break;
+                    }
+
+                    case "soundBankError": {
+                        SpessaLog.warn(m.data);
                         this.eventHandler.callEventInternal(
-                            m.data.type,
+                            "soundBankError",
+                            m.data
+                        );
+                        break;
+                    }
+
+                    case "renderingProgress": {
+                        this.renderingProgressTracker.get(m.data.type)?.(
                             m.data.data
                         );
-                    break;
-                }
-
-                case "sequencerReturn": {
-                    this.sequencers[m.data.id]?.(m.data);
-                    break;
-                }
-
-                case "voiceCountChange": {
-                    let total = 0;
-                    for (let i = 0; i < m.data.length; i++) {
-                        this.midiChannels[i].voiceCount = m.data[i];
-                        total += m.data[i];
                     }
-                    this._voiceCount = total;
-                    break;
                 }
-
-                case "isFullyInitialized": {
-                    this.coreResponseWaiters
-                        .get(m.data.type)
-                        ?.shift()
-                        ?.resolve(m.data.data);
-                    break;
-                }
-
-                case "coreResponseError": {
-                    this.coreResponseWaiters
-                        .get(m.data.type)
-                        ?.shift()
-                        ?.reject(m.data.error);
-                    break;
-                }
-
-                case "soundBankError": {
-                    SpessaLog.warn(m.data);
-                    this.eventHandler.callEventInternal(
-                        "soundBankError",
-                        m.data
-                    );
-                    break;
-                }
-
-                case "renderingProgress": {
-                    this.renderingProgressTracker.get(m.data.type)?.(
-                        m.data.data
-                    );
-                }
+            } catch (error) {
+                reportError(error);
             }
+        }
     }
 
     protected addNewChannelInternal() {
