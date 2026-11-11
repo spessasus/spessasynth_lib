@@ -59,11 +59,25 @@ function buildCoreLinks() {
             const kind = match[1] === "abstract class" ? "class" : match[1];
             if (!kinds.has(match[2])) kinds.set(match[2], kind);
 
-            if (hasDocComment(lines, index)) documented.add(match[2]);
+            const isDocumented = hasDocComment(lines, index);
+            if (isDocumented) documented.add(match[2]);
+
+            if (
+                isDocumented &&
+                line.startsWith("export ") &&
+                !links.has(match[2])
+            ) {
+                links.set(
+                    match[2],
+                    `${CORE_DOCS}/${KIND_DIRECTORIES[kind]}/${match[2]}/`
+                );
+            }
         }
 
         const text = lines.join("\n");
-        for (const block of text.matchAll(/^export\s*\{([\s\S]*?)};/gm)) {
+        for (const block of text.matchAll(
+            /^export\s*(?:type\s*)?\{([\s\S]*?)};/gm
+        )) {
             const items = block[1].split(",");
             for (const item of items) {
                 const match = EXPORT_ITEM_PATTERN.exec(item.trim());
