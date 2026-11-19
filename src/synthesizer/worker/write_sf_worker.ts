@@ -2,6 +2,7 @@ import type { WorkerSynthesizerCore } from "./worker_synthesizer_core";
 import type {
     WorkerBankWriteOptions,
     WorkerDLSWriteOptions,
+    WorkerSFeWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types";
 import { BasicSoundBank, type SampleEncodingFunction } from "spessasynth_core";
@@ -117,6 +118,25 @@ export function writeDLSWorker(
     const sf = getBankToWrite.call(this, opts, false);
 
     const b = sf.writeDLS({
+        ...opts,
+        progressFunction: (progress) => {
+            this.postProgress("workerSynthWriteFile", progress);
+            return Promise.resolve();
+        }
+    });
+    return {
+        binary: b,
+        bank: sf
+    };
+}
+
+export function writeSFeWorker(
+    this: WorkerSynthesizerCore,
+    opts: WorkerSFeWriteOptions
+) {
+    const sf = getBankToWrite.call(this, opts, false);
+
+    const b = sf.writeSFe({
         ...opts,
         progressFunction: (progress) => {
             this.postProgress("workerSynthWriteFile", progress);

@@ -6,6 +6,7 @@ import {
     type GlobalSystemParameter,
     type MIDIController,
     type RMIDIWriteOptions,
+    type SFeWriteOptions,
     type SoundBankWriteOptions,
     type SoundFont2WriteOptions,
     type SynthesizerEvent as CoreSynthesizerEvent,
@@ -149,6 +150,14 @@ export type WorkerDLSWriteOptions = Omit<
     WorkerBankWriteOptions;
 
 /**
+ * Configuration for writing the SFe file.
+ *
+ * @group Synthesizer.Worker
+ */
+export type WorkerSFeWriteOptions = Omit<SFeWriteOptions, "progressFunction"> &
+    WorkerBankWriteOptions;
+
+/**
  * Configuration for writing the SF2 file.
  *
  * @group Synthesizer.Worker
@@ -222,6 +231,7 @@ interface BasicSynthesizerMessageData {
     };
     writeSF2: WorkerSoundFont2WriteOptions;
     writeDLS: WorkerDLSWriteOptions;
+    writeSFe: WorkerSFeWriteOptions;
     writeRMIDI: WorkerRMIDIWriteOptions;
 
     // WORKLET SPECIFIC

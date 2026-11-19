@@ -24,6 +24,15 @@ class GSReverbCapture implements GSReverbProcessor {
         this.capture = capture;
     }
 
+    public reset() {
+        this.character = 0;
+        this.delayFeedback = 0;
+        this.level = 64;
+        this.preDelayTime = 0;
+        this.preLowpass = 0;
+        this.time = 0;
+    }
+
     public getSnapshot(): GSReverbParameter {
         return {
             character: this.character,

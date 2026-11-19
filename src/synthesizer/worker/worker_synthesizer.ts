@@ -13,6 +13,7 @@ import type {
     WorkerBankWriteOptions,
     WorkerDLSWriteOptions,
     WorkerRMIDIWriteOptions,
+    WorkerSFeWriteOptions,
     WorkerSoundFont2WriteOptions
 } from "../types";
 import {
@@ -48,6 +49,12 @@ const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
     metadata: {},
     format: "sf2",
     ...DEFAULT_SF2_WRITE_OPTIONS
+};
+
+const DEFAULT_SFE_WRITE_OPTIONS: WorkerSFeWriteOptions = {
+    ...DEFAULT_BANK_WRITE_OPTIONS,
+    rf64: false,
+    software: "SpessaSynth"
 };
 
 const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {
@@ -299,6 +306,24 @@ export class WorkerSynthesizer extends BasicSynthesizer {
     }
 
     /**
+     * Writes an SFe file directly in the worker.
+     * This pauses the playback if it is playing.
+     *
+     * @param options Optional configuration for writing the SFe file.
+     * @returns The file array buffer and its suggested name.
+     */
+    public async writeSFe(
+        options: Partial<
+            WorkerSynthWriteOptions<WorkerSFeWriteOptions>
+        > = DEFAULT_SFE_WRITE_OPTIONS
+    ): Promise<SynthesizerReturn["workerSynthWriteFile"]> {
+        return this.writeFile(
+            "writeSFe",
+            fillWithDefaults(options, DEFAULT_SFE_WRITE_OPTIONS)
+        );
+    }
+
+    /**
      * Writes an SF2/SF3 file directly in the worker.
      * This pauses the playback if it is playing.
      *
@@ -383,7 +408,9 @@ export class WorkerSynthesizer extends BasicSynthesizer {
      * @param type The message type of the file to write.
      * @param options The complete write options, including the progress function.
      */
-    private async writeFile<T extends "writeDLS" | "writeSF2" | "writeRMIDI">(
+    private async writeFile<
+        T extends "writeDLS" | "writeSF2" | "writeSFe" | "writeRMIDI"
+    >(
         type: T,
         options: WorkerSynthWriteOptions<
             Extract<BasicSynthesizerMessage, { type: T }>["data"]

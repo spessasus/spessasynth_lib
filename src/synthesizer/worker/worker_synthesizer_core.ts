@@ -14,7 +14,11 @@ import {
     BasicSynthesizerCore,
     type PostMessageSynthCore
 } from "../basic/basic_synthesizer_core";
-import { writeDLSWorker, writeSF2Worker } from "./write_sf_worker";
+import {
+    writeDLSWorker,
+    writeSF2Worker,
+    writeSFeWorker
+} from "./write_sf_worker";
 import { writeRMIDIWorker } from "./write_rmi_worker";
 import type { SynthCoreConfig } from "../basic/types";
 import {
@@ -202,6 +206,22 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
                         {
                             binary: data.binary,
                             fileName: data.bank.soundBankInfo.name + ".dls"
+                        },
+                        [data.binary]
+                    );
+                });
+                break;
+            }
+
+            case "writeSFe": {
+                const opts = m.data;
+                void this.runOffline("workerSynthWriteFile", () => {
+                    const data = writeSFeWorker.call(this, opts);
+                    this.postReady(
+                        "workerSynthWriteFile",
+                        {
+                            binary: data.binary,
+                            fileName: data.bank.soundBankInfo.name + ".sf4"
                         },
                         [data.binary]
                     );
