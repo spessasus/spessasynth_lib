@@ -220,6 +220,14 @@ export type WorkerRMIDIWriteOptions = Omit<RMIDIWriteOptions, "soundBank"> & {
                */
               format: "dls";
           } & WorkerDLSWriteOptions)
+        | ({
+              /**
+               * Format to save the sound bank in.
+               * SFe keeps everything the bank holds, but only SFe readers can play the embedded bank.
+               * It is always written with 32-bit chunk sizes, RMIDI can't hold an RF64 bank.
+               */
+              format: "sfe";
+          } & Omit<WorkerSFeWriteOptions, "rf64">)
     );
 
 interface BasicSynthesizerMessageData {

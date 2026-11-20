@@ -43,13 +43,33 @@ export class MIDIData extends BasicMIDI {
      */
     public readonly embeddedSoundBankSize?: number;
 
+    /**
+     * If the embedded sound bank is an SFe bank, for example the one of a converted tracker module.
+     * Writing such a bank as SF2 may lose data.
+     */
+    public readonly embeddedSoundBankIsSFe: boolean;
+
     public constructor(mid: BasicMIDI) {
         super();
         super.copyMetadataFrom(mid);
         this.tracks = mid.tracks.map((t) => new MIDIDataTrack(t));
-        this.embeddedSoundBankSize =
-            mid instanceof MIDIData
-                ? mid.embeddedSoundBankSize
-                : mid?.embeddedSoundBank?.byteLength;
+        // Another MIDIData, or one cloned from the worker (a plain object without the bank)
+        if (mid instanceof MIDIData || "embeddedSoundBankIsSFe" in mid) {
+            const data = mid as MIDIData;
+            this.embeddedSoundBankSize = data.embeddedSoundBankSize;
+            this.embeddedSoundBankIsSFe = data.embeddedSoundBankIsSFe;
+            return;
+        }
+        const bank = mid?.embeddedSoundBank;
+        this.embeddedSoundBankSize = bank?.byteLength;
+        // A RIFS file is always SFe, a RIFF one has its form type at bytes 8 to 11
+        let isSFe = false;
+        if (bank && bank.byteLength >= 12) {
+            const bytes = new Uint8Array(bank, 0, 12);
+            const text = (from: number) =>
+                String.fromCharCode(...bytes.subarray(from, from + 4));
+            isSFe = text(0) === "RIFS" || text(8).toLowerCase() === "sfen";
+        }
+        this.embeddedSoundBankIsSFe = isSFe;
     }
 }
