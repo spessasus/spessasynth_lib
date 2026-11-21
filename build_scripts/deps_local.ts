@@ -4,4 +4,4 @@ runCommandSync("npm uninstall spessasynth_core");
 runCommandSync("npm install ../spessasynth_core");
 runCommandSync("npm run build:fast");
 
-console.log("All commands completed successfully.");
+console.info("spessasynth_core now links ../spessasynth_core.");

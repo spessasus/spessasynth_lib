@@ -7,20 +7,22 @@
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "npm run test:types && npm run build:fast",
+        "build": "npm run check && npm run build:fast",
         "build:fast": "npm run build:npm && npm run build:pages",
         "build:npm": "tsx build_scripts/build_npm.ts",
         "build:pages": "tsx build_scripts/build_pages.ts",
+        "check": "npm run lint && node node_modules/typescript7/bin/tsc -b",
+        "deps:local": "tsx build_scripts/deps_local.ts",
+        "deps:npm": "tsx build_scripts/deps_npm.ts",
         "docs": "tsx node_modules/typedoc/bin/typedoc src/index.ts --options typedoc.json",
-        "docs:watch": "tsx node_modules/typedoc/bin/typedoc src/index.ts --options typedoc.json --watch",
         "docs:serve": "npx concurrently \"npm run docs:watch\" \"npx serve site/\"",
+        "docs:watch": "tsx node_modules/typedoc/bin/typedoc src/index.ts --options typedoc.json --watch",
         "format": "prettier . --write --list-different",
-        "test:types": "eslint && node node_modules/typescript7/bin/tsc -b",
-        "debug": "tsx build_scripts/debug_enable.ts",
-        "release": "tsx build_scripts/debug_disable.ts",
+        "format:check": "prettier --check .",
+        "lint": "eslint",
         "prepack": "npm run build:npm",
-        "prepublishOnly": "npm run release",
-        "prepare": "husky"
+        "prepare": "husky",
+        "prepublishOnly": "tsx build_scripts/check_publish.ts && npm run build"
     },
     "repository": {
         "type": "git",
@@ -59,6 +61,9 @@
     "bugs": {
         "url": "https://github.com/spessasus/spessasynth_lib/issues",
         "email": "spesekspesek@gmail.com"
+    },
+    "engines": {
+        "node": ">=24"
     },
     "homepage": "https://github.com/spessasus/spessasynth_lib#readme",
     "devDependencies": {
