@@ -29,7 +29,7 @@ export async function writeRMIDIWorker(
 
         case "sfe": {
             // RMIDI holds a RIFF chunk, so never RF64
-            written = writeSFeWorker.call(this, { ...opts, rf64: false });
+            written = await writeSFeWorker.call(this, { ...opts, rf64: false });
             break;
         }
     }

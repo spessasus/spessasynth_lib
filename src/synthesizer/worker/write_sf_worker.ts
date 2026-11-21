@@ -33,31 +33,26 @@ function getBankToWrite(
     return sfCopy;
 }
 
-export async function writeSF2Worker(
+/**
+ * Compresses or decompresses the samples of the bank in place, if requested.
+ * @param sf The bank to change, it must be a copy of the synthesizer's bank.
+ * @param action What to do with the samples.
+ * @param quality The compression quality, if compressing.
+ */
+async function applySampleAction(
     this: WorkerSynthesizerCore,
-    opts: WorkerSoundFont2WriteOptions
-): Promise<{
-    binary: ArrayBuffer;
-    bank: BasicSoundBank;
-}> {
-    const sf = getBankToWrite.call(
-        this,
-        opts,
-        opts.compressionAction !== "keep"
-    );
-
+    sf: BasicSoundBank,
+    action: "keep" | "compress" | "decompress",
+    quality: number
+) {
     let compressionFunction: SampleEncodingFunction | undefined;
 
     if (this.compressionFunction !== undefined) {
         compressionFunction = (audioData, sampleRate) =>
-            this.compressionFunction!(
-                audioData,
-                sampleRate,
-                opts.compressionQuality
-            );
+            this.compressionFunction!(audioData, sampleRate, quality);
     }
 
-    switch (opts.compressionAction) {
+    switch (action) {
         case "keep":
         default: {
             // No action
@@ -97,6 +92,24 @@ export async function writeSF2Worker(
             });
         }
     }
+}
+
+export async function writeSF2Worker(
+    this: WorkerSynthesizerCore,
+    opts: WorkerSoundFont2WriteOptions
+) {
+    const sf = getBankToWrite.call(
+        this,
+        opts,
+        opts.compressionAction !== "keep"
+    );
+
+    await applySampleAction.call(
+        this,
+        sf,
+        opts.compressionAction,
+        opts.compressionQuality
+    );
 
     const b = sf.writeSF2({
         ...opts,
@@ -130,11 +143,21 @@ export function writeDLSWorker(
     };
 }
 
-export function writeSFeWorker(
+export async function writeSFeWorker(
     this: WorkerSynthesizerCore,
     opts: WorkerSFeWriteOptions
 ) {
-    const sf = getBankToWrite.call(this, opts, false);
+    const sf = getBankToWrite.call(
+        this,
+        opts,
+        opts.compressionAction !== "keep"
+    );
+    await applySampleAction.call(
+        this,
+        sf,
+        opts.compressionAction,
+        opts.compressionQuality
+    );
 
     const b = sf.writeSFe({
         ...opts,

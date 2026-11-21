@@ -215,8 +215,8 @@ export class WorkerSynthesizerCore extends BasicSynthesizerCore {
 
             case "writeSFe": {
                 const opts = m.data;
-                void this.runOffline("workerSynthWriteFile", () => {
-                    const data = writeSFeWorker.call(this, opts);
+                void this.runOffline("workerSynthWriteFile", async () => {
+                    const data = await writeSFeWorker.call(this, opts);
                     this.postReady(
                         "workerSynthWriteFile",
                         {

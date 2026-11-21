@@ -155,7 +155,18 @@ export type WorkerDLSWriteOptions = Omit<
  * @group Synthesizer.Worker
  */
 export type WorkerSFeWriteOptions = Omit<SFeWriteOptions, "progressFunction"> &
-    WorkerBankWriteOptions;
+    WorkerBankWriteOptions & {
+        /**
+         * If the samples should be changed, same as in {@link WorkerSoundFont2WriteOptions}.
+         * Defaults to `keep`.
+         */
+        compressionAction: "keep" | "compress" | "decompress";
+
+        /**
+         * The compression quality to call your provided {@link WorkerSampleEncodingFunction} with, if compressing.
+         */
+        compressionQuality: number;
+    };
 
 /**
  * Configuration for writing the SF2 file.

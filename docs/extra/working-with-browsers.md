@@ -64,7 +64,7 @@ An example file (named `main.js`):
 ```js
 import { WorkletSynthesizer } from "spessasynth_lib";
 
-console.log("yay, we have imported", WorkletSynthesizer);
+console.info("yay, we have imported", WorkletSynthesizer);
 ```
 
 ### Bundling and minification

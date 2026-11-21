@@ -65,7 +65,7 @@ export const buildExamples = () => {
         const outputHTML = `${header}\n<div class="example_content">\n${partialContent}</div>${footer}\n`;
 
         fs.writeFileSync(outputFile, outputHTML);
-        console.log(`compiled HTML: ${outputFile}`);
+        console.info(`compiled HTML: ${outputFile}`);
     }
 
     // Process each ts file and bundle with esbuild
@@ -89,11 +89,11 @@ export const buildExamples = () => {
                 platform: "browser",
                 sourcemap: "linked"
             });
-            console.log(`built: ${outputJsFile}`);
+            console.info(`built: ${outputJsFile}`);
         } catch (error) {
             console.error(`error bundling: ${error as string}`);
         }
     }
 
-    console.log("examples built successfully");
+    console.info("examples built successfully");
 };

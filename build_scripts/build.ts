@@ -1,6 +1,6 @@
 import { runCommandSync } from "./run_command";
 
-console.log("Building spessasynth_lib...");
+console.info("Building spessasynth_lib...");
 runCommandSync("npm run build:npm");
 runCommandSync("npm run build:pages");
-console.log("spessasynth_lib built successfully.");
+console.info("spessasynth_lib built successfully.");

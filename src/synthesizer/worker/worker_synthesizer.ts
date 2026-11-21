@@ -54,7 +54,9 @@ const DEFAULT_RMIDI_WRITE_OPTIONS: WorkerRMIDIWriteOptions = {
 const DEFAULT_SFE_WRITE_OPTIONS: WorkerSFeWriteOptions = {
     ...DEFAULT_BANK_WRITE_OPTIONS,
     rf64: false,
-    software: "SpessaSynth"
+    software: "SpessaSynth",
+    compressionAction: "keep",
+    compressionQuality: 1
 };
 
 const DEFAULT_DLS_WRITE_OPTIONS: WorkerDLSWriteOptions = {

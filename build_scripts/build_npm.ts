@@ -3,7 +3,7 @@ import { NPM_DIST_DIR } from "./util";
 import esbuild from "esbuild";
 import * as tsdown from "tsdown";
 
-console.log("Building NPM package...");
+console.info("Building NPM package...");
 const dirname = import.meta.dirname;
 const INPUT_PATH = path.join(dirname, "..", "src", "worklet_processor.ts");
 const OUTPUT_PATH = path.join(
@@ -45,7 +45,7 @@ try {
         // The worklet processor must run in Chrome 109 (es2022)
         target: "chrome109"
     });
-    console.log("NPM package built successfully.");
+    console.info("NPM package built successfully.");
 } catch (error) {
     console.error(error, "\nFailed to build the NPM package.");
     process.exitCode = 1;
