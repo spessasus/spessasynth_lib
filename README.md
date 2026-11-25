@@ -92,6 +92,7 @@ await ctx.audioWorklet.addModule("./spessasynth_processor.min.js");
 const synth = new WorkletSynthesizer(ctx);
 await synth.soundBankManager.addSoundBank(sfont, "main");
 await synth.isReady;
+synth.connect(ctx.destination);
 document.getElementById("button").onclick = async () => {
     await ctx.resume();
     synth.programChange(0, 48); // strings ensemble
