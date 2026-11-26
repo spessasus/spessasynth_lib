@@ -1,0 +1,7 @@
+rules:
+    # I'm not sure the runner supports the "$/" syntax yet, "./" works everywhere
+    self-repository:
+        disable: true
+    # The release action is fine, rewriting it as a gh call is not worth it
+    superfluous-actions:
+        disable: true
